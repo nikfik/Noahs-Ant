@@ -23,14 +23,7 @@
 
         <main>
             <h2>Projects</h2>
-            <div class="project-grid">
-                <div class="project-card active">
-                    <div class="thumbnail">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/DaVinci_Resolve_Studio_16_icon.png" alt="logo" width="40">
-                    </div>
-                    <p class="project-name">Untitled Project</p>
-                </div>
-            </div>
+            <div id="project-grid" class="project-grid"></div>
         </main>
 
         <footer>
@@ -39,12 +32,32 @@
                 <button class="btn-outline">Import</button>
             </div>
             <div class="right-buttons">
-                <button class="btn-outline">New Project</button>
-                <button class="btn-primary">Open</button>
+                <button id="new-project-btn" class="btn-outline">New Project</button>
+                <button id="open-project-btn" class="btn-primary">Open</button>
             </div>
         </footer>
+        <div class="project-panel">
+            <div id="project-status" class="project-status">Brak aktywnego projektu</div>
+        </div>
     </div>
 
+    <div id="project-modal" class="modal hidden">
+        <div class="modal-card">
+            <h3>Utwórz nowy projekt</h3>
+            <p>Wprowadź nazwę projektu, aby zapisać go w folderze <strong>Projects</strong>.</p>
+            <form id="project-modal-form">
+                <label for="project-name">Nazwa projektu</label>
+                <input id="project-name" name="project-name" type="text" placeholder="Badanie Szczurów - Lab 3" required>
+                <div id="project-name-error" class="input-error"></div>
+                <div class="modal-actions">
+                    <button type="button" id="project-cancel-btn" class="btn-outline">Anuluj</button>
+                    <button type="submit" class="btn-primary">Utwórz</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../scripts/project-utils.js"></script>
     <script src="../scripts/renderer.js"></script>
 </body>
 </html>

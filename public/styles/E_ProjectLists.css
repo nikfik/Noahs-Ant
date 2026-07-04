@@ -60,20 +60,52 @@ h2 {
     color: var(--text-color, #e0e0e0);
 }
 
+.project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 18px;
+}
+
 .project-card {
-    width: 160px;
+    min-height: 170px;
+    padding: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    background-color: rgba(255, 255, 255, 0.03);
+    transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.project-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-color, #ff4f1a);
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.project-card.selected {
+    border-color: var(--primary-color, #ff4f1a);
+    background-color: rgba(255, 79, 26, 0.12);
 }
 
 .thumbnail {
-    width: 160px;
+    width: 100%;
     height: 100px;
     background-color: var(--card-bg, #222222);
-    border: 1px solid var(--primary-color, #ff4f1a);
-    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
+}
+
+.thumbnail-label {
+    color: var(--text-color, #e0e0e0);
+    font-size: 24px;
+    font-weight: 700;
 }
 
 .project-name {
@@ -113,4 +145,117 @@ button:hover {
 .btn-primary {
     background-color: transparent;
     border: 1px solid var(--muted-text, #888888);
+}
+
+.project-panel {
+    padding: 0 20px 20px;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-card {
+    width: min(420px, calc(100% - 40px));
+    background: var(--header-bg, #111111);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+}
+
+.modal-card h3 {
+    margin: 0 0 10px;
+    color: var(--text-color, #e0e0e0);
+}
+
+.modal-card p {
+    margin: 0 0 18px;
+    color: var(--muted-text, #888888);
+}
+
+.modal-card label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--text-color, #e0e0e0);
+}
+
+..modal-card input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--bg-color, #1a1a1a);
+    color: var(--text-color, #e0e0e0);
+    margin-bottom: 8px;
+}
+
+.input-error {
+    display: none;
+    color: #ff8a6a;
+    margin-bottom: 12px;
+    font-size: 12px;
+}
+
+.input-error.visible {
+    display: block;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.project-status {
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: var(--muted-text, #888888);
+}
+
+.projects-list {
+    display: grid;
+    gap: 10px;
+}
+
+.project-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.project-meta {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted-text, #888888);
+}
+
+.open-project-item {
+    background-color: transparent;
+    border: 1px solid var(--primary-color, #ff4f1a);
+    color: var(--primary-color, #ff4f1a);
+    padding: 8px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.project-empty {
+    padding: 16px;
+    border: 1px dashed rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+    color: var(--muted-text, #888888);
 }
