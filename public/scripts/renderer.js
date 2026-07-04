@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     projectGrid.querySelectorAll('.project-card').forEach((card) => {
       card.addEventListener('click', () => {
+        // select the tile (do not open immediately) so user can press Open
         projectGrid.querySelectorAll('.project-card.selected').forEach((selected) => {
           selected.classList.remove('selected')
         })
@@ -119,6 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     projectStatus.textContent = `Utworzono projekt: ${project.projectName}`
     closeProjectModal()
     await refreshProjectList()
+    navigateToWorkspace(project)
   })
 
   openProjectBtn.addEventListener('click', async () => {
@@ -128,6 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const project = await window.electronAPI.openProject(fileName)
       projectStatus.textContent = `Otwarty projekt: ${project.projectName}`
       await refreshProjectList()
+      navigateToWorkspace(project)
       return
     }
 
@@ -147,7 +150,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const project = await window.electronAPI.openProject(projects[selectedIndex].fileName)
     projectStatus.textContent = `Otwarty projekt: ${project.projectName}`
     await refreshProjectList()
+    navigateToWorkspace(project)
   })
+
+  function navigateToWorkspace(project) {
+    if (!project) return
+    window.location.href = `Workspace.html?project=${encodeURIComponent(project.fileName)}`
+  }
 
   window.electronAPI.onThemeChange(applyTheme)
 })

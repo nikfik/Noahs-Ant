@@ -190,7 +190,7 @@ button:hover {
     color: var(--text-color, #e0e0e0);
 }
 
-..modal-card input {
+.modal-card input {
     width: 100%;
     padding: 12px 14px;
     border-radius: 12px;
@@ -259,3 +259,5 @@ button:hover {
     border-radius: 12px;
     color: var(--muted-text, #888888);
 }
+
+

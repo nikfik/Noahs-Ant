@@ -1,0 +1,43 @@
+/* Workspace specific styles */
+.workspace-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.back-btn {
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-color);
+  padding: 10px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.workspace-title h1 {
+  margin: 0;
+  font-size: 20px;
+}
+.workspace-info {
+  margin: 6px 0 0;
+  color: var(--muted-text, #888888);
+  font-size: 14px;
+}
+.workspace-inner { display:flex; gap:18px; }
+.left-sidebar { width:260px; padding:16px; border-radius:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); }
+.left-sidebar h3 { margin-top:0; color:var(--text-color); }
+.actions-list { list-style:none; margin:8px 0 12px; padding:0; }
+.actions-list li { padding:6px 0; color:var(--text-color); }
+.kbd { display:inline-block; min-width:28px; text-align:center; border-radius:6px; background:rgba(255,255,255,0.03); padding:2px 6px; margin-right:8px; }
+.workspace-main { flex:1; }
+.video-area { display:flex; flex-direction:column; gap:12px; }
+.video-player { height:420px; border-radius:12px; background:linear-gradient(180deg,#222,#111); display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.04); }
+.video-placeholder { color:var(--muted-text); }
+.video-controls { display:flex; align-items:center; gap:12px; }
+.ctrl { padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:var(--button-bg); color:var(--button-text); }
+.progress-row { display:flex; align-items:center; gap:8px; flex:1; }
+.progress-bar { height:10px; background:rgba(255,255,255,0.04); border-radius:999px; flex:1; overflow:hidden; }
+.progress-fill { width:30%; height:100%; background:var(--primary-color); }
+.events-panel { margin-top:8px; border-radius:8px; padding:8px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03); }
+.events-list { list-style:none; margin:0; padding:0; max-height:72px; overflow:auto; }
+.events-list li { padding:6px 4px; border-bottom:1px solid rgba(255,255,255,0.02); }

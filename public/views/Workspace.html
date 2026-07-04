@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntNest Workspace</title>
+    <link rel="stylesheet" href="../styles/MainColors.css">
+    <link rel="stylesheet" href="../styles/Workspace.css">
+    <link rel="stylesheet" href="../styles/Toolbar.css">
+</head>
+<body>
+    <header class="workspace-header">
+        <button id="back-to-projects" class="back-btn">← Projekty</button>
+        <div class="workspace-title">
+            <h1 id="workspace-project-title">Workspace</h1>
+            <p id="workspace-project-info" class="workspace-info">Ładuję projekt...</p>
+        </div>
+    </header>
+
+    <div class="workspace-inner">
+        <aside class="left-sidebar">
+            <h3>Etogram / Skróty</h3>
+            <ul class="actions-list">
+                <li><span class="kbd">A</span> - Bieg</li>
+                <li><span class="kbd">S</span> - Sen</li>
+                <li><span class="kbd">D</span> - Jedzenie</li>
+                <li><span class="kbd">F</span> - Socjalizacja</li>
+            </ul>
+            <div class="state-indicators">
+                <div>Wskaźniki stanu:</div>
+                <div class="state-item">W toku... (żółty)</div>
+                <div class="state-item">Aktywny (zielony)</div>
+            </div>
+        </aside>
+
+        <main class="workspace-main">
+            <div class="video-area">
+                <div id="video-player" class="video-player">
+                    <div class="video-placeholder">Odtwarzacz Video (placeholder)</div>
+                </div>
+
+                <div class="video-controls">
+                    <button id="play-btn" class="ctrl">Play</button>
+                    <button id="pause-btn" class="ctrl">Pause</button>
+                    <button id="rewind-btn" class="ctrl">-5s</button>
+                    <button id="forward-btn" class="ctrl">+5s</button>
+                    <div class="progress-row">
+                        <div class="progress-label">Postęp:</div>
+                        <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+                    </div>
+                </div>
+
+                <div class="events-panel">
+                    <h4>Ostatnie zdarzenia</h4>
+                    <ul id="events-list" class="events-list">
+                        <li class="event-empty">Brak zdarzeń</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <nav id="bottom-toolbar" class="bottom-toolbar">
+        <button data-view="view-video" class="tb-btn active">(1) Wideo</button>
+        <button data-view="view-animals" class="tb-btn">(2) Zwierzęta</button>
+        <button data-view="view-analysis" class="tb-btn">(3) Wykresy</button>
+    </nav>
+
+    <script src="../scripts/workspace.js"></script>
+    <script src="../scripts/workspace-page.js"></script>
+</body>
+</html>

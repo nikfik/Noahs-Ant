@@ -1,0 +1,4 @@
+/* Bottom toolbar styles */
+.bottom-toolbar { position:fixed; left:0; right:0; bottom:12px; display:flex; justify-content:center; gap:12px; z-index:100; }
+.tb-btn { padding:10px 18px; border-radius:999px; background:rgba(0,0,0,0.4); color:var(--text-color); border:1px solid rgba(255,255,255,0.04); cursor:pointer; }
+.tb-btn.active { background:var(--primary-color); color:#fff; border-color:var(--primary-color); }
