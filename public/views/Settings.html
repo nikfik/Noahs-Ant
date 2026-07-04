@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <link rel="stylesheet" href="../styles/MainColors.css">
+    <link rel="stylesheet" href="../styles/Settings.css">
+</head>
+<body>
+    <div class="settings-panel">
+        <h1>Ustawienia motywu</h1>
+        <p class="subtitle">Dostosuj kolory tła i tekstu za pomocą suwaków.</p>
+
+        <section class="setting-group">
+            <div class="setting-header">
+                <h2>Kolor tła</h2>
+                <span id="bg-value" class="color-value">#ffffff</span>
+            </div>
+            <div class="slider-row">
+                <label for="bg-r">R</label>
+                <input id="bg-r" class="slider" data-target="bg" type="range" min="0" max="255" value="255">
+            </div>
+            <div class="slider-row">
+                <label for="bg-g">G</label>
+                <input id="bg-g" class="slider" data-target="bg" type="range" min="0" max="255" value="255">
+            </div>
+            <div class="slider-row">
+                <label for="bg-b">B</label>
+                <input id="bg-b" class="slider" data-target="bg" type="range" min="0" max="255" value="255">
+            </div>
+            <div id="bg-preview" class="color-preview"></div>
+        </section>
+
+        <section class="setting-group">
+            <div class="setting-header">
+                <h2>Kolor tekstu</h2>
+                <span id="text-value" class="color-value">#333333</span>
+            </div>
+            <div class="slider-row">
+                <label for="text-r">R</label>
+                <input id="text-r" class="slider" data-target="text" type="range" min="0" max="255" value="51">
+            </div>
+            <div class="slider-row">
+                <label for="text-g">G</label>
+                <input id="text-g" class="slider" data-target="text" type="range" min="0" max="255" value="51">
+            </div>
+            <div class="slider-row">
+                <label for="text-b">B</label>
+                <input id="text-b" class="slider" data-target="text" type="range" min="0" max="255" value="51">
+            </div>
+            <div id="text-preview" class="color-preview"></div>
+        </section>
+
+        <div class="settings-actions">
+            <button id="apply-btn">Zastosuj</button>
+            <button id="reset-btn" class="secondary">Przywróć domyślne</button>
+        </div>
+    </div>
+
+    <script src="../scripts/settings.js"></script>
+</body>
+</html>

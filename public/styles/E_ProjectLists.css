@@ -1,0 +1,116 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color, #1a1a1a);
+    color: var(--text-color, #e0e0e0);
+    font-family: sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--header-bg, #111111);
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--header-border, #333333);
+}
+
+.tabs {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.tabs .tab {
+    color: var(--muted-text, #888888);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.tab.active,
+.tab.settings-tab:hover {
+    color: var(--primary-color, #ff4f1a);
+    border-bottom: 2px solid var(--primary-color, #ff4f1a);
+    padding-bottom: 5px;
+}
+
+main {
+    flex: 1;
+    padding: 30px;
+}
+
+h2 {
+    font-weight: normal;
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: var(--text-color, #e0e0e0);
+}
+
+.project-card {
+    width: 160px;
+}
+
+.thumbnail {
+    width: 160px;
+    height: 100px;
+    background-color: var(--card-bg, #222222);
+    border: 1px solid var(--primary-color, #ff4f1a);
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.project-name {
+    color: var(--primary-color, #ff4f1a);
+    font-size: 13px;
+    text-align: center;
+}
+
+footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: var(--bg-color, #1a1a1a);
+}
+
+.left-buttons,
+.right-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    background-color: var(--button-bg, #2a2a2a);
+    color: var(--button-text, #ffffff);
+    border: 1px solid var(--button-border, #444444);
+    padding: 5px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+button:hover {
+    background-color: var(--button-hover, #3a3a3a);
+}
+
+.btn-primary {
+    background-color: transparent;
+    border: 1px solid var(--muted-text, #888888);
+}

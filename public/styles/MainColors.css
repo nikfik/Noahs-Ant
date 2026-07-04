@@ -1,0 +1,23 @@
+:root {
+  --primary-color: #ff4f1a;
+  --bg-color: #1a1a1a;
+  --text-color: #e0e0e0;
+  --surface-color: #111111;
+  --muted-text: #888888;
+  --button-bg: #2a2a2a;
+  --button-hover: #3a3a3a;
+  --button-border: #444444;
+  --button-text: #ffffff;
+  --header-bg: #111111;
+  --header-border: #333333;
+  --card-bg: #222222;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.timeline-bar {
+  background-color: var(--primary-color);
+}
