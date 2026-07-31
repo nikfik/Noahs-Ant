@@ -15,6 +15,16 @@
   box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.28);
 }
 
+.toolbar-actions {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 110;
+}
+
 .tb-btn {
   display: inline-flex;
   align-items: center;
@@ -51,10 +61,43 @@
   width: 18px;
   height: 18px;
   font-size: 13px;
+  line-height: 1;
+}
+
+.tb-icon img,
+.tb-icon svg {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
 
 .tb-label {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+.toolbar-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.toolbar-action:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.toolbar-action .tb-icon {
+  font-size: 11px;
+}
+
+.toolbar-action .tb-label {
+  font-size: 11px;
 }

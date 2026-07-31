@@ -9,14 +9,6 @@
     <link rel="stylesheet" href="../styles/Toolbar.css">
 </head>
 <body>
-    <header class="workspace-header">
-        <button id="back-to-projects" class="back-btn">← Projekty</button>
-        <div class="workspace-title">
-            <h1 id="workspace-project-title">Workspace</h1>
-            <p id="workspace-project-info" class="workspace-info">Ładuję projekt...</p>
-        </div>
-    </header>
-
     <div class="workspace-inner">
         <aside class="left-sidebar">
             <h3>Etogram / Skróty</h3>
@@ -61,18 +53,29 @@
     </div>
 
     <nav id="bottom-toolbar" class="bottom-toolbar" aria-label="Workspace toolbar">
-        <button data-view="view-video" class="tb-btn active">
-            <span class="tb-icon">▶</span>
+        <button data-view="view-video" class="tb-btn active" data-icon-type="emoji" data-icon-value="▶">
+            <span class="tb-icon" aria-hidden="true"></span>
             <span class="tb-label">Wideo</span>
         </button>
-        <button data-view="view-animals" class="tb-btn">
-            <span class="tb-icon">🦊</span>
+        <button data-view="view-animals" class="tb-btn" data-icon-type="emoji" data-icon-value="🦊">
+            <span class="tb-icon" aria-hidden="true"></span>
             <span class="tb-label">Zwierzęta</span>
         </button>
-        <button data-view="view-analysis" class="tb-btn">
-            <span class="tb-icon">📈</span>
+        <button data-view="view-analysis" class="tb-btn" data-icon-type="emoji" data-icon-value="📈">
+            <span class="tb-icon" aria-hidden="true"></span>
             <span class="tb-label">Wykresy</span>
         </button>
+
+        <div class="toolbar-actions" aria-label="Quick actions">
+            <button id="back-to-projects" class="toolbar-action" data-icon-type="emoji" data-icon-value="←">
+                <span class="tb-icon" aria-hidden="true"></span>
+                <span class="tb-label">Projekty</span>
+            </button>
+            <button id="options-btn" class="toolbar-action" data-icon-type="emoji" data-icon-value="⚙">
+                <span class="tb-icon" aria-hidden="true"></span>
+                <span class="tb-label">Opcje</span>
+            </button>
+        </div>
     </nav>
 
     <script src="../scripts/ui/ui-toolbar.js"></script>
