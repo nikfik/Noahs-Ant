@@ -1,6 +1,5 @@
-// workspace.js — initializes toolbar and view switching inside the workspace page
 (function () {
-  function initWorkspace() {
+  function initWorkspaceToolbar() {
     const bottomToolbar = document.getElementById('bottom-toolbar')
     if (!bottomToolbar) return
 
@@ -15,5 +14,7 @@
     })
   }
 
-  window.initWorkspace = initWorkspace
+  window.WorkspaceToolbar = {
+    initWorkspaceToolbar,
+  }
 })()

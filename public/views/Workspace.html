@@ -60,13 +60,23 @@
         </main>
     </div>
 
-    <nav id="bottom-toolbar" class="bottom-toolbar">
-        <button data-view="view-video" class="tb-btn active">(1) Wideo</button>
-        <button data-view="view-animals" class="tb-btn">(2) Zwierzęta</button>
-        <button data-view="view-analysis" class="tb-btn">(3) Wykresy</button>
+    <nav id="bottom-toolbar" class="bottom-toolbar" aria-label="Workspace toolbar">
+        <button data-view="view-video" class="tb-btn active">
+            <span class="tb-icon">▶</span>
+            <span class="tb-label">Wideo</span>
+        </button>
+        <button data-view="view-animals" class="tb-btn">
+            <span class="tb-icon">🦊</span>
+            <span class="tb-label">Zwierzęta</span>
+        </button>
+        <button data-view="view-analysis" class="tb-btn">
+            <span class="tb-icon">📈</span>
+            <span class="tb-label">Wykresy</span>
+        </button>
     </nav>
 
-    <script src="../scripts/workspace.js"></script>
-    <script src="../scripts/workspace-page.js"></script>
+    <script src="../scripts/ui/ui-toolbar.js"></script>
+    <script src="../scripts/workspace/workspace-toolbar.js"></script>
+    <script src="../scripts/workspace/workspace-page.js"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const titleEl = document.getElementById('workspace-project-title')
   const infoEl = document.getElementById('workspace-project-info')
 
-  window.initWorkspace?.()
+  window.WorkspaceToolbar?.initWorkspaceToolbar?.()
 
   const params = new URLSearchParams(window.location.search)
   const projectFile = params.get('project')
