@@ -11,6 +11,53 @@ const themeState = {
 }
 
 let hasUnsavedChanges = false
+let appSettings = { programShortcuts: [], projectShortcuts: [] }
+let pendingShortcutEdit = null
+
+const defaultShortcuts = {
+  'move-forward': { primary: 'W', secondary: '', operator: '/' },
+  'move-left': { primary: 'A', secondary: '', operator: '/' },
+  'move-right': { primary: 'D', secondary: '', operator: '/' },
+  sprint: { primary: 'Shift', secondary: '', operator: '/' },
+  interact: { primary: 'E', secondary: '', operator: '/' },
+  menu: { primary: 'Esc', secondary: '', operator: '/' }
+}
+
+const normalizeKeyValue = (value) => {
+  if (typeof value !== 'string' || !value.trim()) {
+    return ''
+  }
+
+  const trimmed = value.trim()
+  return trimmed.length === 1 ? trimmed.toUpperCase() : trimmed
+}
+
+const normalizeShortcutEntry = (value) => {
+  if (typeof value === 'string') {
+    return { primary: normalizeKeyValue(value), secondary: '', operator: '/' }
+  }
+
+  if (value && typeof value === 'object') {
+    return {
+      primary: normalizeKeyValue(value.primary),
+      secondary: normalizeKeyValue(value.secondary),
+      operator: value.operator === '+' ? '+' : '/'
+    }
+  }
+
+  return { primary: '', secondary: '', operator: '/' }
+}
+
+const getShortcutSignature = (shortcut) => {
+  const primary = normalizeKeyValue(shortcut.primary)
+  const secondary = normalizeKeyValue(shortcut.secondary)
+
+  if (!primary && !secondary) {
+    return ''
+  }
+
+  return secondary ? `${primary}${shortcut.operator}${secondary}` : primary
+}
 
 const settingsCatalog = {
   general: {
@@ -37,18 +84,70 @@ const settingsCatalog = {
   shortcuts: {
     title: 'Skróty klawiszowe',
     options: [
-      { id: 'move-forward', label: 'Ruch do przodu', type: 'keybind', value: 'W' },
-      { id: 'move-left', label: 'Ruch w lewo', type: 'keybind', value: 'A' },
-      { id: 'move-right', label: 'Ruch w prawo', type: 'keybind', value: 'D' },
-      { id: 'sprint', label: 'Sprint', type: 'keybind', value: 'Shift' },
-      { id: 'interact', label: 'Interakcja', type: 'keybind', value: 'E' },
-      { id: 'menu', label: 'Menu', type: 'keybind', value: 'Esc' }
+      { id: 'move-forward', label: 'Ruch do przodu', type: 'keybind', value: { primary: 'W', secondary: '', operator: '/' } },
+      { id: 'move-left', label: 'Ruch w lewo', type: 'keybind', value: { primary: 'A', secondary: '', operator: '/' } },
+      { id: 'move-right', label: 'Ruch w prawo', type: 'keybind', value: { primary: 'D', secondary: '', operator: '/' } },
+      { id: 'sprint', label: 'Sprint', type: 'keybind', value: { primary: 'Shift', secondary: '', operator: '/' } },
+      { id: 'interact', label: 'Interakcja', type: 'keybind', value: { primary: 'E', secondary: '', operator: '/' } },
+      { id: 'menu', label: 'Menu', type: 'keybind', value: { primary: 'Esc', secondary: '', operator: '/' } }
     ]
   }
 }
 
 function getColorValue(key) {
   return (themeState[key] || defaultTheme[key]).toUpperCase()
+}
+
+function getProgramShortcuts() {
+  return settingsCatalog.shortcuts.options.map((option) => ({
+    id: option.id,
+    label: option.label,
+    value: normalizeShortcutEntry(option.value)
+  }))
+}
+
+function getShortcutConflictMessage(optionId, shortcut) {
+  const keySignature = getShortcutSignature(shortcut)
+  if (!keySignature) {
+    return ''
+  }
+
+  const conflicts = getProgramShortcuts().filter((entry) => {
+    return entry.id !== optionId && getShortcutSignature(entry.value) === keySignature
+  })
+
+  return conflicts.length > 0 ? `Powielony skrót: ${conflicts.map((entry) => entry.label).join(', ')}` : ''
+}
+
+async function persistAppSettings() {
+  const programShortcuts = getProgramShortcuts().map((entry) => ({
+    id: entry.id,
+    label: entry.label,
+    value: entry.value
+  }))
+
+  appSettings = {
+    ...appSettings,
+    programShortcuts
+  }
+
+  await window.electronAPI.saveAppSettings(appSettings)
+  hasUnsavedChanges = false
+}
+
+async function loadSavedAppSettings() {
+  const saved = await window.electronAPI.getAppSettings()
+  appSettings = { ...appSettings, ...saved }
+
+  if (Array.isArray(appSettings.programShortcuts)) {
+    const savedMap = Object.fromEntries(appSettings.programShortcuts.map((entry) => [entry.id, normalizeShortcutEntry(entry.value)]))
+
+    settingsCatalog.shortcuts.options.forEach((option) => {
+      if (savedMap[option.id]) {
+        option.value = savedMap[option.id]
+      }
+    })
+  }
 }
 
 function applyCurrentTheme() {
@@ -181,23 +280,137 @@ function renderOptions(tabId) {
     }
 
     if (option.type === 'keybind') {
-      const keyButton = document.createElement('button')
-      keyButton.type = 'button'
-      keyButton.className = 'option-keybind'
-      keyButton.textContent = option.value
-      keyButton.addEventListener('click', () => {
-        keyButton.textContent = '...'
-        const assignKey = (event) => {
-          event.preventDefault()
-          const key = event.key.length === 1 ? event.key.toUpperCase() : event.key
-          option.value = key
-          hasUnsavedChanges = true
-          keyButton.textContent = key
-          window.removeEventListener('keydown', assignKey)
+      const shortcut = normalizeShortcutEntry(option.value)
+      option.value = shortcut
+
+      const primaryButton = document.createElement('button')
+      primaryButton.type = 'button'
+      primaryButton.className = 'option-keybind'
+      primaryButton.textContent = shortcut.primary || '—'
+
+      const operatorButton = document.createElement('button')
+      operatorButton.type = 'button'
+      operatorButton.className = `combo-operator ${shortcut.secondary ? 'active' : ''}`
+      operatorButton.textContent = shortcut.secondary ? shortcut.operator : ''
+      operatorButton.title = shortcut.secondary ? 'Kliknij by zmienić operator. Prawy klik usuwa kombinację.' : 'Dodaj kombinację klawiszy'
+
+      const secondaryButton = document.createElement('button')
+      secondaryButton.type = 'button'
+      secondaryButton.className = `option-keybind combo-slot ${shortcut.secondary ? 'active' : 'muted'}`
+      secondaryButton.textContent = shortcut.secondary || ''
+      secondaryButton.title = shortcut.secondary ? 'Kliknij, aby zmienić drugi klawisz.' : 'Kliknij, aby dodać drugi klawisz.'
+      if (!shortcut.secondary) {
+        secondaryButton.disabled = false
+      }
+
+      const setWarning = () => {
+        const conflictText = getShortcutConflictMessage(option.id, shortcut)
+        const warning = row.querySelector('.keybind-warning')
+
+        if (warning) {
+          warning.textContent = conflictText
+          warning.hidden = !conflictText
+        } else if (conflictText) {
+          const newWarning = document.createElement('div')
+          newWarning.className = 'keybind-warning'
+          newWarning.textContent = conflictText
+          row.appendChild(newWarning)
         }
-        window.addEventListener('keydown', assignKey, { once: true })
+      }
+
+      const refreshButtons = () => {
+        primaryButton.textContent = shortcut.primary || '—'
+        operatorButton.textContent = shortcut.secondary ? shortcut.operator : ''
+        operatorButton.classList.toggle('active', Boolean(shortcut.secondary))
+        operatorButton.title = shortcut.secondary ? 'Kliknij by zmienić operator. Prawy klik usuwa kombinację.' : 'Dodaj kombinację klawiszy'
+        secondaryButton.textContent = shortcut.secondary || ''
+        secondaryButton.classList.toggle('active', Boolean(shortcut.secondary))
+        secondaryButton.classList.toggle('muted', !shortcut.secondary)
+        secondaryButton.title = shortcut.secondary ? 'Kliknij, aby zmienić drugi klawisz.' : 'Kliknij, aby dodać drugi klawisz.'
+        option.value = shortcut
+        setWarning()
+      }
+
+      const assignKey = (fieldName, callback) => {
+        pendingShortcutEdit = { optionId: option.id, fieldName }
+
+        const capture = (event) => {
+          event.preventDefault()
+          const nextKey = normalizeKeyValue(event.key)
+
+          if (!nextKey) {
+            window.removeEventListener('keydown', capture)
+            pendingShortcutEdit = null
+            return
+          }
+
+          if (fieldName === 'primary') {
+            shortcut.primary = nextKey
+          } else {
+            shortcut.secondary = nextKey
+          }
+
+          hasUnsavedChanges = true
+          refreshButtons()
+          callback?.()
+          pendingShortcutEdit = null
+          window.removeEventListener('keydown', capture)
+        }
+
+        window.addEventListener('keydown', capture, { once: true })
+      }
+
+      primaryButton.addEventListener('click', () => {
+        primaryButton.textContent = '...'
+        assignKey('primary', () => {
+          primaryButton.textContent = shortcut.primary || '—'
+        })
       })
-      controlWrap.appendChild(keyButton)
+
+      secondaryButton.addEventListener('click', () => {
+        if (!shortcut.secondary) {
+          secondaryButton.textContent = '...'
+          assignKey('secondary', () => {
+            secondaryButton.textContent = shortcut.secondary || ''
+          })
+          return
+        }
+
+        secondaryButton.textContent = '...'
+        assignKey('secondary', () => {
+          secondaryButton.textContent = shortcut.secondary || ''
+        })
+      })
+
+      operatorButton.addEventListener('click', () => {
+        if (!shortcut.secondary) {
+          return
+        }
+
+        shortcut.operator = shortcut.operator === '+' ? '/' : '+'
+        hasUnsavedChanges = true
+        refreshButtons()
+      })
+
+      const cancelShortcutEdit = () => {
+        shortcut.primary = ''
+        shortcut.secondary = ''
+        shortcut.operator = '/'
+        hasUnsavedChanges = true
+        pendingShortcutEdit = null
+        refreshButtons()
+      }
+
+      document.getElementById('apply-btn')?.addEventListener('click', () => {
+        if (pendingShortcutEdit && pendingShortcutEdit.optionId === option.id) {
+          cancelShortcutEdit()
+        }
+      })
+
+      controlWrap.appendChild(primaryButton)
+      controlWrap.appendChild(operatorButton)
+      controlWrap.appendChild(secondaryButton)
+      setWarning()
     }
 
     row.appendChild(label)
@@ -208,12 +421,14 @@ function renderOptions(tabId) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   renderTabs()
+  await loadSavedAppSettings()
   renderOptions('general')
 
   const theme = await window.electronAPI.getTheme()
   syncTheme(theme)
 
   document.getElementById('apply-btn').addEventListener('click', async () => {
+    await persistAppSettings()
     await applyCurrentTheme()
     document.body.classList.add('applied')
     window.setTimeout(() => document.body.classList.remove('applied'), 500)
@@ -223,8 +438,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     themeState.bgColor = defaultTheme.bgColor
     themeState.textColor = defaultTheme.textColor
     themeState.primaryColor = defaultTheme.primaryColor
+    settingsCatalog.shortcuts.options.forEach((option) => {
+      option.value = { ...defaultShortcuts[option.id] }
+    })
     hasUnsavedChanges = true
     renderOptions(document.querySelector('.settings-tab.active')?.dataset.tab || 'general')
+    await persistAppSettings()
     await applyCurrentTheme()
   })
 
@@ -237,6 +456,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const shouldSave = window.confirm('Masz niezapisane zmiany. Czy chcesz je zapisać?')
 
     if (shouldSave) {
+      await persistAppSettings()
       await applyCurrentTheme()
       window.close()
       return

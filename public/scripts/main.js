@@ -3,6 +3,7 @@ const fs = require('fs')
 const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 
 const defaultTheme = { bgColor: '#1a1a1a', textColor: '#e0e0e0', primaryColor: '#ff4f1a' }
+const APP_SETTINGS_PATH = path.join(__dirname, '..', '..', 'app-settings.json')
 let currentTheme = { ...defaultTheme }
 let settingsWindow = null
 const PROJECTS_DIR = path.join(__dirname, '..', '..', 'Projects')
@@ -11,6 +12,33 @@ function ensureProjectsDirectory() {
   if (!fs.existsSync(PROJECTS_DIR)) {
     fs.mkdirSync(PROJECTS_DIR, { recursive: true })
   }
+}
+
+function readAppSettings() {
+  try {
+    if (!fs.existsSync(APP_SETTINGS_PATH)) {
+      return { programShortcuts: [], projectShortcuts: [] }
+    }
+
+    const raw = fs.readFileSync(APP_SETTINGS_PATH, 'utf8')
+    const parsed = JSON.parse(raw)
+    return {
+      programShortcuts: Array.isArray(parsed.programShortcuts) ? parsed.programShortcuts : [],
+      projectShortcuts: Array.isArray(parsed.projectShortcuts) ? parsed.projectShortcuts : []
+    }
+  } catch (_error) {
+    return { programShortcuts: [], projectShortcuts: [] }
+  }
+}
+
+function writeAppSettings(settings) {
+  const payload = {
+    programShortcuts: Array.isArray(settings?.programShortcuts) ? settings.programShortcuts : [],
+    projectShortcuts: Array.isArray(settings?.projectShortcuts) ? settings.projectShortcuts : []
+  }
+
+  fs.writeFileSync(APP_SETTINGS_PATH, JSON.stringify(payload, null, 2), 'utf8')
+  return payload
 }
 
 function sanitizeFileName(name) {
@@ -101,6 +129,12 @@ app.whenReady().then(() => {
       applyThemeToWindow(win)
     })
     return currentTheme
+  })
+
+  ipcMain.handle('get-app-settings', () => readAppSettings())
+
+  ipcMain.handle('save-app-settings', (_event, settings) => {
+    return writeAppSettings(settings)
   })
 
   ipcMain.handle('open-settings-window', () => {

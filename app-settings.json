@@ -1,0 +1,59 @@
+{
+  "programShortcuts": [
+    {
+      "id": "move-forward",
+      "label": "Ruch do przodu",
+      "value": {
+        "primary": "W",
+        "secondary": "",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "move-left",
+      "label": "Ruch w lewo",
+      "value": {
+        "primary": "A",
+        "secondary": "",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "move-right",
+      "label": "Ruch w prawo",
+      "value": {
+        "primary": "D",
+        "secondary": "",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "sprint",
+      "label": "Sprint",
+      "value": {
+        "primary": "Shift",
+        "secondary": "",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "interact",
+      "label": "Interakcja",
+      "value": {
+        "primary": "E",
+        "secondary": "",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "menu",
+      "label": "Menu",
+      "value": {
+        "primary": "Esc",
+        "secondary": "",
+        "operator": "/"
+      }
+    }
+  ],
+  "projectShortcuts": []
+}

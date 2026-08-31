@@ -3,6 +3,8 @@ const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('electronAPI', {
   getTheme: () => ipcRenderer.invoke('get-theme'),
   setTheme: (theme) => ipcRenderer.invoke('set-theme', theme),
+  getAppSettings: () => ipcRenderer.invoke('get-app-settings'),
+  saveAppSettings: (settings) => ipcRenderer.invoke('save-app-settings', settings),
   openSettingsWindow: () => ipcRenderer.invoke('open-settings-window'),
   createProject: (projectName) => ipcRenderer.invoke('create-project', projectName),
   listProjects: () => ipcRenderer.invoke('list-projects'),
