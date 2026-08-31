@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  const appState = window.AppState?.getInstance?.()
   const backBtn = document.getElementById('back-to-projects')
   const optionsBtn = document.getElementById('options-btn')
 
@@ -12,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (projectFile) {
     try {
-      await window.electronAPI.openProject(projectFile)
+      await appState?.loadProject?.(projectFile)
     } catch (error) {
       console.error('Nie udało się wczytać projektu:', error)
     }
