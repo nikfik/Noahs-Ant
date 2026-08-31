@@ -53,9 +53,11 @@ function createSettingsWindow() {
   }
 
   settingsWindow = new BrowserWindow({
-    width: 460,
-    height: 700,
-    resizable: false,
+    width: 1100,
+    height: 760,
+    minWidth: 900,
+    minHeight: 620,
+    resizable: true,
     title: 'Settings',
     backgroundColor: currentTheme.bgColor,
     webPreferences: {
@@ -64,6 +66,8 @@ function createSettingsWindow() {
       contextIsolation: true
     }
   })
+
+  settingsWindow.setMenuBarVisibility(false)
 
   const settingsPath = path.join(__dirname, '..', 'views', 'Settings.html')
   settingsWindow.loadFile(settingsPath)

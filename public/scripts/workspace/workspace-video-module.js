@@ -56,7 +56,7 @@
               <button id="zoom-out-btn" class="module-action" type="button">−</button>
               <button id="zoom-fit-btn" class="module-action" type="button">Dopasuj</button>
               <button id="zoom-in-btn" class="module-action" type="button">+</button>
-              <span id="zoom-level" class="video-zoom-level">100%</span>
+              <input id="zoom-level-input" class="video-zoom-input" value="100%" aria-label="Zoom percentage" />
             </div>
           </div>
 
@@ -131,6 +131,7 @@
     const zoomOutBtn = host.querySelector('#zoom-out-btn')
     const zoomInBtn = host.querySelector('#zoom-in-btn')
     const zoomFitBtn = host.querySelector('#zoom-fit-btn')
+    const zoomInput = host.querySelector('#zoom-level-input')
 
     function syncPlaybackButton() {
       if (!playPauseBtn) return
@@ -153,30 +154,105 @@
       }
     }
 
-    // Zoom and fit helpers
+    // Zoom and pan helpers (transform applied to stageInner)
+    const stageInner = host.querySelector('.video-stage-inner')
     let zoom = 1
+    let panX = 0
+    let panY = 0
     const ZOOM_MIN = 0.25
     const ZOOM_MAX = 3
     const ZOOM_STEP = 0.1
 
-    function setZoom(value) {
-      zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Number(value) || 1))
-      if (video) {
-        video.style.transform = `scale(${zoom})`
-        video.style.maxWidth = 'none'
+    function applyTransform() {
+      if (!stageInner) return
+      stageInner.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`
+    }
+
+    function clampPan() {
+      if (!video || !stageInner) return
+      const viewport = host.querySelector('.video-stage')
+      if (!viewport) return
+
+      const vw = viewport.clientWidth
+      const vh = viewport.clientHeight
+
+      // video.clientWidth/clientHeight reflect layout size; fallback to intrinsic size
+      const baseW = (video.clientWidth || video.videoWidth || vw)
+      const baseH = (video.clientHeight || video.videoHeight || vh)
+      const scaledW = baseW * zoom
+      const scaledH = baseH * zoom
+
+      // If content smaller than viewport, center it and lock pan on that axis
+      if (scaledW <= vw) {
+        panX = (vw - scaledW) / 2
+      } else {
+        const minX = vw - scaledW
+        const maxX = 0
+        panX = Math.min(maxX, Math.max(minX, panX))
       }
-      const zoomLevelNode = host.querySelector('#zoom-level')
-      if (zoomLevelNode) zoomLevelNode.textContent = `${Math.round(zoom * 100)}%`
+
+      if (scaledH <= vh) {
+        panY = (vh - scaledH) / 2
+      } else {
+        const minY = vh - scaledH
+        const maxY = 0
+        panY = Math.min(maxY, Math.max(minY, panY))
+      }
+    }
+
+    function setZoomAt(value, clientX, clientY) {
+      const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Number(value) || 1))
+      if (!stageInner) { zoom = newZoom; return }
+
+      // clientX/Y are viewport coords; compute X_vp relative to stageInner
+      const rect = stageInner.getBoundingClientRect()
+      const vpX = (typeof clientX === 'number') ? (clientX - rect.left) : (rect.width / 2)
+      const vpY = (typeof clientY === 'number') ? (clientY - rect.top) : (rect.height / 2)
+
+      // Compute new pan so the point under cursor stays stationary.
+      // Old screen position: (p + pan) * zoom
+      // New pan must satisfy: (p + newPan) * newZoom = (p + pan) * zoom
+      // => newPan = ( (p + pan) * zoom / newZoom ) - p
+      const newPanX = ((vpX + panX) * zoom / newZoom) - vpX
+      const newPanY = ((vpY + panY) * zoom / newZoom) - vpY
+
+      zoom = newZoom
+      panX = newPanX
+      panY = newPanY
+
+      clampPan()
+      applyTransform()
+
+      setZoomDisplay()
+    }
+
+    function setZoom(value) {
+      setZoomAt(value)
     }
 
     function fitToContainer() {
       zoom = 1
-      if (video) {
-        video.style.transform = ''
+      panX = 0
+      panY = 0
+      if (video && stageInner) {
         video.style.maxWidth = '100%'
       }
-      const zoomLevelNode = host.querySelector('#zoom-level')
-      if (zoomLevelNode) zoomLevelNode.textContent = `100%`
+      applyTransform()
+      setZoomDisplay()
+    }
+
+    function setZoomDisplay() {
+      const node = host.querySelector('#zoom-level-input')
+      if (!node) return
+      node.value = `${Math.round(zoom * 100)}%`
+    }
+
+    function parseZoomInput(val) {
+      if (val == null) return null
+      const raw = String(val).trim().replace('%', '')
+      const num = Number(raw)
+      if (!Number.isFinite(num)) return null
+      return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, num / 100))
     }
 
     function setVideoSource(videoPath) {
@@ -203,6 +279,67 @@
     if (video && existingVideoPath) {
       setVideoSource(existingVideoPath)
     }
+
+    // Pointer-based panning
+    let isPanning = false
+    let startX = 0
+    let startY = 0
+    let startPanX = 0
+    let startPanY = 0
+
+    const stageInnerEl = host.querySelector('.video-stage-inner')
+    stageInnerEl?.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault()
+      isPanning = true
+      startX = ev.clientX
+      startY = ev.clientY
+      startPanX = panX
+      startPanY = panY
+      stageInnerEl.setPointerCapture(ev.pointerId)
+    })
+
+    stageInnerEl?.addEventListener('pointermove', (ev) => {
+      if (!isPanning) return
+      const dx = ev.clientX - startX
+      const dy = ev.clientY - startY
+      panX = startPanX + dx
+      panY = startPanY + dy
+      clampPan()
+      applyTransform()
+    })
+
+    stageInnerEl?.addEventListener('pointerup', (ev) => {
+      isPanning = false
+      try { stageInnerEl.releasePointerCapture(ev.pointerId) } catch (_) {}
+    })
+    stageInnerEl?.addEventListener('pointercancel', () => { isPanning = false })
+
+    // Wheel zoom centered on cursor
+    const stageEl = host.querySelector('.video-stage')
+    stageEl?.addEventListener('wheel', (ev) => {
+      if (!stageInnerEl || !video) return
+      ev.preventDefault()
+      const delta = ev.deltaY
+      const direction = delta > 0 ? -1 : 1
+      const next = zoom + direction * ZOOM_STEP
+      setZoomAt(next, ev.clientX, ev.clientY)
+    }, { passive: false })
+
+    // zoom input interactions
+    zoomInput?.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        const parsed = parseZoomInput(zoomInput.value)
+        if (parsed != null) setZoomAt(parsed)
+        else setZoomDisplay()
+        zoomInput.blur()
+      }
+    })
+
+    zoomInput?.addEventListener('blur', () => {
+      const parsed = parseZoomInput(zoomInput.value)
+      if (parsed != null) setZoomAt(parsed)
+      else setZoomDisplay()
+    })
 
     pickBtn?.addEventListener('click', async () => {
       if (!window.electronAPI?.selectVideoFile || !window.electronAPI?.saveProjectVideoPath) {

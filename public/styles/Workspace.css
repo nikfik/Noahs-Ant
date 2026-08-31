@@ -110,6 +110,16 @@
   font-size: 13px;
   margin-left: 6px;
 }
+
+.video-zoom-input {
+  width: 72px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+  color: var(--text-color);
+  text-align: center;
+}
 .video-state {
   color: var(--muted-text, #888888);
   font-size: 15px;
