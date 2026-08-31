@@ -7,15 +7,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search)
   const projectFile = params.get('project')
 
-  if (!projectFile) {
-    return
+  window.WorkspaceEtogramModule?.init?.('etogram-module', { projectFile })
+  window.WorkspaceEventsModule?.init?.('events-module')
+
+  if (projectFile) {
+    try {
+      await window.electronAPI.openProject(projectFile)
+    } catch (error) {
+      console.error('Nie udało się wczytać projektu:', error)
+    }
   }
 
-  try {
-    await window.electronAPI.openProject(projectFile)
-  } catch (error) {
-    console.error('Nie udało się wczytać projektu:', error)
-  }
+  window.WorkspaceVideoModule?.init?.('video-module', { projectFile })
 
   if (backBtn) {
     backBtn.addEventListener('click', () => {

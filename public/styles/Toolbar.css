@@ -16,13 +16,10 @@
 }
 
 .toolbar-actions {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
   display: flex;
-  gap: 8px;
-  z-index: 110;
+  align-items: stretch;
+  justify-content: center;
+  margin-left: auto;
 }
 
 .tb-btn {
@@ -81,17 +78,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
+  gap: 8px;
+  min-width: 110px;
+  padding: 0 18px;
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
   color: var(--text-color);
   cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
 }
 
 .toolbar-action:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .toolbar-action .tb-icon {
@@ -100,4 +99,6 @@
 
 .toolbar-action .tb-label {
   font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }

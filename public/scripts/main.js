@@ -1,6 +1,6 @@
 const path = require('path')
 const fs = require('fs')
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 
 const defaultTheme = { bgColor: '#1a1a1a', textColor: '#e0e0e0', primaryColor: '#ff4f1a' }
 let currentTheme = { ...defaultTheme }
@@ -104,6 +104,39 @@ app.whenReady().then(() => {
     return true
   })
 
+  ipcMain.handle('select-video-file', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'Video files', extensions: ['mp4', 'mov', 'avi', 'mkv', 'webm'] }]
+    })
+
+    if (result.canceled || !result.filePaths.length) {
+      return null
+    }
+
+    return result.filePaths[0]
+  })
+
+  ipcMain.handle('save-project-video', (_event, fileName, videoPath) => {
+    ensureProjectsDirectory()
+    const project = readProjectFile(fileName)
+    project.videoPath = videoPath
+    project.MostRecentOpen = new Date().toISOString()
+
+    fs.writeFileSync(path.join(PROJECTS_DIR, fileName), JSON.stringify(project, null, 2), 'utf8')
+    return { fileName, ...project }
+  })
+
+  ipcMain.handle('save-project-etogram', (_event, fileName, etogramRows) => {
+    ensureProjectsDirectory()
+    const project = readProjectFile(fileName)
+    project.etogram = Array.isArray(etogramRows) ? etogramRows : []
+    project.MostRecentOpen = new Date().toISOString()
+
+    fs.writeFileSync(path.join(PROJECTS_DIR, fileName), JSON.stringify(project, null, 2), 'utf8')
+    return { fileName, ...project }
+  })
+
   ipcMain.handle('create-project', (_event, projectName) => {
     ensureProjectsDirectory()
     const safeName = sanitizeFileName(projectName || 'Untitled Project') || 'Untitled-Project'
@@ -119,7 +152,9 @@ app.whenReady().then(() => {
     const projectData = {
       projectName: projectName || 'Untitled Project',
       createdAt: now,
-      MostRecentOpen: now
+      MostRecentOpen: now,
+      etogram: [],
+      videoPath: ''
     }
 
     fs.writeFileSync(path.join(PROJECTS_DIR, fileName), JSON.stringify(projectData, null, 2), 'utf8')
@@ -141,6 +176,8 @@ app.whenReady().then(() => {
   ipcMain.handle('open-project', (_event, fileName) => {
     ensureProjectsDirectory()
     const project = readProjectFile(fileName)
+    project.etogram = Array.isArray(project.etogram) ? project.etogram : []
+    project.videoPath = typeof project.videoPath === 'string' ? project.videoPath : ''
     project.MostRecentOpen = new Date().toISOString()
     fs.writeFileSync(path.join(PROJECTS_DIR, fileName), JSON.stringify(project, null, 2), 'utf8')
     return { fileName, ...project }
