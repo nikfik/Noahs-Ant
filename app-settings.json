@@ -5,7 +5,7 @@
       "label": "Ruch do przodu",
       "value": {
         "primary": "W",
-        "secondary": "",
+        "secondary": ",",
         "operator": "/"
       }
     },

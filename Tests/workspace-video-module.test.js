@@ -33,4 +33,9 @@ describe('WorkspaceVideoModule', () => {
     expect(markup).toContain('video-speed')
     expect(markup).toContain('video-volume')
   })
+
+  test('ładuje nowy moduł wideo w oddzielnych komponentach', () => {
+    expect(() => require(path.resolve(__dirname, '../public/scripts/workspace/video/VideoPlayerController.js'))).not.toThrow()
+    expect(() => require(path.resolve(__dirname, '../public/scripts/workspace/video/VideoPlayerUI.js'))).not.toThrow()
+  })
 })
