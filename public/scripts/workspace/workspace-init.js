@@ -1,5 +1,5 @@
 import { AppState } from '../services/AppState.js'
-import { UiToolbar } from '../ui-toolbar.js'
+import { UiToolbar } from '../ui/ui-toolbar.js'
 import { WorkspaceToolbar } from './workspace-toolbar.js'
 import { WorkspaceRouter } from './workspace-router.js'
 import { WorkspaceVideoModule } from './workspace-video-module.js'

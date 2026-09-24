@@ -17,6 +17,13 @@ export function createMainWindow({ BrowserWindow, preloadPath, viewsDirectory, g
     webPreferences: webPreferences(preloadPath)
   })
 
+  win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error('[main] renderer failed to load:', errorCode, errorDescription, validatedURL)
+  })
+  win.webContents.on('console-message', (_event, _level, message, line, sourceId) => {
+    console.log(`[renderer] ${sourceId}:${line} ${message}`)
+  })
+
   win.loadFile(path.join(viewsDirectory, 'ProjectList.html'))
   win.webContents.once('did-finish-load', () => applyThemeToWindow(win, getTheme()))
   return win

@@ -1,7 +1,7 @@
 import { ThemeService } from '../theme/theme-service.js'
 import { ProjectListController } from '../projects/project-list-controller.js'
 import { WorkspaceRouter } from '../workspace/workspace-router.js'
-import { projectUtils } from '../project-utils.js'
+import { projectUtils } from '../projects/project-utils.js'
 
 if (typeof window !== 'undefined') {
   window.ThemeService = ThemeService
@@ -14,8 +14,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const settingsTab = document.querySelector('.settings-tab')
 
   if (settingsTab) {
-    settingsTab.addEventListener('click', () => {
-      window.electronAPI?.openSettingsWindow?.()
+    settingsTab.addEventListener('click', async () => {
+      try {
+        await window.electronAPI?.openSettingsWindow?.()
+      } catch (error) {
+        console.error('Failed to open settings window:', error)
+      }
     })
   }
 

@@ -50,10 +50,14 @@ export function createProjectStore(projectsDirectory) {
   }
 
   function listProjects() {
+    console.log('[main] project-store.listProjects:', projectsDirectory)
     return listProjectFiles().map((fileName) => {
       try {
-        return { fileName, ...readProjectFile(fileName) }
-      } catch (_error) {
+        const project = readProjectFile(fileName)
+        console.log('[main] project read:', fileName)
+        return { fileName, ...project }
+      } catch (error) {
+        console.error('[main] project read failed:', fileName, error)
         return null
       }
     }).filter(Boolean)

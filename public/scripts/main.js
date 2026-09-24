@@ -21,7 +21,7 @@ const settingsStore = createSettingsStore(APP_SETTINGS_PATH)
 const projectStore = createProjectStore(PROJECTS_DIR)
 const windowOptions = {
   BrowserWindow,
-  preloadPath: path.join(__dirname, 'preload.js'),
+  preloadPath: path.join(__dirname, 'preload.cjs'),
   viewsDirectory: path.join(__dirname, '..', 'views'),
   getTheme: () => themeState.get()
 }
@@ -36,6 +36,7 @@ function registerSettingsHandlers() {
 }
 
 function registerProjectHandlers() {
+  console.log('[main] registering project IPC handlers')
   registerProjectHandlersModule({ ipcMain, projectStore })
 }
 
@@ -48,11 +49,14 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  console.log('[main] Electron ready')
   registerThemeHandlers()
   registerSettingsHandlers()
   registerProjectHandlers()
   registerFileHandlers()
   createWindow()
+}).catch((error) => {
+  console.error('[main] Startup failed:', error)
 })
 
 app.on('window-all-closed', () => {
