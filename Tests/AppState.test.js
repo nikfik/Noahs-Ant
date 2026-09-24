@@ -2,9 +2,11 @@
  * @jest-environment jsdom
  */
 
+import { jest } from '@jest/globals'
+import { AppState } from '../public/scripts/services/AppState.js'
+
 describe('AppState singleton', () => {
   beforeEach(() => {
-    jest.resetModules()
     document.body.innerHTML = ''
     window.electronAPI = {
       openProject: jest.fn().mockResolvedValue({
@@ -16,7 +18,6 @@ describe('AppState singleton', () => {
   })
 
   test('zwraca tę samą instancję singletona', () => {
-    const { AppState } = require('../public/scripts/services/AppState.js')
     const state1 = AppState.getInstance()
     const state2 = AppState.getInstance()
 
@@ -25,7 +26,6 @@ describe('AppState singleton', () => {
   })
 
   test('ładuje projekt i zapisuje stan w singletonie', async () => {
-    const { AppState } = require('../public/scripts/services/AppState.js')
     const state = AppState.getInstance()
 
     const project = await state.loadProject('demo.json')

@@ -1,51 +1,53 @@
-(function () {
-  function renderIcon(button) {
-    const iconSlot = button.querySelector('.tb-icon')
-    if (!iconSlot) return
+export function renderIcon(button) {
+  const iconSlot = button.querySelector('.tb-icon')
+  if (!iconSlot) return
 
-    const type = button.dataset.iconType || 'emoji'
-    const value = button.dataset.iconValue || ''
-    const src = button.dataset.iconSrc || ''
-    const alt = button.dataset.iconAlt || button.querySelector('.tb-label')?.textContent || ''
+  const type = button.dataset.iconType || 'emoji'
+  const value = button.dataset.iconValue || ''
+  const src = button.dataset.iconSrc || ''
+  const alt = button.dataset.iconAlt || button.querySelector('.tb-label')?.textContent || ''
 
-    if (type === 'image') {
-      iconSlot.innerHTML = `<img src="${src}" alt="${alt}" />`
-      return
-    }
-
-    if (type === 'svg') {
-      iconSlot.innerHTML = button.dataset.iconSvg || ''
-      return
-    }
-
-    iconSlot.textContent = value
+  if (type === 'image') {
+    iconSlot.innerHTML = `<img src="${src}" alt="${alt}" />`
+    return
   }
 
-  function initToolbarButtons(container, options = {}) {
-    const toolbar = container || document
-    const selector = options.selector || '.tb-btn'
-    const activeClass = options.activeClass || 'active'
-    const onChange = options.onChange || null
+  if (type === 'svg') {
+    iconSlot.innerHTML = button.dataset.iconSvg || ''
+    return
+  }
 
-    const buttons = toolbar.querySelectorAll(selector)
+  iconSlot.textContent = value
+}
 
-    buttons.forEach((button) => {
-      renderIcon(button)
+export function initToolbarButtons(container, options = {}) {
+  const toolbar = container || document
+  const selector = options.selector || '.tb-btn'
+  const activeClass = options.activeClass || 'active'
+  const onChange = options.onChange || null
 
-      button.addEventListener('click', () => {
-        buttons.forEach((item) => item.classList.toggle(activeClass, item === button))
+  const buttons = toolbar.querySelectorAll(selector)
 
-        if (onChange) {
-          onChange(button)
-        }
-      })
+  buttons.forEach((button) => {
+    renderIcon(button)
+
+    button.addEventListener('click', () => {
+      buttons.forEach((item) => item.classList.toggle(activeClass, item === button))
+
+      if (onChange) {
+        onChange(button)
+      }
     })
+  })
 
-    return buttons
-  }
+  return buttons
+}
 
-  window.UiToolbar = {
-    initToolbarButtons,
-    renderIcon,
-  }
-})()
+export const UiToolbar = {
+  initToolbarButtons,
+  renderIcon,
+}
+
+if (typeof window !== 'undefined') {
+  window.UiToolbar = UiToolbar
+}

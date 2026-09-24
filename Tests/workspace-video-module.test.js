@@ -2,11 +2,11 @@
  * @jest-environment jsdom
  */
 
-const path = require('path')
+import { jest } from '@jest/globals'
+import '../public/scripts/workspace/workspace-video-module.js'
 
 describe('WorkspaceVideoModule', () => {
   beforeEach(() => {
-    jest.resetModules()
     document.body.innerHTML = '<div id="video-module"></div>'
     window.electronAPI = {
       openProject: jest.fn().mockResolvedValue({ videoPath: '' }),
@@ -16,8 +16,6 @@ describe('WorkspaceVideoModule', () => {
   })
 
   test('renderuje pełne kontrolki odtwarzania dla video', async () => {
-    require(path.resolve(__dirname, '../public/scripts/workspace/workspace-video-module.js'))
-
     await window.WorkspaceVideoModule.init('video-module', { projectFile: 'demo.json' })
 
     const host = document.getElementById('video-module')
@@ -34,8 +32,9 @@ describe('WorkspaceVideoModule', () => {
     expect(markup).toContain('video-volume')
   })
 
-  test('ładuje nowy moduł wideo w oddzielnych komponentach', () => {
-    expect(() => require(path.resolve(__dirname, '../public/scripts/workspace/video/VideoPlayerController.js'))).not.toThrow()
-    expect(() => require(path.resolve(__dirname, '../public/scripts/workspace/video/VideoPlayerUI.js'))).not.toThrow()
+  test('ładuje nowy moduł wideo w oddzielnych komponentach', async () => {
+    await import('../public/scripts/workspace/video/VideoPlayerController.js')
+    await import('../public/scripts/workspace/video/VideoPlayerUI.js')
+    expect(true).toBe(true)
   })
 })

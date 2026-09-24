@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-const { isValidProjectName } = require('../public/scripts/project-utils')
+import { isValidProjectName } from '../public/scripts/project-utils.js'
 
 describe('Walidacja nazw projektów', () => {
   test('poprawna nazwa projektu zwraca true', () => {
