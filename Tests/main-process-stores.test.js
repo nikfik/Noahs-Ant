@@ -35,9 +35,28 @@ describe('main process stores', () => {
     const created = projectStore.createProject('Demo project')
     const opened = projectStore.openProject(created.fileName)
 
-    expect(created.fileName).toBe('Demo-project.json')
+    expect(created.fileName).toBe('Demo-project')
+    expect(fs.existsSync(path.join(projectsDirectory, 'Demo-project', 'Demo-project_ini.json'))).toBe(true)
     expect(opened.projectName).toBe('Demo project')
     expect(projectStore.listProjects()).toHaveLength(1)
+
+    fs.rmSync(projectsDirectory, { recursive: true, force: true })
+  })
+
+  test('migrates legacy root project files into project directories', () => {
+    const projectsDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'noahs-ant-legacy-'))
+    fs.writeFileSync(path.join(projectsDirectory, 'Legacy.json'), JSON.stringify({
+      projectName: 'Legacy',
+      createdAt: '2026-01-01T00:00:00.000Z'
+    }), 'utf8')
+
+    const projectStore = createProjectStore(projectsDirectory)
+    const projects = projectStore.listProjects()
+
+    expect(projects).toHaveLength(1)
+    expect(projects[0].fileName).toBe('Legacy')
+    expect(fs.existsSync(path.join(projectsDirectory, 'Legacy', 'Legacy_ini.json'))).toBe(true)
+    expect(fs.existsSync(path.join(projectsDirectory, 'Legacy.json'))).toBe(true)
 
     fs.rmSync(projectsDirectory, { recursive: true, force: true })
   })
