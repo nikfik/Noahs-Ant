@@ -1,11 +1,26 @@
 {
+  "theme": {
+    "bgColor": "#1a1a1a",
+    "textColor": "#e0e0e0",
+    "primaryColor": "#ff4f1a"
+  },
+  "graphics": {
+    "frame-rate": "60fps",
+    "shadow-quality": "Ultra High",
+    "effects-quality": "High",
+    "lod-bias": "High",
+    "capsule-ao": true,
+    "volumetric-fog": true,
+    "volumetric-lighting": true,
+    "motion-blur": true
+  },
   "programShortcuts": [
     {
       "id": "move-forward",
       "label": "Ruch do przodu",
       "value": {
         "primary": "W",
-        "secondary": ",",
+        "secondary": "",
         "operator": "/"
       }
     },

@@ -4,8 +4,8 @@ export const defaultTheme = {
   primaryColor: '#ff4f1a'
 }
 
-export function createThemeState() {
-  let currentTheme = { ...defaultTheme }
+export function createThemeState(initialTheme = {}) {
+  let currentTheme = { ...defaultTheme, ...initialTheme }
 
   return {
     get() {

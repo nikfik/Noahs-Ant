@@ -16,8 +16,9 @@ const __dirname = path.dirname(__filename)
 const APP_SETTINGS_PATH = path.join(__dirname, '..', '..', 'app-settings.json')
 const PROJECTS_DIR = path.join(__dirname, '..', '..', 'Projects')
 
-const themeState = createThemeState()
 const settingsStore = createSettingsStore(APP_SETTINGS_PATH)
+const initialSettings = settingsStore.readAppSettings()
+const themeState = createThemeState(initialSettings.theme)
 const projectStore = createProjectStore(PROJECTS_DIR)
 const windowOptions = {
   BrowserWindow,

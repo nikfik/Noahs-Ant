@@ -1,163 +1,34 @@
-const defaultTheme = {
-  bgColor: '#1a1a1a',
-  textColor: '#e0e0e0',
-  primaryColor: '#ff4f1a'
-}
+import { createDefaultAppSettings, defaultShortcuts, defaultTheme, settingsCatalog } from './settings-config.js'
+import { getShortcutConflictMessage as findShortcutConflictMessage, normalizeKeyValue, normalizeShortcutEntry } from './shortcut-utils.js'
+import { loadSettings, saveSettings } from './settings-service.js'
 
-const themeState = {
-  bgColor: defaultTheme.bgColor,
-  textColor: defaultTheme.textColor,
-  primaryColor: defaultTheme.primaryColor
-}
-
+let appSettings = createDefaultAppSettings()
+let themeState = { ...appSettings.theme }
 let hasUnsavedChanges = false
-let appSettings = { programShortcuts: [], projectShortcuts: [] }
 let pendingShortcutEdit = null
-
-const defaultShortcuts = {
-  'move-forward': { primary: 'W', secondary: '', operator: '/' },
-  'move-left': { primary: 'A', secondary: '', operator: '/' },
-  'move-right': { primary: 'D', secondary: '', operator: '/' },
-  sprint: { primary: 'Shift', secondary: '', operator: '/' },
-  interact: { primary: 'E', secondary: '', operator: '/' },
-  menu: { primary: 'Esc', secondary: '', operator: '/' }
-}
-
-const normalizeKeyValue = (value) => {
-  if (typeof value !== 'string' || !value.trim()) {
-    return ''
-  }
-
-  const trimmed = value.trim()
-  return trimmed.length === 1 ? trimmed.toUpperCase() : trimmed
-}
-
-const normalizeShortcutEntry = (value) => {
-  if (typeof value === 'string') {
-    return { primary: normalizeKeyValue(value), secondary: '', operator: '/' }
-  }
-
-  if (value && typeof value === 'object') {
-    return {
-      primary: normalizeKeyValue(value.primary),
-      secondary: normalizeKeyValue(value.secondary),
-      operator: value.operator === '+' ? '+' : '/'
-    }
-  }
-
-  return { primary: '', secondary: '', operator: '/' }
-}
-
-const getShortcutSignature = (shortcut) => {
-  const primary = normalizeKeyValue(shortcut.primary)
-  const secondary = normalizeKeyValue(shortcut.secondary)
-
-  if (!primary && !secondary) {
-    return ''
-  }
-
-  return secondary ? `${primary}${shortcut.operator}${secondary}` : primary
-}
-
-const settingsCatalog = {
-  general: {
-    title: 'Ogólne',
-    options: [
-      { id: 'bg-color', label: 'Kolor tła', type: 'color', key: 'bgColor' },
-      { id: 'text-color', label: 'Kolor tekstu', type: 'color', key: 'textColor' },
-      { id: 'accent-color', label: 'Kolor akcentu', type: 'color', key: 'primaryColor' }
-    ]
-  },
-  graphics: {
-    title: 'Graficzne',
-    options: [
-      { id: 'frame-rate', label: 'Frame Rate', type: 'select', value: '60fps', values: ['30fps', '60fps', '120fps'] },
-      { id: 'shadow-quality', label: 'Shadow Quality', type: 'select', value: 'Ultra High', values: ['Low', 'Medium', 'High', 'Ultra High'] },
-      { id: 'effects-quality', label: 'Special Effects Quality', type: 'select', value: 'High', values: ['Low', 'Medium', 'High', 'Ultra High'] },
-      { id: 'lod-bias', label: 'LOD Bias', type: 'select', value: 'High', values: ['Low', 'Medium', 'High'] },
-      { id: 'capsule-ao', label: 'Capsule AO', type: 'toggle', value: true },
-      { id: 'volumetric-fog', label: 'Volumetric Fog', type: 'toggle', value: true },
-      { id: 'volumetric-lighting', label: 'Volumetric Lighting', type: 'toggle', value: true },
-      { id: 'motion-blur', label: 'Motion Blur', type: 'toggle', value: true }
-    ]
-  },
-  shortcuts: {
-    title: 'Skróty klawiszowe',
-    options: [
-      { id: 'move-forward', label: 'Ruch do przodu', type: 'keybind', value: { primary: 'W', secondary: '', operator: '/' } },
-      { id: 'move-left', label: 'Ruch w lewo', type: 'keybind', value: { primary: 'A', secondary: '', operator: '/' } },
-      { id: 'move-right', label: 'Ruch w prawo', type: 'keybind', value: { primary: 'D', secondary: '', operator: '/' } },
-      { id: 'sprint', label: 'Sprint', type: 'keybind', value: { primary: 'Shift', secondary: '', operator: '/' } },
-      { id: 'interact', label: 'Interakcja', type: 'keybind', value: { primary: 'E', secondary: '', operator: '/' } },
-      { id: 'menu', label: 'Menu', type: 'keybind', value: { primary: 'Esc', secondary: '', operator: '/' } }
-    ]
-  }
-}
 
 function getColorValue(key) {
   return (themeState[key] || defaultTheme[key]).toUpperCase()
 }
 
 function getProgramShortcuts() {
-  return settingsCatalog.shortcuts.options.map((option) => ({
-    id: option.id,
-    label: option.label,
-    value: normalizeShortcutEntry(option.value)
-  }))
+  return appSettings.programShortcuts
 }
 
 function getShortcutConflictMessage(optionId, shortcut) {
-  const keySignature = getShortcutSignature(shortcut)
-  if (!keySignature) {
-    return ''
-  }
-
-  const conflicts = getProgramShortcuts().filter((entry) => {
-    return entry.id !== optionId && getShortcutSignature(entry.value) === keySignature
-  })
-
-  return conflicts.length > 0 ? `Powielony skrót: ${conflicts.map((entry) => entry.label).join(', ')}` : ''
+  return findShortcutConflictMessage(optionId, shortcut, getProgramShortcuts())
 }
 
 async function persistAppSettings() {
-  const programShortcuts = getProgramShortcuts().map((entry) => ({
-    id: entry.id,
-    label: entry.label,
-    value: entry.value
-  }))
-
-  appSettings = {
-    ...appSettings,
-    programShortcuts
-  }
-
-  await window.electronAPI.saveAppSettings(appSettings)
+  appSettings.theme = { ...themeState }
+  appSettings = await saveSettings(window.electronAPI, appSettings)
+  themeState = { ...appSettings.theme }
   hasUnsavedChanges = false
 }
 
 async function loadSavedAppSettings() {
-  const saved = await window.electronAPI.getAppSettings()
-  appSettings = { ...appSettings, ...saved }
-
-  if (Array.isArray(appSettings.programShortcuts)) {
-    const savedMap = Object.fromEntries(appSettings.programShortcuts.map((entry) => [entry.id, normalizeShortcutEntry(entry.value)]))
-
-    settingsCatalog.shortcuts.options.forEach((option) => {
-      if (savedMap[option.id]) {
-        option.value = savedMap[option.id]
-      }
-    })
-  }
-}
-
-function applyCurrentTheme() {
-  return window.electronAPI.setTheme({
-    bgColor: themeState.bgColor,
-    textColor: themeState.textColor,
-    primaryColor: themeState.primaryColor
-  }).then(() => {
-    hasUnsavedChanges = false
-  })
+  appSettings = await loadSettings(window.electronAPI)
+  themeState = { ...appSettings.theme }
 }
 
 function syncTheme(theme = {}) {
@@ -172,6 +43,7 @@ function syncTheme(theme = {}) {
   if (theme.primaryColor) {
     themeState.primaryColor = theme.primaryColor
   }
+  appSettings.theme = { ...themeState }
 
   const activeTab = document.querySelector('.settings-tab.active')?.dataset.tab || 'general'
   renderOptions(activeTab)
@@ -250,38 +122,43 @@ function renderOptions(tabId) {
 
     if (option.type === 'select') {
       const select = document.createElement('select')
+      const selectedValue = appSettings.graphics[option.id] ?? option.defaultValue
       option.values.forEach((value) => {
         const optionElement = document.createElement('option')
         optionElement.value = value
         optionElement.textContent = value
-        if (value === option.value) {
+        if (value === selectedValue) {
           optionElement.selected = true
         }
         select.appendChild(optionElement)
       })
       select.addEventListener('change', (event) => {
-        option.value = event.target.value
+        appSettings.graphics[option.id] = event.target.value
         hasUnsavedChanges = true
       })
       controlWrap.appendChild(select)
     }
 
     if (option.type === 'toggle') {
+      const isEnabled = appSettings.graphics[option.id] ?? option.defaultValue
       const toggle = document.createElement('button')
       toggle.type = 'button'
-      toggle.className = `option-toggle ${option.value ? 'active' : ''}`
+      toggle.className = `option-toggle ${isEnabled ? 'active' : ''}`
       toggle.setAttribute('aria-label', option.label)
       toggle.addEventListener('click', () => {
-        option.value = !option.value
+        appSettings.graphics[option.id] = !appSettings.graphics[option.id]
         hasUnsavedChanges = true
-        toggle.classList.toggle('active', option.value)
+        toggle.classList.toggle('active', appSettings.graphics[option.id])
       })
       controlWrap.appendChild(toggle)
     }
 
     if (option.type === 'keybind') {
-      const shortcut = normalizeShortcutEntry(option.value)
-      option.value = shortcut
+      const shortcutEntry = appSettings.programShortcuts.find((entry) => entry.id === option.id)
+      const shortcut = normalizeShortcutEntry(shortcutEntry?.value ?? defaultShortcuts[option.id])
+      if (shortcutEntry) {
+        shortcutEntry.value = shortcut
+      }
 
       const primaryButton = document.createElement('button')
       primaryButton.type = 'button'
@@ -327,7 +204,9 @@ function renderOptions(tabId) {
         secondaryButton.classList.toggle('active', Boolean(shortcut.secondary))
         secondaryButton.classList.toggle('muted', !shortcut.secondary)
         secondaryButton.title = shortcut.secondary ? 'Kliknij, aby zmienić drugi klawisz.' : 'Kliknij, aby dodać drugi klawisz.'
-        option.value = shortcut
+        if (shortcutEntry) {
+          shortcutEntry.value = shortcut
+        }
         setWarning()
       }
 
@@ -429,22 +308,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('apply-btn').addEventListener('click', async () => {
     await persistAppSettings()
-    await applyCurrentTheme()
     document.body.classList.add('applied')
     window.setTimeout(() => document.body.classList.remove('applied'), 500)
   })
 
   document.getElementById('reset-btn').addEventListener('click', async () => {
-    themeState.bgColor = defaultTheme.bgColor
-    themeState.textColor = defaultTheme.textColor
-    themeState.primaryColor = defaultTheme.primaryColor
-    settingsCatalog.shortcuts.options.forEach((option) => {
-      option.value = { ...defaultShortcuts[option.id] }
-    })
+    appSettings = createDefaultAppSettings()
+    themeState = { ...appSettings.theme }
     hasUnsavedChanges = true
     renderOptions(document.querySelector('.settings-tab.active')?.dataset.tab || 'general')
     await persistAppSettings()
-    await applyCurrentTheme()
   })
 
   document.querySelector('.window-close').addEventListener('click', async () => {
@@ -457,7 +330,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (shouldSave) {
       await persistAppSettings()
-      await applyCurrentTheme()
       window.close()
       return
     }

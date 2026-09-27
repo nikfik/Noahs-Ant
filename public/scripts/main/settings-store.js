@@ -1,30 +1,25 @@
 import fs from 'node:fs'
-
-const emptySettings = { programShortcuts: [], projectShortcuts: [] }
+import path from 'node:path'
+import { normalizeAppSettings } from '../settings/settings-model.js'
 
 export function createSettingsStore(settingsPath) {
   function readAppSettings() {
     try {
       if (!fs.existsSync(settingsPath)) {
-        return { ...emptySettings }
+        return normalizeAppSettings()
       }
 
       const parsed = JSON.parse(fs.readFileSync(settingsPath, 'utf8'))
-      return {
-        programShortcuts: Array.isArray(parsed.programShortcuts) ? parsed.programShortcuts : [],
-        projectShortcuts: Array.isArray(parsed.projectShortcuts) ? parsed.projectShortcuts : []
-      }
+      return normalizeAppSettings(parsed)
     } catch (_error) {
-      return { ...emptySettings }
+      return normalizeAppSettings()
     }
   }
 
   function writeAppSettings(settings) {
-    const payload = {
-      programShortcuts: Array.isArray(settings?.programShortcuts) ? settings.programShortcuts : [],
-      projectShortcuts: Array.isArray(settings?.projectShortcuts) ? settings.projectShortcuts : []
-    }
+    const payload = normalizeAppSettings(settings)
 
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true })
     fs.writeFileSync(settingsPath, JSON.stringify(payload, null, 2), 'utf8')
     return payload
   }

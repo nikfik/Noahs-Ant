@@ -4,6 +4,7 @@ import path from 'node:path'
 import { createProjectStore } from '../public/scripts/main/project-store.js'
 import { createSettingsStore } from '../public/scripts/main/settings-store.js'
 import { createThemeState } from '../public/scripts/main/theme-state.js'
+import { createDefaultAppSettings } from '../public/scripts/settings/settings-config.js'
 
 describe('main process stores', () => {
   test('keeps theme state in one place', () => {
@@ -21,9 +22,21 @@ describe('main process stores', () => {
     const settingsPath = path.join(os.tmpdir(), `noahs-ant-settings-${Date.now()}.json`)
     const settingsStore = createSettingsStore(settingsPath)
 
-    expect(settingsStore.readAppSettings()).toEqual({ programShortcuts: [], projectShortcuts: [] })
-    settingsStore.writeAppSettings({ programShortcuts: ['W'], invalid: true })
-    expect(settingsStore.readAppSettings()).toEqual({ programShortcuts: ['W'], projectShortcuts: [] })
+    expect(settingsStore.readAppSettings()).toEqual(createDefaultAppSettings())
+    settingsStore.writeAppSettings({
+      theme: { bgColor: '#abcdef' },
+      graphics: { 'motion-blur': false },
+      programShortcuts: [{ id: 'move-forward', value: 'Q' }],
+      projectShortcuts: ['project shortcut'],
+      invalid: true
+    })
+
+    const settings = settingsStore.readAppSettings()
+    expect(settings.theme.bgColor).toBe('#abcdef')
+    expect(settings.graphics['motion-blur']).toBe(false)
+    expect(settings.programShortcuts[0].value.primary).toBe('Q')
+    expect(settings.projectShortcuts).toEqual(['project shortcut'])
+    expect(settings.invalid).toBeUndefined()
 
     fs.rmSync(settingsPath, { force: true })
   })
