@@ -1,0 +1,304 @@
+.animal-catalog-card {
+	margin-bottom: 14px;
+	overflow: hidden;
+	border: 1px solid rgba(255,255,255,0.08);
+	border-radius: 14px;
+	background: linear-gradient(145deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015));
+	box-shadow: 0 12px 28px rgba(0,0,0,0.14);
+}
+.animal-catalog-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 14px 14px 12px;
+	border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.animal-catalog-header h3 {
+	margin: 3px 0 0;
+	color: var(--text-color);
+	font-size: 16px;
+}
+.animal-catalog-eyebrow {
+	color: var(--muted-text, #888);
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: .1em;
+	text-transform: uppercase;
+}
+.animal-add-group,
+.animal-icon-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid rgba(255,255,255,0.1);
+	border-radius: 8px;
+	background: rgba(255,255,255,0.05);
+	color: var(--text-color);
+	cursor: pointer;
+}
+.animal-add-group {
+	min-height: 30px;
+	padding: 0 9px;
+	color: var(--primary-color, #ff4f1a);
+	font-size: 11px;
+	font-weight: 700;
+}
+.animal-add-group:hover,
+.animal-icon-action:hover {
+	background: rgba(255,255,255,0.1);
+}
+.animal-catalog-tree {
+	max-height: min(38vh, 330px);
+	overflow-y: auto;
+	padding: 7px 8px;
+}
+.animal-catalog-empty,
+.animal-group-empty {
+	padding: 16px 10px;
+	color: var(--muted-text, #888);
+	font-size: 12px;
+	line-height: 1.5;
+	text-align: center;
+}
+.animal-group {
+	margin: 2px 0;
+}
+.animal-group-row {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	min-height: 34px;
+	border-radius: 8px;
+}
+.animal-group-row:hover {
+	background: rgba(255,255,255,0.04);
+}
+.animal-group-toggle {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 7px;
+	min-width: 0;
+	min-height: 32px;
+	padding: 0 5px;
+	border: 0;
+	background: transparent;
+	color: var(--text-color);
+	text-align: left;
+	cursor: pointer;
+}
+.animal-chevron {
+	width: 13px;
+	color: var(--muted-text, #888);
+	font-size: 17px;
+	line-height: 1;
+}
+.animal-group-name,
+.animal-entry-name {
+	overflow: hidden;
+	flex: 1;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.animal-group-name {
+	font-size: 12px;
+	font-weight: 700;
+}
+.animal-group-count {
+	display: inline-grid;
+	min-width: 19px;
+	height: 19px;
+	place-items: center;
+	border-radius: 99px;
+	background: rgba(255,255,255,0.07);
+	color: var(--muted-text, #888);
+	font-size: 10px;
+}
+.animal-icon-action {
+	width: 23px;
+	height: 23px;
+	padding: 0;
+	color: var(--muted-text, #888);
+	font-size: 15px;
+	opacity: .4;
+}
+.animal-group-row:hover .animal-icon-action,
+.animal-icon-action:focus-visible {
+	opacity: 1;
+}
+.animal-icon-action.danger:hover {
+	color: #ff8a8a;
+}
+.animal-group-children {
+	margin: 2px 0 5px 13px;
+	padding-left: 8px;
+	border-left: 1px solid rgba(255,255,255,0.11);
+}
+.animal-entry {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	width: 100%;
+	min-height: 32px;
+	padding: 2px 4px 2px 7px;
+	border: 1px solid transparent;
+	border-radius: 7px;
+	background: transparent;
+	color: var(--muted-text, #aaa);
+}
+.animal-entry:hover {
+	background: rgba(255,255,255,0.045);
+	color: var(--text-color);
+}
+.animal-entry.active {
+	border-color: color-mix(in srgb, var(--animal-color) 40%, transparent);
+	background: color-mix(in srgb, var(--animal-color) 12%, transparent);
+	color: var(--text-color);
+}
+.animal-color-dot {
+	flex: 0 0 9px;
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: var(--animal-color);
+	box-shadow: 0 0 10px color-mix(in srgb, var(--animal-color) 45%, transparent);
+}
+.animal-entry-name {
+	font-size: 11px;
+}
+.animal-entry-select {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	min-height: 27px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+.animal-entry-status {
+	color: var(--animal-color);
+	font-size: 9px;
+	white-space: nowrap;
+}
+.animal-entry-remove,
+.animal-color-reroll {
+	display: inline-grid;
+	flex: 0 0 19px;
+	width: 19px;
+	height: 19px;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: 5px;
+	background: transparent;
+	color: var(--muted-text, #888);
+	font-size: 12px;
+	line-height: 1;
+	opacity: 0;
+	cursor: pointer;
+}
+.animal-entry:hover .animal-entry-remove,
+.animal-entry:hover .animal-color-reroll,
+.animal-entry-remove:focus-visible,
+.animal-color-reroll:focus-visible {
+	opacity: 1;
+}
+.animal-entry-remove {
+	color: #ff8a8a;
+	font-size: 16px;
+}
+.animal-color-reroll:hover {
+	background: rgba(255,255,255,.1);
+	color: var(--primary-color, #ff4f1a);
+}
+.animal-entry-remove:hover {
+	background: rgba(255,80,80,.12);
+}
+.animal-catalog-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 32px;
+	padding: 0 14px;
+	border-top: 1px solid rgba(255,255,255,0.06);
+	color: var(--muted-text, #888);
+	font-size: 10px;
+}
+.animal-color-dice {
+	font-size: 13px;
+}
+.animal-name-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 250;
+	display: grid;
+	place-items: center;
+	padding: 20px;
+	background: rgba(0,0,0,.66);
+	backdrop-filter: blur(5px);
+}
+.animal-name-modal.hidden {
+	display: none;
+}
+.animal-name-dialog {
+	width: min(400px, 100%);
+	padding: 22px;
+	border: 1px solid rgba(255,255,255,.1);
+	border-radius: 16px;
+	background: #15191f;
+	box-shadow: 0 22px 60px rgba(0,0,0,.48);
+}
+.animal-name-dialog h3 {
+	margin: 0 0 6px;
+	color: var(--text-color);
+}
+.animal-name-hint {
+	margin: 0 0 16px;
+	color: var(--muted-text, #888);
+	font-size: 12px;
+}
+.animal-name-dialog label {
+	display: block;
+	margin-bottom: 6px;
+	color: var(--text-color);
+	font-size: 12px;
+}
+.animal-name-dialog input {
+	width: 100%;
+	min-height: 40px;
+	padding: 0 11px;
+	border: 1px solid rgba(255,255,255,.12);
+	border-radius: 9px;
+	outline: none;
+	background: rgba(255,255,255,.04);
+	color: var(--text-color);
+}
+.animal-name-dialog input:focus {
+	border-color: var(--primary-color, #ff4f1a);
+}
+.animal-dialog-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 18px;
+}
+.animal-dialog-actions button {
+	min-height: 36px;
+	padding: 0 13px;
+	border: 1px solid rgba(255,255,255,.12);
+	border-radius: 8px;
+	background: rgba(255,255,255,.05);
+	color: var(--text-color);
+	cursor: pointer;
+}
+.animal-dialog-actions button[type="submit"] {
+	border-color: var(--primary-color, #ff4f1a);
+	background: var(--primary-color, #ff4f1a);
+	color: white;
+}

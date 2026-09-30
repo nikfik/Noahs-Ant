@@ -5,6 +5,7 @@ import { WorkspaceRouter } from './workspace-router.js'
 import { WorkspaceVideoModule } from './workspace-video-module.js'
 import { WorkspaceEtogramModule } from './workspace-etogram-module.js'
 import { WorkspaceEventsModule } from './workspace-events-module.js'
+import { AnimalCatalogModule } from './animals/animal-catalog-module.js'
 
 if (typeof window !== 'undefined') {
   window.AppState = AppState
@@ -14,6 +15,7 @@ if (typeof window !== 'undefined') {
   window.WorkspaceVideoModule = WorkspaceVideoModule
   window.WorkspaceEtogramModule = WorkspaceEtogramModule
   window.WorkspaceEventsModule = WorkspaceEventsModule
+  window.AnimalCatalogModule = AnimalCatalogModule
 }
 
 export const initWorkspace = async () => {
@@ -27,11 +29,20 @@ export const initWorkspace = async () => {
 
   const params = new URLSearchParams(window.location.search)
   const projectFile = params.get('project')
+  let animalCatalog = null
+
+  if (window.AnimalCatalogModule?.init) {
+    try {
+      animalCatalog = await window.AnimalCatalogModule.init('animal-panel', { projectId: projectFile })
+    } catch (error) {
+      console.error('Failed to init animal catalog:', error)
+    }
+  }
 
   // Initialize modules
   if (window.WorkspaceEtogramModule?.init) {
     try {
-      await window.WorkspaceEtogramModule.init('etogram-module', { projectFile })
+      await window.WorkspaceEtogramModule.init('etogram-module', { projectFile, animalCatalog })
     } catch (error) {
       console.error('Failed to init etogram module:', error)
     }

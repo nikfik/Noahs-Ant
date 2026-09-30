@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { createProjectStore } from '../public/scripts/main/project-store.js'
+import { createAnimalsStore } from '../public/scripts/main/animals-store.js'
 import { createSettingsStore } from '../public/scripts/main/settings-store.js'
 import { createThemeState } from '../public/scripts/main/theme-state.js'
 import { createDefaultAppSettings } from '../public/scripts/settings/settings-config.js'
@@ -70,6 +71,27 @@ describe('main process stores', () => {
     expect(projects[0].fileName).toBe('Legacy')
     expect(fs.existsSync(path.join(projectsDirectory, 'Legacy', 'Legacy_ini.json'))).toBe(true)
     expect(fs.existsSync(path.join(projectsDirectory, 'Legacy.json'))).toBe(true)
+
+    fs.rmSync(projectsDirectory, { recursive: true, force: true })
+  })
+
+  test('creates a per-project animals JSON file and migrates its legacy etogram', () => {
+    const projectsDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'noahs-ant-animals-'))
+    const projectDirectory = path.join(projectsDirectory, 'Study')
+    fs.mkdirSync(projectDirectory)
+    fs.writeFileSync(path.join(projectDirectory, 'Study_ini.json'), JSON.stringify({
+      projectName: 'Study',
+      etogram: [{ id: 'act-1', name: 'Bieganie', shortcut: 'B' }]
+    }), 'utf8')
+
+    const store = createAnimalsStore(projectsDirectory)
+    const animals = store.readProjectAnimals('Study')
+    const animalsPath = path.join(projectDirectory, 'Study_animals.json')
+
+    expect(fs.existsSync(animalsPath)).toBe(true)
+    expect(animals.groups).toHaveLength(1)
+    expect(animals.groups[0].name).toBe('Grupa 1')
+    expect(animals.etogramPresets[0].activities[0].name).toBe('Bieganie')
 
     fs.rmSync(projectsDirectory, { recursive: true, force: true })
   })

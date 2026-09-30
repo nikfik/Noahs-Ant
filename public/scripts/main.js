@@ -4,6 +4,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { createThemeState } from './main/theme-state.js'
 import { createSettingsStore } from './main/settings-store.js'
 import { createProjectStore } from './main/project-store.js'
+import { createAnimalsStore } from './main/animals-store.js'
 import { createMainWindow, createSettingsWindow } from './main/windows.js'
 import { registerThemeHandlers as registerThemeHandlersModule } from './main/handlers/theme-handlers.js'
 import { registerSettingsHandlers as registerSettingsHandlersModule } from './main/handlers/settings-handlers.js'
@@ -20,6 +21,7 @@ const settingsStore = createSettingsStore(APP_SETTINGS_PATH)
 const initialSettings = settingsStore.readAppSettings()
 const themeState = createThemeState(initialSettings.theme)
 const projectStore = createProjectStore(PROJECTS_DIR)
+const animalsStore = createAnimalsStore(PROJECTS_DIR)
 const windowOptions = {
   BrowserWindow,
   preloadPath: path.join(__dirname, 'preload.cjs'),
@@ -38,7 +40,7 @@ function registerSettingsHandlers() {
 
 function registerProjectHandlers() {
   console.log('[main] registering project IPC handlers')
-  registerProjectHandlersModule({ ipcMain, projectStore })
+  registerProjectHandlersModule({ ipcMain, projectStore, animalsStore })
 }
 
 function registerFileHandlers() {

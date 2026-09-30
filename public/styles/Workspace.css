@@ -243,3 +243,372 @@
   align-items: center;
   gap: 8px;
 }
+
+.etogram-card .module-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.etogram-count {
+  display: inline-flex;
+  min-width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: var(--text-color);
+  font-size: 12px;
+}
+.etogram-card .shortcut-table tbody tr {
+  border-left: 3px solid var(--etogram-color, var(--primary-color, #ff4f1a));
+}
+.etogram-empty,
+.etogram-editor-empty {
+  padding: 20px 12px;
+  color: var(--muted-text, #888);
+  text-align: center;
+  font-size: 13px;
+}
+.etogram-active-context {
+  margin: -5px 0 10px;
+  color: var(--muted-text, #888);
+  font-size: 11px;
+}
+.etogram-preset-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  color: var(--muted-text, #888);
+  font-size: 12px;
+}
+.etogram-preset-bar select,
+.etogram-preset-bar button {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.045);
+  color: var(--text-color);
+  font: inherit;
+  font-size: 11px;
+}
+.etogram-preset-bar select {
+  flex: 1;
+  min-width: 0;
+}
+.etogram-preset-bar button {
+  color: var(--primary-color, #ff4f1a);
+  cursor: pointer;
+}
+.etogram-preset-bar button:disabled,
+.etogram-preset-bar select:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+.etogram-editor-empty.hidden {
+  display: none;
+}
+.etogram-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1420px, calc(100vw - 64px));
+  height: min(820px, calc(100vh - 56px));
+  min-height: 420px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  background: rgba(12, 15, 19, 0.98);
+  box-shadow: 0 24px 72px rgba(0,0,0,0.55);
+  backdrop-filter: blur(12px);
+}
+.etogram-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 30px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+}
+.etogram-eyebrow {
+  color: var(--primary-color, #ff4f1a);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.etogram-dialog-header h2 {
+  margin: 6px 0 4px;
+  color: var(--text-color);
+  font-size: clamp(22px, 2vw, 30px);
+}
+.etogram-dialog-header p,
+.etogram-editor-sidebar p {
+  margin: 0;
+  color: var(--muted-text, #888);
+  font-size: 13px;
+}
+.etogram-dialog-header .modal-close {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+}
+.etogram-dialog-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 248px;
+  flex: 1;
+  min-height: 0;
+}
+.etogram-editor-main {
+  min-width: 0;
+  min-height: 0;
+  padding: 20px 22px;
+}
+.etogram-table-scroll {
+  height: 100%;
+  overflow: auto;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.015);
+}
+.editor-table {
+  min-width: 960px;
+}
+.editor-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 9px;
+  background: #171a20;
+  white-space: nowrap;
+}
+.editor-table td {
+  padding: 9px 7px;
+  vertical-align: middle;
+}
+.editor-table tbody tr:hover {
+  background: rgba(255,255,255,0.025);
+}
+.editor-table input:not([type="checkbox"]):not([type="color"]),
+.editor-table textarea {
+  width: 100%;
+  min-width: 92px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 9px;
+  outline: none;
+  background: rgba(255,255,255,0.035);
+  color: var(--text-color);
+  font: inherit;
+  font-size: 13px;
+}
+.editor-table textarea {
+  min-width: 155px;
+  min-height: 58px;
+  resize: vertical;
+}
+.editor-table input:focus,
+.editor-table textarea:focus {
+  border-color: var(--primary-color, #ff4f1a);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #ff4f1a) 18%, transparent);
+}
+.etogram-remove-cell {
+  width: 42px;
+}
+.etogram-remove-row {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255,100,100,0.18);
+  border-radius: 9px;
+  background: rgba(255,70,70,0.08);
+  color: #ff8a8a;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.etogram-remove-row:hover {
+  transform: translateY(-1px);
+  background: rgba(255,70,70,0.18);
+}
+.etogram-shortcut-editor {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 168px;
+}
+.etogram-keybind,
+.editor-table .combo-operator,
+.editor-table .combo-slot {
+  min-width: 42px;
+  min-height: 36px;
+  padding: 6px 9px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 9px;
+  background: rgba(255,255,255,0.055);
+  color: var(--text-color);
+  cursor: pointer;
+}
+.editor-table .combo-operator {
+  min-width: 30px;
+  padding: 5px;
+  color: var(--primary-color, #ff4f1a);
+}
+.editor-table .combo-operator:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.editor-table .combo-slot.muted {
+  color: var(--muted-text, #888);
+}
+.editor-table input[type="color"] {
+  width: 42px;
+  height: 38px;
+  padding: 3px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 9px;
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+}
+.etogram-continuous-cell {
+  text-align: center !important;
+}
+.etogram-continuous-cell input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--primary-color, #ff4f1a);
+}
+.etogram-editor-sidebar {
+  padding: 22px 18px;
+  border-left: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.018);
+}
+.etogram-editor-sidebar h3 {
+  margin: 0 0 8px;
+  color: var(--text-color);
+  font-size: 16px;
+}
+.etogram-add-button,
+.etogram-save-button,
+.etogram-cancel-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  color: var(--text-color);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.etogram-add-button {
+  width: 100%;
+  margin-top: 20px;
+  border-color: color-mix(in srgb, var(--primary-color, #ff4f1a) 35%, transparent);
+  background: color-mix(in srgb, var(--primary-color, #ff4f1a) 12%, transparent);
+  text-align: left;
+}
+.etogram-add-button span {
+  margin-right: 7px;
+  color: var(--primary-color, #ff4f1a);
+  font-size: 18px;
+  vertical-align: -1px;
+}
+.etogram-add-button:hover,
+.etogram-save-button:hover,
+.etogram-cancel-button:hover {
+  transform: translateY(-1px);
+}
+.etogram-sidebar-note {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 11px;
+  color: var(--muted-text, #888);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.etogram-note-icon {
+  display: grid;
+  flex: 0 0 19px;
+  width: 19px;
+  height: 19px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  color: var(--text-color);
+  font-weight: 700;
+}
+.etogram-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 72px;
+  padding: 14px 24px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+}
+.etogram-dialog-footer > div {
+  display: flex;
+  gap: 10px;
+}
+#etogram-save-status {
+  color: var(--muted-text, #888);
+  font-size: 12px;
+}
+.etogram-save-button {
+  border-color: var(--primary-color, #ff4f1a);
+  background: var(--primary-color, #ff4f1a);
+  color: #fff;
+}
+.etogram-cancel-button {
+  background: rgba(255,255,255,0.04);
+}
+.etogram-save-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+@media (max-width: 960px) {
+  .etogram-dialog {
+    width: calc(100vw - 28px);
+    height: calc(100vh - 28px);
+  }
+  .etogram-dialog-body {
+    grid-template-columns: minmax(0, 1fr) 200px;
+  }
+  .etogram-dialog-header {
+    padding: 18px 20px;
+  }
+}
+@media (max-width: 680px) {
+  .etogram-dialog-body {
+    display: flex;
+    flex-direction: column-reverse;
+    overflow: auto;
+  }
+  .etogram-editor-main {
+    min-height: 260px;
+    padding: 12px;
+  }
+  .etogram-editor-sidebar {
+    padding: 14px;
+    border-left: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .etogram-add-button {
+    width: auto;
+  }
+  .etogram-sidebar-note {
+    display: none;
+  }
+}
