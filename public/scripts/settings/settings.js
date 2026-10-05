@@ -122,7 +122,9 @@ function renderOptions(tabId) {
 
     if (option.type === 'select') {
       const select = document.createElement('select')
-      const selectedValue = appSettings.graphics[option.id] ?? option.defaultValue
+      const settingsState = appSettings[option.storage || 'graphics']
+      const settingKey = option.storage === 'timeline' && option.id === 'snap-threshold-px' ? 'snapThresholdPx' : option.id
+      const selectedValue = settingsState[settingKey] ?? option.defaultValue
       option.values.forEach((value) => {
         const optionElement = document.createElement('option')
         optionElement.value = value
@@ -133,22 +135,24 @@ function renderOptions(tabId) {
         select.appendChild(optionElement)
       })
       select.addEventListener('change', (event) => {
-        appSettings.graphics[option.id] = event.target.value
+        settingsState[settingKey] = option.storage === 'timeline' ? Number(event.target.value) : event.target.value
         hasUnsavedChanges = true
       })
       controlWrap.appendChild(select)
     }
 
     if (option.type === 'toggle') {
-      const isEnabled = appSettings.graphics[option.id] ?? option.defaultValue
+      const settingsState = appSettings[option.storage || 'graphics']
+      const settingKey = option.storage === 'timeline' && option.id === 'snap-enabled' ? 'snapEnabled' : option.id
+      const isEnabled = settingsState[settingKey] ?? option.defaultValue
       const toggle = document.createElement('button')
       toggle.type = 'button'
       toggle.className = `option-toggle ${isEnabled ? 'active' : ''}`
       toggle.setAttribute('aria-label', option.label)
       toggle.addEventListener('click', () => {
-        appSettings.graphics[option.id] = !appSettings.graphics[option.id]
+        settingsState[settingKey] = !settingsState[settingKey]
         hasUnsavedChanges = true
-        toggle.classList.toggle('active', appSettings.graphics[option.id])
+        toggle.classList.toggle('active', settingsState[settingKey])
       })
       controlWrap.appendChild(toggle)
     }

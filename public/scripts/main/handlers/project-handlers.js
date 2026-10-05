@@ -1,4 +1,4 @@
-export function registerProjectHandlers({ ipcMain, projectStore, animalsStore }) {
+export function registerProjectHandlers({ ipcMain, projectStore, animalsStore, observationsStore }) {
   console.log('[main] project IPC handlers registered')
   ipcMain.handle('save-project-video', (_event, fileName, videoPath) => projectStore.saveProjectVideo(fileName, videoPath))
   ipcMain.handle('save-project-etogram', (_event, fileName, etogramRows) => projectStore.saveProjectEtogram(fileName, etogramRows))
@@ -12,4 +12,6 @@ export function registerProjectHandlers({ ipcMain, projectStore, animalsStore })
   ipcMain.handle('save-project-animals', (_event, projectId, animals) => animalsStore.writeProjectAnimals(projectId, animals))
   ipcMain.handle('get-project-etograms', (_event, projectId) => animalsStore.readProjectEtograms(projectId))
   ipcMain.handle('save-project-etograms', (_event, projectId, presets) => animalsStore.writeProjectEtograms(projectId, presets))
+  ipcMain.handle('get-project-observations', (_event, projectId) => observationsStore.read(projectId))
+  ipcMain.handle('save-project-observations', (_event, projectId, data) => observationsStore.write(projectId, data))
 }

@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { createProjectStore } from '../public/scripts/main/project-store.js'
 import { createAnimalsStore } from '../public/scripts/main/animals-store.js'
+import { createObservationsStore } from '../public/scripts/main/observations-store.js'
 import { createSettingsStore } from '../public/scripts/main/settings-store.js'
 import { createThemeState } from '../public/scripts/main/theme-state.js'
 import { createDefaultAppSettings } from '../public/scripts/settings/settings-config.js'
@@ -130,6 +131,25 @@ describe('main process stores', () => {
     expect(animals.animals.map((animal) => animal.etogramPresetId)).toEqual(['preset-a', 'preset-a'])
     expect(saved.groups[0].etogramPresetId).toBeUndefined()
     expect(saved.animals.map((animal) => animal.etogramPresetId)).toEqual(['preset-a', 'preset-a'])
+
+    fs.rmSync(projectsDirectory, { recursive: true, force: true })
+  })
+
+  test('persists normalized project observations separately', () => {
+    const projectsDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'noahs-ant-observations-'))
+    const store = createObservationsStore(projectsDirectory)
+    const empty = store.read('Study')
+    expect(empty.observations).toEqual([])
+
+    const saved = store.write('Study', {
+      observations: [{
+        id: 'run-1', animalId: 'ant-1', activityId: 'run', activityName: 'Bieg',
+        activityColor: '#42a56b', kind: 'interval', start: 1.25, end: null, lane: 0
+      }]
+    })
+    expect(saved.observations[0].end).toBeNull()
+    expect(store.read('Study').observations[0].start).toBe(1.25)
+    expect(fs.existsSync(path.join(projectsDirectory, 'Study', 'Study_observations.json'))).toBe(true)
 
     fs.rmSync(projectsDirectory, { recursive: true, force: true })
   })

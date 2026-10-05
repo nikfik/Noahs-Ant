@@ -70,7 +70,7 @@ describe('Group etogram presets', () => {
       savePresets: async (next) => next
     }
     const recorded = jest.fn()
-    window.addEventListener('etogram-activity', recorded)
+    window.addEventListener('etogram-activity-request', recorded)
 
     await WorkspaceEtogramModule.init('etogram-module', { projectFile: 'Study', animalCatalog: catalog })
     expect(document.querySelector('.compact-table tbody').textContent).toContain('Transport')
@@ -83,8 +83,8 @@ describe('Group etogram presets', () => {
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', bubbles: true, cancelable: true }))
     expect(recorded).toHaveBeenCalledWith(expect.objectContaining({
-      detail: expect.objectContaining({ animalId: 'cat-1', groupId: 'cats', activityId: 'sleep' })
+      detail: expect.objectContaining({ animalId: 'cat-1', activityId: 'sleep', continuous: false })
     }))
-    window.removeEventListener('etogram-activity', recorded)
+    window.removeEventListener('etogram-activity-request', recorded)
   })
 })

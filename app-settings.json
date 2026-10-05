@@ -14,6 +14,10 @@
     "volumetric-lighting": true,
     "motion-blur": true
   },
+  "timeline": {
+    "snapEnabled": true,
+    "snapThresholdPx": 9
+  },
   "programShortcuts": [
     {
       "id": "move-forward",

@@ -14,12 +14,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const settingsTab = document.querySelector('.settings-tab')
 
   if (settingsTab) {
-    settingsTab.addEventListener('click', async () => {
-      try {
-        await window.electronAPI?.openSettingsWindow?.()
-      } catch (error) {
-        console.error('Failed to open settings window:', error)
-      }
+    settingsTab.addEventListener('click', () => {
+      window.electronAPI?.openSettingsWindow?.()
     })
   }
 

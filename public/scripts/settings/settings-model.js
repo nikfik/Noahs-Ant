@@ -8,6 +8,7 @@ export function normalizeAppSettings(saved = {}) {
   const source = saved && typeof saved === 'object' ? saved : {}
   const themeSource = source.theme && typeof source.theme === 'object' ? source.theme : {}
   const graphicsSource = source.graphics && typeof source.graphics === 'object' ? source.graphics : {}
+  const timelineSource = source.timeline && typeof source.timeline === 'object' ? source.timeline : {}
   const savedShortcuts = Array.isArray(source.programShortcuts) ? source.programShortcuts : []
   const savedShortcutById = new Map(savedShortcuts.map((entry) => [entry?.id, entry]))
 
@@ -25,6 +26,12 @@ export function normalizeAppSettings(saved = {}) {
       : option.values.includes(value)
     return [option.id, isValid ? value : option.defaultValue]
   }))
+  const timeline = {
+    snapEnabled: typeof timelineSource.snapEnabled === 'boolean' ? timelineSource.snapEnabled : defaults.timeline.snapEnabled,
+    snapThresholdPx: [5, 9, 14, 20].includes(Number(timelineSource.snapThresholdPx))
+      ? Number(timelineSource.snapThresholdPx)
+      : defaults.timeline.snapThresholdPx
+  }
 
   const programShortcuts = defaults.programShortcuts.map((defaultEntry) => {
     const savedEntry = savedShortcutById.get(defaultEntry.id)
@@ -38,6 +45,7 @@ export function normalizeAppSettings(saved = {}) {
   return {
     theme,
     graphics,
+    timeline,
     programShortcuts,
     projectShortcuts: Array.isArray(source.projectShortcuts) ? source.projectShortcuts : []
   }

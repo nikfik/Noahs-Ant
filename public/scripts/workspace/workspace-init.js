@@ -6,6 +6,7 @@ import { WorkspaceVideoModule } from './workspace-video-module.js'
 import { WorkspaceEtogramModule } from './workspace-etogram-module.js'
 import { WorkspaceEventsModule } from './workspace-events-module.js'
 import { AnimalCatalogModule } from './animals/animal-catalog-module.js'
+import { WorkspaceTimelineModule } from './workspace-timeline-module.js'
 
 if (typeof window !== 'undefined') {
   window.AppState = AppState
@@ -16,6 +17,7 @@ if (typeof window !== 'undefined') {
   window.WorkspaceEtogramModule = WorkspaceEtogramModule
   window.WorkspaceEventsModule = WorkspaceEventsModule
   window.AnimalCatalogModule = AnimalCatalogModule
+  window.WorkspaceTimelineModule = WorkspaceTimelineModule
 }
 
 export const initWorkspace = async () => {
@@ -31,7 +33,7 @@ export const initWorkspace = async () => {
   const projectFile = params.get('project')
   let animalCatalog = null
 
-  if (window.AnimalCatalogModule?.init) {
+  if (projectFile && window.AnimalCatalogModule?.init) {
     try {
       animalCatalog = await window.AnimalCatalogModule.init('animal-panel', { projectId: projectFile })
     } catch (error) {
@@ -48,11 +50,11 @@ export const initWorkspace = async () => {
     }
   }
 
-  if (window.WorkspaceEventsModule?.init) {
+  if (window.WorkspaceTimelineModule?.init) {
     try {
-      window.WorkspaceEventsModule.init('events-module')
+      await window.WorkspaceTimelineModule.init('events-module', { projectId: projectFile, animalCatalog })
     } catch (error) {
-      console.error('Failed to init events module:', error)
+      console.error('Failed to init timeline module:', error)
     }
   }
 

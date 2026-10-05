@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveProjectAnimals: (projectId, data) => ipcRenderer.invoke('save-project-animals', projectId, data),
   getProjectEtograms: (projectId) => ipcRenderer.invoke('get-project-etograms', projectId),
   saveProjectEtograms: (projectId, presets) => ipcRenderer.invoke('save-project-etograms', projectId, presets),
+  getProjectObservations: (projectId) => ipcRenderer.invoke('get-project-observations', projectId),
+  saveProjectObservations: (projectId, data) => ipcRenderer.invoke('save-project-observations', projectId, data),
   saveProjectEtogram: (fileName, etogramRows) => ipcRenderer.invoke('save-project-etogram', fileName, etogramRows),
   selectVideoFile: () => ipcRenderer.invoke('select-video-file'),
   saveProjectVideoPath: (fileName, videoPath) => ipcRenderer.invoke('save-project-video', fileName, videoPath),

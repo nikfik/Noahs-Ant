@@ -21,6 +21,16 @@
       this.playbackControls = null
       this.shortcutState = {}
       this.autoplayGuard = false
+      this.publishTimelineState = () => {
+        if (!this.video) return
+        const state = {
+          currentTime: Number(this.video.currentTime) || 0,
+          duration: Number.isFinite(this.video.duration) ? this.video.duration : 0,
+          paused: this.video.paused
+        }
+        window.dispatchEvent(new CustomEvent('video-timeline-state', { detail: state }))
+        return state
+      }
     }
 
     async loadProgramShortcuts() {
@@ -160,10 +170,27 @@
           this.seekInput.max = String(Math.max(100, this.video.duration || 0))
         }
         this.playbackControls.syncTimeLabel()
+        this.publishTimelineState()
       })
 
       this.video?.addEventListener('timeupdate', () => {
         this.playbackControls.syncTimeLabel()
+        this.publishTimelineState()
+      })
+
+      this.video?.addEventListener('seeked', this.publishTimelineState)
+      this.video?.addEventListener('durationchange', this.publishTimelineState)
+      this.video?.addEventListener('play', this.publishTimelineState)
+      this.video?.addEventListener('pause', this.publishTimelineState)
+      this.video?.addEventListener('ended', this.publishTimelineState)
+
+      window.addEventListener('video-seek-request', (event) => {
+        const time = Number(event.detail?.time)
+        if (!this.video || !Number.isFinite(time) || !Number.isFinite(this.video.duration)) return
+        this.video.currentTime = Math.max(0, Math.min(time, this.video.duration))
+      })
+      window.addEventListener('video-timeline-state-request', (event) => {
+        event.detail?.respond?.(this.publishTimelineState())
       })
 
       this.pickBtn?.addEventListener('click', async () => {
@@ -236,6 +263,7 @@
       this.playbackControls.syncMuteButton(this.muteBtn)
       this.playbackControls.syncTimeLabel()
       this.zoomControls.setZoomDisplay()
+      this.publishTimelineState()
     }
   }
 
