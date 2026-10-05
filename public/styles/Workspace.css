@@ -378,7 +378,20 @@
   background: rgba(255,255,255,0.015);
 }
 .editor-table {
-  min-width: 960px;
+  width: 1100px;
+  min-width: 1100px;
+  table-layout: fixed;
+}
+.editor-table .etogram-col-remove { width: 48px; }
+.editor-table .etogram-col-category { width: 165px; }
+.editor-table .etogram-col-name { width: 180px; }
+.editor-table .etogram-col-description { width: 300px; }
+.editor-table .etogram-col-shortcut { width: 205px; }
+.editor-table .etogram-col-color { width: 92px; }
+.editor-table .etogram-col-continuous { width: 110px; }
+.editor-table th,
+.editor-table td {
+  overflow: hidden;
 }
 .editor-table th {
   position: sticky;
@@ -397,8 +410,10 @@
 }
 .editor-table input:not([type="checkbox"]):not([type="color"]),
 .editor-table textarea {
+  display: block;
+  box-sizing: border-box;
   width: 100%;
-  min-width: 92px;
+  min-width: 0;
   padding: 9px 10px;
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 9px;
@@ -409,7 +424,6 @@
   font-size: 13px;
 }
 .editor-table textarea {
-  min-width: 155px;
   min-height: 58px;
   resize: vertical;
 }
@@ -441,7 +455,8 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  min-width: 168px;
+  width: 100%;
+  min-width: 0;
 }
 .etogram-keybind,
 .editor-table .combo-operator,

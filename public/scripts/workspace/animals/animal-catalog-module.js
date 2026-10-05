@@ -1,4 +1,4 @@
-import { chooseAnimalColor, createAnimal, createGroup, normalizeAnimalData } from './animal-model.js'
+import { chooseAnimalColor, createAnimal, createGroup, createId, normalizeAnimalData } from './animal-model.js'
 
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -49,7 +49,11 @@ export async function init(containerId = 'animal-panel', options = {}) {
     return null
   }
 
-  let data = normalizeAnimalData(await window.electronAPI.getProjectAnimals(projectId))
+  const loadedData = await window.electronAPI.getProjectAnimals(projectId)
+  let data = normalizeAnimalData(loadedData)
+  let presets = typeof window.electronAPI.getProjectEtograms === 'function'
+    ? await window.electronAPI.getProjectEtograms(projectId)
+    : (Array.isArray(loadedData.etogramPresets) ? loadedData.etogramPresets : [])
   let dialogAction = null
 
   host.innerHTML = `
@@ -89,7 +93,7 @@ export async function init(containerId = 'animal-panel', options = {}) {
           : 'Nie wybrano zwierzęcia'
     }
     window.dispatchEvent(new CustomEvent('active-animal-changed', {
-      detail: { data, activeAnimal, activeGroup }
+      detail: { data: getData(), activeAnimal, activeGroup }
     }))
   }
 
@@ -104,6 +108,42 @@ export async function init(containerId = 'animal-panel', options = {}) {
     data = normalizeAnimalData(nextData)
     await persist()
     return data
+  }
+
+  async function savePresets(nextPresets) {
+    if (typeof window.electronAPI.saveProjectEtograms === 'function') {
+      presets = await window.electronAPI.saveProjectEtograms(projectId, nextPresets)
+    } else {
+      presets = nextPresets
+    }
+    emitSelection()
+    return presets
+  }
+
+  function getData() {
+    return data
+  }
+
+  async function ensureAnimalPreset(animal) {
+    if (animal.etogramPresetId && presets.some((preset) => preset.id === animal.etogramPresetId)) return
+    const inheritedPresetId = data.animals.find((candidate) =>
+      candidate.id !== animal.id
+      && candidate.groupId === animal.groupId
+      && presets.some((preset) => preset.id === candidate.etogramPresetId)
+    )?.etogramPresetId
+    if (inheritedPresetId) {
+      animal.etogramPresetId = inheritedPresetId
+      return
+    }
+    const group = data.groups.find((item) => item.id === animal.groupId)
+    const preset = {
+      id: createId('etogram'),
+      name: `${group?.name || animal.name} — etogram`,
+      activities: []
+    }
+    presets = [...presets, preset]
+    animal.etogramPresetId = preset.id
+    await savePresets(presets)
   }
 
   function openNameDialog(action, title, hint, placeholder) {
@@ -132,6 +172,7 @@ export async function init(containerId = 'animal-panel', options = {}) {
       if (!animal) return
       data.activeGroupId = animal.groupId
       data.activeAnimalId = animal.id
+      await ensureAnimalPreset(animal)
       await persist()
     } else if (action === 'add-group') {
       openNameDialog('add-group', 'Dodaj grupę', 'Grupa może reprezentować gatunek lub inny zestaw obserwacji.', 'np. Mrówki')
@@ -151,8 +192,6 @@ export async function init(containerId = 'animal-panel', options = {}) {
     } else if (action === 'remove-group') {
       data.groups = data.groups.filter((group) => group.id !== groupId)
       data.animals = data.animals.filter((animal) => animal.groupId !== groupId)
-      const remainingPresetIds = new Set(data.groups.map((group) => group.etogramPresetId))
-      data.etogramPresets = data.etogramPresets.filter((preset) => remainingPresetIds.has(preset.id))
       if (data.activeGroupId === groupId) data.activeGroupId = data.groups[0]?.id || null
       const activeAnimal = data.animals.find((animal) => animal.id === data.activeAnimalId)
       if (!activeAnimal) data.activeAnimalId = null
@@ -180,6 +219,7 @@ export async function init(containerId = 'animal-panel', options = {}) {
       data.activeGroupId = data.groups.at(-1)?.id || null
     } else if (dialogAction === 'add-animal') {
       data = createAnimal(data, data.activeGroupId, name)
+      await ensureAnimalPreset(data.animals.at(-1))
     }
 
     dialog.classList.add('hidden')
@@ -193,9 +233,11 @@ export async function init(containerId = 'animal-panel', options = {}) {
 
   emitSelection()
   return {
-    getData: () => data,
+    getData,
     persist,
     saveData,
+    getPresets: () => presets,
+    savePresets,
     chooseAnimalColor: () => chooseAnimalColor(data.animals)
   }
 }

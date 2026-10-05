@@ -92,6 +92,44 @@ describe('main process stores', () => {
     expect(animals.groups).toHaveLength(1)
     expect(animals.groups[0].name).toBe('Grupa 1')
     expect(animals.etogramPresets[0].activities[0].name).toBe('Bieganie')
+    const animalFile = JSON.parse(fs.readFileSync(animalsPath, 'utf8'))
+    const etogramsPath = path.join(projectDirectory, 'Study_etograms.json')
+    const etogramsFile = JSON.parse(fs.readFileSync(etogramsPath, 'utf8'))
+    expect(animalFile.etogramPresets).toBeUndefined()
+    expect(etogramsFile.presets[0].activities[0].name).toBe('Bieganie')
+    expect(store.readProjectAnimals('Study').groups).toHaveLength(1)
+
+    const extraPreset = { id: 'shared-preset', name: 'Wspólny', activities: [] }
+    store.writeProjectEtograms('Study', [...store.readProjectEtograms('Study'), extraPreset])
+    expect(store.readProjectEtograms('Study')).toContainEqual(extraPreset)
+
+    fs.rmSync(projectsDirectory, { recursive: true, force: true })
+  })
+
+  test('migrates preset IDs from legacy groups to their animals in the saved schema', () => {
+    const projectsDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'noahs-ant-animal-presets-'))
+    const projectDirectory = path.join(projectsDirectory, 'Study')
+    fs.mkdirSync(projectDirectory)
+    fs.writeFileSync(path.join(projectDirectory, 'Study_animals.json'), JSON.stringify({
+      version: 1,
+      groups: [{ id: 'group-a', name: 'Mrówki', etogramPresetId: 'preset-a' }],
+      animals: [
+        { id: 'ant-a', groupId: 'group-a', name: 'Mrówka A', color: '#42a56b' },
+        { id: 'ant-b', groupId: 'group-a', name: 'Mrówka B', color: '#448aff' }
+      ]
+    }), 'utf8')
+    fs.writeFileSync(path.join(projectDirectory, 'Study_etograms.json'), JSON.stringify({
+      version: 1,
+      presets: [{ id: 'preset-a', name: 'Mrówki', activities: [] }]
+    }), 'utf8')
+
+    const animals = createAnimalsStore(projectsDirectory).readProjectAnimals('Study')
+    const saved = JSON.parse(fs.readFileSync(path.join(projectDirectory, 'Study_animals.json'), 'utf8'))
+
+    expect(animals.groups[0].etogramPresetId).toBeUndefined()
+    expect(animals.animals.map((animal) => animal.etogramPresetId)).toEqual(['preset-a', 'preset-a'])
+    expect(saved.groups[0].etogramPresetId).toBeUndefined()
+    expect(saved.animals.map((animal) => animal.etogramPresetId)).toEqual(['preset-a', 'preset-a'])
 
     fs.rmSync(projectsDirectory, { recursive: true, force: true })
   })

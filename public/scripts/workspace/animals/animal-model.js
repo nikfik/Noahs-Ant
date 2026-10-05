@@ -14,8 +14,7 @@ export function createEmptyAnimalData() {
     activeGroupId: null,
     activeAnimalId: null,
     groups: [],
-    animals: [],
-    etogramPresets: []
+    animals: []
   }
 }
 
@@ -23,24 +22,21 @@ export function normalizeAnimalData(value = {}) {
   const data = value && typeof value === 'object' ? value : {}
   const groups = Array.isArray(data.groups) ? data.groups : []
   const groupIds = new Set(groups.map((group) => group.id))
+  const legacyGroupPresetIds = new Map(groups.map((group) => [group.id, group.etogramPresetId]))
   const animals = (Array.isArray(data.animals) ? data.animals : [])
     .filter((animal) => groupIds.has(animal.groupId))
     .map((animal) => ({
       id: String(animal.id || createId('animal')),
       groupId: animal.groupId,
       name: String(animal.name || 'Bez nazwy'),
-      color: /^#[0-9a-f]{6}$/i.test(animal.color) ? animal.color : ANIMAL_COLORS[0]
+      color: /^#[0-9a-f]{6}$/i.test(animal.color) ? animal.color : ANIMAL_COLORS[0],
+      etogramPresetId: typeof animal.etogramPresetId === 'string'
+        ? animal.etogramPresetId
+        : (typeof legacyGroupPresetIds.get(animal.groupId) === 'string' ? legacyGroupPresetIds.get(animal.groupId) : null)
     }))
-  const etogramPresets = (Array.isArray(data.etogramPresets) ? data.etogramPresets : []).map((preset) => ({
-    id: String(preset.id || createId('etogram')),
-    name: String(preset.name || 'Nowy etogram'),
-    activities: Array.isArray(preset.activities) ? preset.activities : []
-  }))
-  const presetsById = new Set(etogramPresets.map((preset) => preset.id))
   const normalizedGroups = groups.map((group) => ({
     id: String(group.id || createId('group')),
-    name: String(group.name || 'Bez nazwy'),
-    etogramPresetId: presetsById.has(group.etogramPresetId) ? group.etogramPresetId : null
+    name: String(group.name || 'Bez nazwy')
   }))
   const activeAnimalId = animals.some((animal) => animal.id === data.activeAnimalId) ? data.activeAnimalId : null
   const activeAnimal = animals.find((animal) => animal.id === activeAnimalId)
@@ -53,8 +49,7 @@ export function normalizeAnimalData(value = {}) {
     activeGroupId,
     activeAnimalId,
     groups: normalizedGroups,
-    animals,
-    etogramPresets
+    animals
   }
 }
 
@@ -72,23 +67,23 @@ export function chooseAnimalColor(animals = [], random = Math.random, excludedCo
 export function createGroup(data, name) {
   const normalized = normalizeAnimalData(data)
   const groupId = createId('group')
-  const presetId = createId('etogram')
-  const group = { id: groupId, name: name.trim(), etogramPresetId: presetId }
+  const group = { id: groupId, name: name.trim() }
   normalized.groups.push(group)
-  normalized.etogramPresets.push({ id: presetId, name: `${name.trim()} — etogram`, activities: [] })
   normalized.activeGroupId = groupId
   normalized.activeAnimalId = null
   return normalized
 }
 
-export function createAnimal(data, groupId, name, random = Math.random) {
+export function createAnimal(data, groupId, name, random = Math.random, etogramPresetId = null) {
   const normalized = normalizeAnimalData(data)
   if (!normalized.groups.some((group) => group.id === groupId)) return normalized
+  const inheritedPresetId = normalized.animals.find((animal) => animal.groupId === groupId && animal.etogramPresetId)?.etogramPresetId
   const animal = {
     id: createId('animal'),
     groupId,
     name: name.trim(),
-    color: chooseAnimalColor(normalized.animals.filter((item) => item.groupId === groupId), random)
+    color: chooseAnimalColor(normalized.animals.filter((item) => item.groupId === groupId), random),
+    etogramPresetId: etogramPresetId || inheritedPresetId || null
   }
   normalized.animals.push(animal)
   normalized.activeGroupId = groupId

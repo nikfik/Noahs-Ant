@@ -10,4 +10,6 @@ export function registerProjectHandlers({ ipcMain, projectStore, animalsStore })
   ipcMain.handle('open-project', (_event, fileName) => projectStore.openProject(fileName))
   ipcMain.handle('get-project-animals', (_event, projectId) => animalsStore.readProjectAnimals(projectId))
   ipcMain.handle('save-project-animals', (_event, projectId, animals) => animalsStore.writeProjectAnimals(projectId, animals))
+  ipcMain.handle('get-project-etograms', (_event, projectId) => animalsStore.readProjectEtograms(projectId))
+  ipcMain.handle('save-project-etograms', (_event, projectId, presets) => animalsStore.writeProjectEtograms(projectId, presets))
 }

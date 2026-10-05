@@ -90,10 +90,10 @@ function makeEmptyRow(index) {
   }
 }
 
-export async function loadRows(projectFile, animalData, groupId = animalData?.activeGroupId) {
+export async function loadRows(projectFile, animalData, animalId = animalData?.activeAnimalId, presets = []) {
   if (animalData) {
-    const group = animalData.groups.find((item) => item.id === groupId)
-    const preset = animalData.etogramPresets.find((item) => item.id === group?.etogramPresetId)
+    const animal = animalData.animals.find((item) => item.id === animalId)
+    const preset = presets.find((item) => item.id === animal?.etogramPresetId)
     return normalizeRows(preset?.activities || [])
   }
 
@@ -107,19 +107,23 @@ export async function loadRows(projectFile, animalData, groupId = animalData?.ac
   }
 }
 
-export async function persistRows(projectFile, rows, animalCatalog, groupId) {
+export async function persistRows(projectFile, rows, animalCatalog, animalId) {
   if (animalCatalog?.getData && animalCatalog?.saveData) {
     const data = animalCatalog.getData()
-    const group = data.groups.find((item) => item.id === groupId)
-    if (!group) throw new Error('No active animal group selected')
-    let preset = data.etogramPresets.find((item) => item.id === group.etogramPresetId)
+    const animal = data.animals.find((item) => item.id === animalId)
+    if (!animal) throw new Error('No active animal selected')
+    const presets = animalCatalog.getPresets?.() || data.etogramPresets || []
+    let preset = presets.find((item) => item.id === animal.etogramPresetId)
     if (!preset) {
-      preset = { id: `etogram-${Date.now()}`, name: `${group.name} — etogram`, activities: [] }
-      data.etogramPresets.push(preset)
-      group.etogramPresetId = preset.id
+      const group = data.groups.find((item) => item.id === animal.groupId)
+      preset = { id: `etogram-${Date.now()}`, name: `${group?.name || animal.name} — etogram`, activities: [] }
+      presets.push(preset)
+      animal.etogramPresetId = preset.id
+      await animalCatalog.savePresets?.(presets)
+      await animalCatalog.saveData(data)
     }
     preset.activities = rows
-    await animalCatalog.saveData(data)
+    await animalCatalog.savePresets?.(presets)
     return
   }
 
@@ -134,9 +138,10 @@ export async function init(containerId = 'etogram-module', options = {}) {
   const projectFile = options.projectFile || ''
   const animalCatalog = options.animalCatalog || null
   let animalData = animalCatalog?.getData?.() || null
+  let presets = animalCatalog?.getPresets?.() || animalData?.etogramPresets || []
   let activeGroupId = animalData?.activeGroupId || null
   let activeAnimalId = animalData?.activeAnimalId || null
-  let rows = normalizeRows(await loadRows(projectFile, animalData, activeGroupId))
+  let rows = normalizeRows(await loadRows(projectFile, animalData, activeAnimalId, presets))
   let draftRows = normalizeRows(rows)
   let pendingShortcutCapture = null
   const pressedKeys = new Set()
@@ -169,6 +174,15 @@ export async function init(containerId = 'etogram-module', options = {}) {
                 <button id="create-etogram-preset" type="button">＋ Nowy preset</button>
               </div>
               <table class="shortcut-table editor-table">
+                <colgroup>
+                  <col class="etogram-col-remove" />
+                  <col class="etogram-col-category" />
+                  <col class="etogram-col-name" />
+                  <col class="etogram-col-description" />
+                  <col class="etogram-col-shortcut" />
+                  <col class="etogram-col-color" />
+                  <col class="etogram-col-continuous" />
+                </colgroup>
                 <thead><tr><th></th><th>Kategoria</th><th>Czynność</th><th>Opis</th><th>Skrót</th><th>Kolor</th><th>Ciągła</th></tr></thead>
                 <tbody>${renderEditorTable(draftRows)}</tbody>
               </table>
@@ -201,27 +215,32 @@ export async function init(containerId = 'etogram-module', options = {}) {
     return animalData?.groups.find((group) => group.id === activeGroupId) || null
   }
 
+  function getActiveAnimal() {
+    return animalData?.animals.find((animal) => animal.id === activeAnimalId) || null
+  }
+
   function getActivePreset() {
-    const group = getActiveGroup()
-    return animalData?.etogramPresets.find((preset) => preset.id === group?.etogramPresetId) || null
+    const animal = getActiveAnimal()
+    return presets.find((preset) => preset.id === animal?.etogramPresetId) || null
   }
 
   function renderPresetOptions() {
     if (!presetSelect) return
-    const group = getActiveGroup()
-    presetSelect.innerHTML = (animalData?.etogramPresets || []).map((preset) => `
-      <option value="${escapeHtml(preset.id)}" ${preset.id === group?.etogramPresetId ? 'selected' : ''}>${escapeHtml(preset.name)}</option>
+    const animal = getActiveAnimal()
+    presetSelect.innerHTML = presets.map((preset) => `
+      <option value="${escapeHtml(preset.id)}" ${preset.id === animal?.etogramPresetId ? 'selected' : ''}>${escapeHtml(preset.name)}</option>
     `).join('')
-    presetSelect.disabled = !group || !animalCatalog
-    host.querySelector('#create-etogram-preset').disabled = !group || !animalCatalog
+    presetSelect.disabled = !animal || !animalCatalog
+    host.querySelector('#create-etogram-preset').disabled = !animal || !animalCatalog
   }
 
   async function selectGroup(groupId, animalId = null) {
     activeGroupId = groupId
     activeAnimalId = animalId
     animalData = animalCatalog?.getData?.() || animalData
+    presets = animalCatalog?.getPresets?.() || presets
     const group = getActiveGroup()
-    rows = normalizeRows(await loadRows(projectFile, animalData, activeGroupId))
+    rows = normalizeRows(await loadRows(projectFile, animalData, activeAnimalId, presets))
     draftRows = normalizeRows(rows)
     updateCompactRows()
     const activeAnimal = animalData?.animals.find((animal) => animal.id === activeAnimalId)
@@ -432,7 +451,7 @@ export async function init(containerId = 'etogram-module', options = {}) {
     saveButton.disabled = true
     saveStatus.textContent = 'Zapisywanie…'
     try {
-      await persistRows(projectFile, nextRows, animalCatalog, activeGroupId)
+      await persistRows(projectFile, nextRows, animalCatalog, activeAnimalId)
       rows.splice(0, rows.length, ...nextRows)
       updateCompactRows()
       saveStatus.textContent = 'Zmiany zapisane.'
@@ -446,29 +465,35 @@ export async function init(containerId = 'etogram-module', options = {}) {
   })
 
   presetSelect?.addEventListener('change', async () => {
-    const group = getActiveGroup()
-    if (!group || !animalData) return
-    group.etogramPresetId = presetSelect.value
+    const animal = getActiveAnimal()
+    if (!animal || !animalData) return
+    animal.etogramPresetId = presetSelect.value
     await animalCatalog.saveData(animalData)
     animalData = animalCatalog.getData()
     await selectGroup(activeGroupId, activeAnimalId)
+    renderDraft()
   })
 
   document.getElementById('create-etogram-preset')?.addEventListener('click', async () => {
     collectDraft()
+    const animal = getActiveAnimal()
     const group = getActiveGroup()
-    if (!group || !animalData || !animalCatalog) return
+    if (!animal || !group || !animalData || !animalCatalog) return
     const preset = {
       id: `etogram-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      name: `${group.name} — preset ${animalData.etogramPresets.filter((item) => item.name.startsWith(group.name)).length + 1}`,
+      name: `${group.name} — preset ${presets.filter((item) => item.name.startsWith(group.name)).length + 1}`,
       activities: normalizeRows(draftRows)
     }
-    animalData.etogramPresets.push(preset)
-    group.etogramPresetId = preset.id
+    presets = await animalCatalog.savePresets([...presets, preset])
+    animal.etogramPresetId = preset.id
     await animalCatalog.saveData(animalData)
     animalData = animalCatalog.getData()
     renderPresetOptions()
     presetSelect.value = preset.id
+    rows = normalizeRows(preset.activities)
+    draftRows = normalizeRows(rows)
+    updateCompactRows()
+    renderDraft()
   })
 
   const onActiveAnimalChanged = (event) => {

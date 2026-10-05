@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openProject: (fileName) => ipcRenderer.invoke('open-project', fileName),
   getProjectAnimals: (projectId) => ipcRenderer.invoke('get-project-animals', projectId),
   saveProjectAnimals: (projectId, data) => ipcRenderer.invoke('save-project-animals', projectId, data),
+  getProjectEtograms: (projectId) => ipcRenderer.invoke('get-project-etograms', projectId),
+  saveProjectEtograms: (projectId, presets) => ipcRenderer.invoke('save-project-etograms', projectId, presets),
   saveProjectEtogram: (fileName, etogramRows) => ipcRenderer.invoke('save-project-etogram', fileName, etogramRows),
   selectVideoFile: () => ipcRenderer.invoke('select-video-file'),
   saveProjectVideoPath: (fileName, videoPath) => ipcRenderer.invoke('save-project-video', fileName, videoPath),

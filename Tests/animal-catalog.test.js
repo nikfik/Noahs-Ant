@@ -7,11 +7,11 @@ import { AnimalCatalogModule } from '../public/scripts/workspace/animals/animal-
 import { chooseAnimalColor, createAnimal, createEmptyAnimalData, createGroup, normalizeAnimalData } from '../public/scripts/workspace/animals/animal-model.js'
 
 describe('Animal catalog model', () => {
-  test('creates groups with their own empty etogram preset', () => {
+  test('creates groups without owning etogram presets', () => {
     const data = createGroup(createEmptyAnimalData(), 'Mrówki')
     expect(data.groups[0].name).toBe('Mrówki')
-    expect(data.etogramPresets[0].activities).toEqual([])
-    expect(data.groups[0].etogramPresetId).toBe(data.etogramPresets[0].id)
+    expect(data.groups[0].etogramPresetId).toBeUndefined()
+    expect(data.etogramPresets).toBeUndefined()
   })
 
   test('creates animals with unique group colors and valid active selection', () => {
@@ -21,8 +21,22 @@ describe('Animal catalog model', () => {
 
     expect(second.animals[0].color).not.toBe(second.animals[1].color)
     expect(second.activeAnimalId).toBe(second.animals[1].id)
+    expect(second.animals[1].etogramPresetId).toBe(second.animals[0].etogramPresetId)
     expect(normalizeAnimalData({ ...second, activeAnimalId: 'missing' }).activeAnimalId).toBeNull()
     expect(chooseAnimalColor(second.animals.filter((animal) => animal.groupId === grouped.groups[0].id), () => 0)).not.toBe(second.animals[0].color)
+  })
+
+  test('migrates a legacy group preset assignment to each animal', () => {
+    const normalized = normalizeAnimalData({
+      groups: [{ id: 'group-a', name: 'Mrówki', etogramPresetId: 'preset-a' }],
+      animals: [
+        { id: 'ant-a', groupId: 'group-a', name: 'Mrówka A' },
+        { id: 'ant-b', groupId: 'group-a', name: 'Mrówka B' }
+      ]
+    })
+
+    expect(normalized.groups[0].etogramPresetId).toBeUndefined()
+    expect(normalized.animals.map((animal) => animal.etogramPresetId)).toEqual(['preset-a', 'preset-a'])
   })
 })
 
@@ -31,7 +45,9 @@ describe('Animal catalog UI', () => {
     document.body.innerHTML = '<div id="animal-panel"></div>'
     window.electronAPI = {
       getProjectAnimals: jest.fn().mockResolvedValue(createEmptyAnimalData()),
-      saveProjectAnimals: jest.fn(async (_projectId, data) => data)
+      saveProjectAnimals: jest.fn(async (_projectId, data) => data),
+      getProjectEtograms: jest.fn().mockResolvedValue([]),
+      saveProjectEtograms: jest.fn(async (_projectId, presets) => presets)
     }
   })
 
@@ -61,6 +77,7 @@ describe('Animal catalog UI', () => {
     expect(newColor).not.toBe(oldColor)
     expect(window.electronAPI.saveProjectAnimals).toHaveBeenCalledTimes(3)
     expect(selectionListener).toHaveBeenCalled()
+    expect(window.electronAPI.saveProjectEtograms).toHaveBeenCalledTimes(1)
     window.removeEventListener('active-animal-changed', selectionListener)
   })
 })
