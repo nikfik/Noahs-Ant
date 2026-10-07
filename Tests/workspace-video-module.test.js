@@ -29,7 +29,7 @@ describe('WorkspaceVideoModule', () => {
     expect(markup).toContain('step-back-video-btn')
     expect(markup).toContain('step-forward-video-btn')
     expect(markup).toContain('skip-forward-video-btn')
-    expect(markup).toContain('video-seek')
+    expect(markup).not.toContain('video-seek')
     expect(markup).toContain('video-speed')
     expect(markup).toContain('video-volume')
   })

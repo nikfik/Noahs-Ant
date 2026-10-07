@@ -147,9 +147,12 @@ export async function init(containerId = 'trial-panel', options = {}) {
   return {
     getData: () => data,
     getActiveTrial: () => getActiveTrial(data),
-    async setVideoPath(trialId, videoPath) {
-      data = updateTrial(data, trialId, { videoPath })
+    async updateTrial(trialId, changes) {
+      data = updateTrial(data, trialId, changes)
       await persist()
+    },
+    setVideoPath(trialId, videoPath) {
+      return this.updateTrial(trialId, { videoPath })
     }
   }
 }

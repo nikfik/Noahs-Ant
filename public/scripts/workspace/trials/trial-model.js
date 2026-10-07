@@ -4,16 +4,28 @@ export function createEmptyTrialData() {
   return { version: 1, activeTrialId: null, trials: [] }
 }
 
+const positiveOrNull = (value) => Number.isFinite(value) && value > 0 ? value : null
+const nonNegativeOrNull = (value) => Number.isFinite(value) && value >= 0 ? value : null
+
+function normalizeTrial(trial) {
+  const windowStart = nonNegativeOrNull(trial.windowStart)
+  const windowEnd = positiveOrNull(trial.windowEnd)
+  return {
+    id: String(trial.id || createId('trial')),
+    name: String(trial.name || '').trim() || 'Bez nazwy',
+    videoPath: typeof trial.videoPath === 'string' ? trial.videoPath : '',
+    duration: positiveOrNull(trial.duration),
+    windowStart,
+    windowEnd: windowEnd !== null && windowEnd <= (windowStart ?? 0) ? null : windowEnd
+  }
+}
+
 export function normalizeTrialData(value = {}) {
   const source = value && typeof value === 'object' ? value : {}
   const seenIds = new Set()
   const trials = (Array.isArray(source.trials) ? source.trials : [])
     .filter((trial) => trial && typeof trial === 'object')
-    .map((trial) => ({
-      id: String(trial.id || createId('trial')),
-      name: String(trial.name || '').trim() || 'Bez nazwy',
-      videoPath: typeof trial.videoPath === 'string' ? trial.videoPath : ''
-    }))
+    .map(normalizeTrial)
     .filter((trial) => !seenIds.has(trial.id) && seenIds.add(trial.id))
 
   const activeTrialId = trials.some((trial) => trial.id === source.activeTrialId)
@@ -36,7 +48,7 @@ export function nextTrialName(data) {
 
 export function createTrial(data, name, videoPath = '') {
   const normalized = normalizeTrialData(data)
-  const trial = { id: createId('trial'), name: String(name || '').trim() || nextTrialName(normalized), videoPath }
+  const trial = normalizeTrial({ id: createId('trial'), name: String(name || '').trim() || nextTrialName(normalized), videoPath })
   return { ...normalized, activeTrialId: trial.id, trials: [...normalized.trials, trial] }
 }
 

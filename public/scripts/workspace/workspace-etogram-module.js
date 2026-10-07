@@ -1,5 +1,6 @@
 //Single responsibility principle
 import { escapeHtml } from '../shared/escape-html.js'
+import { isVideoViewActive } from '../shared/workspace-view.js'
 
 const defaultEtogramRows = []
 
@@ -303,7 +304,7 @@ async function init(containerId = 'etogram-module', options = {}) {
       renderDraft()
       return
     }
-    if (event.repeat || (modal && !modal.classList.contains('hidden'))) return
+    if (event.repeat || !isVideoViewActive() || (modal && !modal.classList.contains('hidden'))) return
     if (event.target?.matches?.('input, textarea, select, [contenteditable="true"]')) return
     const animalData = animalCatalog?.getData?.()
     const activeAnimal = animalData?.animals?.find((animal) => animal.id === activeAnimalId) || null

@@ -159,15 +159,6 @@
   color: var(--muted-text, #888888);
   font-size: 13px;
 }
-.seek-row {
-  width: 100%;
-}
-.seek-field {
-  width: 100%;
-}
-.seek-field input {
-  width: 100%;
-}
 .video-actions {
   display: flex;
   gap: 10px;
@@ -355,6 +346,9 @@
   text-overflow: ellipsis;
 }
 .timeline-ruler-track {
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
   position: relative;
   height: 42px;
   background: repeating-linear-gradient(90deg, transparent 0, transparent 99px, rgba(255,255,255,.045) 100px);

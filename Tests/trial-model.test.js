@@ -19,10 +19,25 @@ describe('Trial model', () => {
     })
 
     expect(data.trials).toEqual([
-      { id: 'a', name: 'Bez nazwy', videoPath: '' },
-      { id: 'b', name: 'B', videoPath: 'b.mp4' }
+      { id: 'a', name: 'Bez nazwy', videoPath: '', duration: null, windowStart: null, windowEnd: null },
+      { id: 'b', name: 'B', videoPath: 'b.mp4', duration: null, windowStart: null, windowEnd: null }
     ])
     expect(data.activeTrialId).toBe('a')
+  })
+
+  test('keeps a valid analysis window and video duration, and drops invalid ones', () => {
+    const [valid, inverted, junk] = normalizeTrialData({
+      trials: [
+        { id: 'v', duration: 300.5, windowStart: 10, windowEnd: 120 },
+        { id: 'i', duration: 100, windowStart: 50, windowEnd: 40 },
+        { id: 'j', duration: -3, windowStart: -1, windowEnd: 'x' }
+      ]
+    }).trials
+
+    expect(valid).toMatchObject({ duration: 300.5, windowStart: 10, windowEnd: 120 })
+    expect(inverted).toMatchObject({ duration: 100, windowStart: 50, windowEnd: null })
+    expect(junk).toMatchObject({ duration: null, windowStart: null, windowEnd: null })
+    expect(updateTrial({ trials: [valid] }, 'v', { windowEnd: 5 }).trials[0].windowEnd).toBeNull()
   })
 
   test('creates a first trial carrying the legacy video path and does not duplicate it', () => {

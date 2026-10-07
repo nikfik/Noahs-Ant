@@ -1,10 +1,9 @@
 import { VideoPlayerUtils } from './VideoPlayerUtils.js'
 
 export class VideoPlaybackControls {
-  constructor(video, { timeNode, seekInput, onSyncState } = {}) {
+  constructor(video, { timeNode, onSyncState } = {}) {
     this.video = video
     this.timeNode = timeNode
-    this.seekInput = seekInput
     this.onSyncState = onSyncState || (() => {})
   }
 
@@ -23,10 +22,6 @@ export class VideoPlaybackControls {
     const current = Number(this.video.currentTime || 0)
     const duration = Number(this.video.duration || 0)
     this.timeNode.textContent = `${VideoPlayerUtils.formatTime(current)} / ${VideoPlayerUtils.formatTime(duration)}`
-
-    if (this.seekInput && Number.isFinite(duration) && duration > 0) {
-      this.seekInput.value = String(Math.min(100, (current / duration) * 100))
-    }
   }
 
   async playPause(playPauseBtn) {
@@ -65,13 +60,6 @@ export class VideoPlaybackControls {
   setPlaybackRate(speedSelect) {
     if (!this.video || !speedSelect) return
     this.video.playbackRate = Number(speedSelect.value || 1)
-  }
-
-  seekTo(seekInput) {
-    if (!this.video || !seekInput || !Number.isFinite(this.video.duration)) return
-    const nextSeek = Number(seekInput.value || 0)
-    this.video.currentTime = (nextSeek / 100) * this.video.duration
-    this.syncTimeLabel()
   }
 
   stepBackward() {

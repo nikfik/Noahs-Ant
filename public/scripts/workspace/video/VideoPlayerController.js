@@ -1,3 +1,4 @@
+import { VIDEO_VIEW } from '../../shared/workspace-view.js'
 import { VideoPlayerUtils } from './VideoPlayerUtils.js'
 import { VideoIOService } from './VideoIOService.js'
 import { VideoPlayerUI } from './VideoPlayerUI.js'
@@ -15,7 +16,6 @@ export class VideoPlayerController {
     this.openBtn = null
     this.playPauseBtn = null
     this.muteBtn = null
-    this.seekInput = null
     this.volumeInput = null
     this.speedSelect = null
     this.timeNode = null
@@ -69,6 +69,17 @@ export class VideoPlayerController {
     this.publishTimelineState()
   }
 
+  // Each trial remembers its video length so the metrics can be calculated without opening the video.
+  reportDuration() {
+    const duration = this.video?.duration
+    if (!this.trialCatalog || !this.trialId || !Number.isFinite(duration) || duration <= 0) return
+
+    const trial = this.trialCatalog.getData().trials.find((item) => item.id === this.trialId)
+    if (trial && Math.abs((trial.duration ?? 0) - duration) > 0.001) {
+      this.trialCatalog.updateTrial(this.trialId, { duration }).catch((error) => console.error('Could not save video duration:', error))
+    }
+  }
+
   showTrial(trial) {
     if (!trial || (trial.id === this.trialId && trial.videoPath === this.videoPath)) return
 
@@ -95,10 +106,6 @@ export class VideoPlayerController {
 
     this.speedSelect?.addEventListener('change', () => {
       this.playbackControls.setPlaybackRate(this.speedSelect)
-    })
-
-    this.seekInput?.addEventListener('input', () => {
-      this.playbackControls.seekTo(this.seekInput)
     })
 
     this.stepBackBtn?.addEventListener('click', () => {
@@ -134,11 +141,9 @@ export class VideoPlayerController {
     })
 
     this.video?.addEventListener('loadedmetadata', () => {
-      if (this.seekInput) {
-        this.seekInput.max = String(Math.max(100, this.video.duration || 0))
-      }
       this.playbackControls.syncTimeLabel()
       this.publishTimelineState()
+      this.reportDuration()
     })
 
     this.video?.addEventListener('timeupdate', () => {
@@ -162,6 +167,9 @@ export class VideoPlayerController {
     })
 
     window.addEventListener('active-trial-changed', (event) => this.showTrial(event.detail?.trial))
+    window.addEventListener('workspace-view-changed', (event) => {
+      if (event.detail?.view !== VIDEO_VIEW) this.video?.pause()
+    })
 
     this.pickBtn?.addEventListener('click', async () => {
       const selected = await VideoIOService.selectVideoFile()
@@ -191,7 +199,6 @@ export class VideoPlayerController {
     this.video = elements.video
     this.playPauseBtn = elements.playPauseBtn
     this.muteBtn = elements.muteBtn
-    this.seekInput = elements.seekInput
     this.volumeInput = elements.volumeInput
     this.speedSelect = elements.speedSelect
     this.timeNode = elements.timeNode
@@ -202,7 +209,6 @@ export class VideoPlayerController {
 
     this.playbackControls = new VideoPlaybackControls(this.video, {
       timeNode: this.timeNode,
-      seekInput: this.seekInput,
       onSyncState: () => {
         this.playbackControls.syncPlaybackButton(this.playPauseBtn)
         this.playbackControls.syncMuteButton(this.muteBtn)

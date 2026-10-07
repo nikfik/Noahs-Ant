@@ -7,22 +7,41 @@
     <link rel="stylesheet" href="../styles/MainColors.css">
     <link rel="stylesheet" href="../styles/Workspace.css">
     <link rel="stylesheet" href="../styles/E_AnimalPanel.css">
+    <link rel="stylesheet" href="../styles/E_DataPanel.css">
     <link rel="stylesheet" href="../styles/Toolbar.css">
 </head>
 <body>
-    <div class="workspace-inner">
-        <aside class="left-sidebar">
-            <div id="trial-panel"></div>
-            <div id="animal-panel"></div>
-            <div id="etogram-module"></div>
-        </aside>
+    <div id="view-video" class="workspace-view">
+        <div class="workspace-inner">
+            <aside class="left-sidebar">
+                <div id="trial-panel"></div>
+                <div id="animal-panel"></div>
+                <div id="etogram-module"></div>
+            </aside>
 
-        <main class="workspace-main">
-            <div class="video-area">
-                <div id="video-module"></div>
-                <div id="events-module"></div>
-            </div>
-        </main>
+            <main class="workspace-main">
+                <div class="video-area">
+                    <div id="video-module"></div>
+                    <div id="events-module"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div id="view-data" class="workspace-view" hidden>
+        <nav class="data-tabs" aria-label="Dane">
+            <button type="button" class="data-tab active" data-data-tab="events">Zdarzenia</button>
+            <button type="button" class="data-tab" data-data-tab="metrics">Metryki</button>
+        </nav>
+        <div id="data-module" data-data-panel="events"></div>
+        <div id="data-metrics-module" data-data-panel="metrics" hidden></div>
+    </div>
+
+    <div id="view-analysis" class="workspace-view" hidden>
+        <section class="module-card analysis-placeholder">
+            <h3>Wykresy</h3>
+            <p>Ten ekran pojawi się wkrótce.</p>
+        </section>
     </div>
 
     <nav id="bottom-toolbar" class="bottom-toolbar" aria-label="Workspace toolbar">
@@ -30,7 +49,7 @@
             <span class="tb-icon" aria-hidden="true"></span>
             <span class="tb-label">Wideo</span>
         </button>
-        <button data-view="view-animals" class="tb-btn" data-icon-type="emoji" data-icon-value="">
+        <button data-view="view-data" class="tb-btn" data-icon-type="emoji" data-icon-value="">
             <span class="tb-icon" aria-hidden="true"></span>
             <span class="tb-label">Dane</span>
         </button>

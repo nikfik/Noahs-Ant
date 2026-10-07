@@ -5,6 +5,7 @@
 import { jest } from '@jest/globals'
 import { createTimelineModule, allocateAnimalLanes, toggleObservation } from '../public/scripts/workspace/workspace-timeline-module.js'
 import { getObservationDisplayEnd, normalizeObservationData } from '../public/scripts/workspace/observations/observation-model.js'
+import { createObservationStore } from '../public/scripts/workspace/observations/observation-store.js'
 
 const request = { activityId: 'run', activityName: 'Bieg', activityColor: '#42a56b', continuous: true }
 
@@ -98,10 +99,19 @@ describe('Workspace timeline UI integration', () => {
     scroller.scrollLeft = 0
     const seekListener = jest.fn()
     window.addEventListener('video-seek-request', seekListener)
-    ruler.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 250 }))
-    expect(seekListener).toHaveBeenCalledWith(expect.objectContaining({
-      detail: expect.objectContaining({ time: expect.any(Number) })
-    }))
+    ruler.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 250 }))
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 400 }))
+    expect(parseFloat(document.querySelector('.timeline-playhead-ruler').style.left)).toBeCloseTo(400 - 150)
+    window.dispatchEvent(new CustomEvent('video-timeline-state', { detail: { currentTime: 0.2, duration: 10, paused: true } }))
+    expect(parseFloat(document.querySelector('.timeline-playhead-ruler').style.left)).toBeCloseTo(400 - 150)
+    window.dispatchEvent(new MouseEvent('pointerup', { clientX: 400 }))
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 600 }))
+    window.dispatchEvent(new CustomEvent('video-timeline-state', { detail: { currentTime: 0.2, duration: 10, paused: true } }))
+    expect(parseFloat(document.querySelector('.timeline-playhead-ruler').style.left)).toBeCloseTo(0.2 * 85)
+    const seekTimes = seekListener.mock.calls.map(([seekEvent]) => seekEvent.detail.time)
+    expect(seekTimes).toHaveLength(2)
+    expect(seekTimes[0]).toBeCloseTo((250 - 150) / 85)
+    expect(seekTimes[1]).toBeCloseTo((400 - 150) / 85)
     window.removeEventListener('video-seek-request', seekListener)
   })
 
@@ -116,8 +126,10 @@ describe('Workspace timeline UI integration', () => {
     const trialCatalog = { getActiveTrial: () => activeTrial }
     const animal = { id: 'animal-1', name: 'Mrówka', color: '#42a56b' }
     const animalCatalog = { getData: () => ({ animals: [animal], activeAnimalId: animal.id }) }
+    const observationStore = createObservationStore({ projectId: 'Study', api: window.electronAPI })
+    await observationStore.load()
     const timeline = createTimelineModule()
-    const instance = await timeline.init('events-module', { projectId: 'Study', animalCatalog, trialCatalog })
+    const instance = await timeline.init('events-module', { animalCatalog, trialCatalog, observationStore })
     window.dispatchEvent(new CustomEvent('video-timeline-state', { detail: { currentTime: 1, duration: 10, paused: true } }))
 
     const visibleIds = () => Array.from(document.querySelectorAll('.timeline-event')).map((node) => node.dataset.observationId)
@@ -134,12 +146,40 @@ describe('Workspace timeline UI integration', () => {
     expect(recorded[0].trialId).toBe('trial-2')
     expect(instance.getObservations()).toHaveLength(3)
 
-    window.dispatchEvent(new CustomEvent('trial-removed', { detail: { trialId: 'trial-2' } }))
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    await observationStore.removeTrialEvents('trial-2')
+    expect(visibleIds()).toEqual([])
     expect(instance.getObservations().map((item) => item.id)).toEqual(['first'])
     expect(window.electronAPI.saveProjectObservations).toHaveBeenLastCalledWith('Study', expect.objectContaining({
       observations: [expect.objectContaining({ id: 'first', trialId: 'trial-1' })]
     }))
+  })
+
+  test('snaps a dragged event to the playhead and to other events, unless Alt is held', async () => {
+    window.electronAPI.getAppSettings.mockResolvedValue({ timeline: { snapEnabled: true, snapThresholdPx: 14 } })
+    window.electronAPI.getProjectObservations.mockResolvedValue({
+      observations: [interval('moving', 2, 5), { ...interval('other', 12, 15), activityId: 'other' }]
+    })
+    const animalCatalog = { getData: () => ({ animals: [{ id: 'animal-1', name: 'Mrówka', color: '#42a56b' }] }) }
+    const instance = await createTimelineModule().init('events-module', { projectId: 'Study', animalCatalog })
+    window.dispatchEvent(new CustomEvent('video-timeline-state', { detail: { currentTime: 7.04, duration: 20, paused: true } }))
+    document.querySelector('.timeline-scroller').getBoundingClientRect = () => ({ left: 0, right: 1000, top: 0, bottom: 300, width: 1000, height: 300 })
+
+    const dragMovingEvent = async (altKey) => {
+      document.querySelector('[data-observation-id="moving"]')
+        .dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 320, clientY: 20 }))
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 320 + 5.02 * 42.5, clientY: 20, altKey }))
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 320 + 5.02 * 42.5, clientY: 20 }))
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      return instance.getObservations().find((item) => item.id === 'moving').start
+    }
+
+    expect(await dragMovingEvent(false)).toBeCloseTo(7.04)
+
+    document.querySelector('[data-timeline-action="undo"]').click()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(instance.getObservations().find((item) => item.id === 'moving').start).toBe(2)
+
+    expect(await dragMovingEvent(true)).toBeCloseTo(7.02)
   })
 
   test('moves and resizes a saved interval, then deletes the selected event', async () => {

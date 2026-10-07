@@ -46,13 +46,6 @@ export class VideoPlayerUI {
               </label>
               <span id="video-time" class="video-time">00:00 / 00:00</span>
             </div>
-
-            <div class="video-control-row seek-row">
-              <label class="video-inline-field seek-field" for="video-seek">
-                <span>Przewijanie</span>
-                <input id="video-seek" type="range" min="0" max="100" step="0.1" value="0" />
-              </label>
-            </div>
           </div>
 
           <div class="video-actions">
@@ -85,7 +78,6 @@ export class VideoPlayerUI {
       video: this.host.querySelector('#video-player'),
       playPauseBtn: this.host.querySelector('#play-pause-video-btn'),
       muteBtn: this.host.querySelector('#mute-video-btn'),
-      seekInput: this.host.querySelector('#video-seek'),
       volumeInput: this.host.querySelector('#video-volume'),
       speedSelect: this.host.querySelector('#video-speed'),
       timeNode: this.host.querySelector('#video-time'),

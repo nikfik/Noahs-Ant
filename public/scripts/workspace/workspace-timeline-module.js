@@ -1,11 +1,12 @@
 //Single responsibility principle
 import { escapeHtml } from '../shared/escape-html.js'
-import { normalizeObservationData, getObservationDisplayEnd } from './observations/observation-model.js'
+import { isVideoViewActive } from '../shared/workspace-view.js'
+import { getObservationDisplayEnd } from './observations/observation-model.js'
+import { createObservationStore } from './observations/observation-store.js'
 
 const LABEL_WIDTH = 150
 const LANE_HEIGHT = 32
 const MIN_LANE_WIDTH = 4
-const MAX_HISTORY = 100
 
 const videoFileName = (videoPath) => String(videoPath || '').split(/[\\/]/).pop()
 
@@ -104,10 +105,9 @@ export function toggleObservation(observations, request, context) {
 }
 
 export function createTimelineModule() {
-  let projectId = ''
   let animalCatalog = null
   let trialCatalog = null
-  let observations = []
+  let store = null
   let duration = 0
   let currentTime = 0
   let paused = true
@@ -117,10 +117,8 @@ export function createTimelineModule() {
   let snapEnabled = true
   let snapThresholdPx = 9
   let selectedId = null
-  let history = []
-  let future = []
   let drag = null
-  let saveQueue = Promise.resolve()
+  let scrubbing = false
   let host = null
   let scroller = null
   let workspaceSettings = {}
@@ -134,43 +132,17 @@ export function createTimelineModule() {
   }
 
   function trialObservations() {
-    const trialId = activeTrialId()
-    return observations.filter((item) => (item.trialId ?? null) === trialId)
+    return store.getForTrial(activeTrialId())
   }
 
   function animalMap() {
     return new Map(currentAnimals().map((animal) => [animal.id, animal]))
   }
 
-  function pushHistory() {
-    history.push(JSON.stringify(observations))
-    if (history.length > MAX_HISTORY) history.shift()
-    future = []
-  }
-
-  function persist() {
-    if (!projectId || !window.electronAPI?.saveProjectObservations) return Promise.resolve()
-    const snapshot = { version: 1, observations: observations.map((item) => ({ ...item })) }
-    saveQueue = saveQueue.catch(() => {}).then(() => window.electronAPI.saveProjectObservations(projectId, snapshot))
-    return saveQueue
-  }
-
-  async function commit(nextObservations) {
-    pushHistory()
-    observations = normalizeObservationData({ observations: nextObservations }).observations
+  function onStoreChange({ reason }) {
+    if (reason === 'undo' || reason === 'redo' || reason === 'remove-trial') selectedId = null
     render()
-    await persist()
-    emitActiveStates()
-  }
-
-  async function restoreFromHistory(source, destination) {
-    if (!source.length) return
-    destination.push(JSON.stringify(observations))
-    observations = normalizeObservationData({ observations: JSON.parse(source.pop()) }).observations
-    selectedId = null
-    render()
-    await persist()
-    emitActiveStates()
+    if (reason !== 'preview') emitActiveStates()
   }
 
   function getScaleWidth() {
@@ -262,8 +234,8 @@ export function createTimelineModule() {
       })
       host.querySelectorAll('[data-timeline-action]').forEach((button) => {
         button.addEventListener('click', () => {
-          if (button.dataset.timelineAction === 'undo') restoreFromHistory(history, future)
-          if (button.dataset.timelineAction === 'redo') restoreFromHistory(future, history)
+          if (button.dataset.timelineAction === 'undo') store.undo()
+          if (button.dataset.timelineAction === 'redo') store.redo()
           if (button.dataset.timelineAction === 'snap') {
             snapEnabled = !snapEnabled
             button.textContent = `Snap: ${snapEnabled ? 'wł.' : 'wył.'}`
@@ -281,7 +253,7 @@ export function createTimelineModule() {
       scroller.addEventListener('pointerdown', onPointerDown)
       window.addEventListener('pointermove', onPointerMove)
       window.addEventListener('pointerup', onPointerUp)
-      scroller.addEventListener('click', onTimelineClick)
+      window.addEventListener('pointercancel', onPointerUp)
     }
 
     const content = host.querySelector('.timeline-content')
@@ -343,24 +315,26 @@ export function createTimelineModule() {
       announce('Wczytaj film przed oznaczaniem.')
       return
     }
-    const next = toggleObservation(observations, request, { animalId, currentTime, duration, repeat: request.repeat, trialId: activeTrialId() })
-    if (next === observations) return
-    await commit(next)
+    const current = store.getAll()
+    const next = toggleObservation(current, request, { animalId, currentTime, duration, repeat: request.repeat, trialId: activeTrialId() })
+    if (next === current) return
+    await store.commit(next)
     announce(`${request.activityName || 'Czynność'} · ${formatTime(currentTime)}`)
   }
 
-  function snapTime(time, event, original) {
+  // The playhead and the edges of the other events act as magnets; without one nearby the time falls back to the frame grid.
+  function snapTime(time, event) {
     if (!snapEnabled || event.altKey) return time
-    const frameStep = 1 / 30
-    const candidates = [Math.round(time / frameStep) * frameStep]
-    trialObservations().forEach((item) => {
-      candidates.push(item.start)
-      if (item.end !== null) candidates.push(item.end)
+    const magnets = [currentTime]
+    trialObservations().filter((item) => item.id !== drag?.id).forEach((item) => {
+      magnets.push(item.start)
+      if (item.end !== null) magnets.push(item.end)
     })
-    const maxDistance = snapThresholdPx / effectiveScale
-    const closest = candidates.reduce((best, candidate) =>
-      Math.abs(candidate - time) < Math.abs(best - time) ? candidate : best, time)
-    return Math.abs(closest - time) <= maxDistance ? closest : time
+    const closest = magnets.reduce((best, magnet) => Math.abs(magnet - time) < Math.abs(best - time) ? magnet : best)
+    if (Math.abs(closest - time) <= snapThresholdPx / effectiveScale) return closest
+
+    const frameStep = 1 / 30
+    return Math.round(time / frameStep) * frameStep
   }
 
   function timeFromClientX(clientX) {
@@ -369,11 +343,38 @@ export function createTimelineModule() {
     return Math.max(0, Math.min(duration, x / effectiveScale))
   }
 
+  function movePlayhead() {
+    host.querySelectorAll('.timeline-playhead, .timeline-playhead-ruler').forEach((node) => {
+      node.style.left = `${currentTime * effectiveScale}px`
+    })
+    host.querySelector('.timeline-current-time').textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`
+  }
+
+  // The playhead follows the pointer at once; the video catches up with its own seek afterwards.
+  function scrubTo(clientX) {
+    const time = timeFromClientX(clientX)
+    currentTime = time
+    const hasOpenInterval = trialObservations().some((item) => item.kind === 'interval' && item.end === null)
+    if (hasOpenInterval) render()
+    else movePlayhead()
+    window.dispatchEvent(new CustomEvent('video-seek-request', { detail: { time } }))
+  }
+
   function onPointerDown(event) {
     if (duration <= 0 || event.button !== 0) return
     const itemNode = event.target.closest('.timeline-event')
-    if (!itemNode) return
-    const observation = observations.find((item) => item.id === itemNode.dataset.observationId)
+    if (itemNode) {
+      startDrag(event, itemNode)
+    } else if (event.target.closest('.timeline-ruler-track')) {
+      scrubbing = true
+      scroller.setPointerCapture?.(event.pointerId)
+      scrubTo(event.clientX)
+      event.preventDefault()
+    }
+  }
+
+  function startDrag(event, itemNode) {
+    const observation = store.getAll().find((item) => item.id === itemNode.dataset.observationId)
     if (!observation) return
     selectedId = observation.id
     const original = { ...observation }
@@ -386,7 +387,7 @@ export function createTimelineModule() {
       startY: event.clientY,
       initial: original,
       initialLane: Number(itemNode.closest('.timeline-track')?.dataset.lane) || 0,
-      before: JSON.stringify(observations),
+      before: store.snapshot(),
       moved: false,
       altKey: event.altKey
     }
@@ -396,53 +397,43 @@ export function createTimelineModule() {
   }
 
   function onPointerMove(event) {
+    if (scrubbing) {
+      scrubTo(event.clientX)
+      return
+    }
     if (!drag || duration <= 0) return
-    const observation = observations.find((item) => item.id === drag.id)
-    if (!observation) return
+    if (!store.getAll().some((item) => item.id === drag.id)) return
     const deltaX = (event.clientX - drag.startX) / effectiveScale
     const deltaY = event.clientY - drag.startY
     if (Math.abs(deltaX) < 0.025 && Math.abs(deltaY) < 5 && !drag.moved) return
     drag.moved = true
 
+    const changes = {}
     if (drag.mode === 'move' || drag.mode === 'move-point') {
-      let nextStart = Math.max(0, drag.initial.start + deltaX)
-      nextStart = snapTime(nextStart, event, drag.initial)
-      const shift = nextStart - drag.initial.start
-      observation.start = nextStart
-      if (drag.initial.end !== null) observation.end = Math.max(nextStart, drag.initial.end + shift)
+      const nextStart = snapTime(Math.max(0, drag.initial.start + deltaX), event, drag.initial)
+      changes.start = nextStart
+      if (drag.initial.end !== null) changes.end = Math.max(nextStart, drag.initial.end + (nextStart - drag.initial.start))
     } else if (drag.mode === 'start') {
       const nextStart = snapTime(Math.max(0, drag.initial.start + deltaX), event, drag.initial)
-      observation.start = Math.min(nextStart, observation.end === null ? duration : observation.end - 1 / 30)
+      changes.start = Math.min(nextStart, drag.initial.end === null ? duration : drag.initial.end - 1 / 30)
     } else if (drag.mode === 'end') {
       const nextEnd = snapTime(Math.max(drag.initial.start + 1 / 30, drag.initial.end + deltaX), event, drag.initial)
-      observation.end = Math.min(duration, nextEnd)
+      changes.end = Math.min(duration, nextEnd)
     }
+    changes.lane = Math.max(0, Math.round(drag.initialLane + deltaY / LANE_HEIGHT))
 
-    const targetLane = Math.max(0, Math.round(drag.initialLane + deltaY / LANE_HEIGHT))
-    observation.lane = targetLane
-    render()
+    store.preview(store.getAll().map((item) => item.id === drag.id ? { ...item, ...changes } : item))
   }
 
   async function onPointerUp() {
+    scrubbing = false
     if (!drag) return
     const completedDrag = drag
-    const changed = completedDrag.moved
     drag = null
-    if (changed) {
-      history.push(completedDrag.before)
-      if (history.length > MAX_HISTORY) history.shift()
-      future = []
-      render()
-      await persist()
+    if (completedDrag.moved) {
+      await store.finishPreview(completedDrag.before)
     } else {
       render()
-    }
-  }
-
-  function onTimelineClick(event) {
-    if (event.target.closest('.timeline-event')) return
-    if (event.target.closest('.timeline-ruler-track') && duration > 0) {
-      window.dispatchEvent(new CustomEvent('video-seek-request', { detail: { time: timeFromClientX(event.clientX) } }))
     }
   }
 
@@ -453,8 +444,9 @@ export function createTimelineModule() {
 
   async function removeSelected() {
     if (!selectedId) return
-    await commit(observations.filter((item) => item.id !== selectedId))
+    const removedId = selectedId
     selectedId = null
+    await store.commit(store.getAll().filter((item) => item.id !== removedId))
   }
 
   function onKeyDown(event) {
@@ -462,53 +454,43 @@ export function createTimelineModule() {
     if (target?.matches?.('input, textarea, select, [contenteditable="true"]')) return
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
       event.preventDefault()
-      restoreFromHistory(event.shiftKey ? future : history, event.shiftKey ? history : future)
+      if (event.shiftKey) store.redo()
+      else store.undo()
       return
     }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
       event.preventDefault()
-      restoreFromHistory(future, history)
+      store.redo()
       return
     }
-    if ((event.key === 'Delete' || event.key === 'Backspace') && selectedId) {
+    if ((event.key === 'Delete' || event.key === 'Backspace') && selectedId && isVideoViewActive()) {
       event.preventDefault()
       removeSelected()
     }
   }
 
-  async function onTrialRemoved(event) {
-    const { trialId } = event.detail || {}
-    if (!trialId) return
-    observations = observations.filter((item) => item.trialId !== trialId)
-    history = []
-    future = []
-    selectedId = null
-    render()
-    await persist()
-  }
-
   function onVideoState(event) {
     const state = event.detail || {}
-    currentTime = Math.max(0, Number(state.currentTime) || 0)
     duration = Math.max(0, Number(state.duration) || 0)
     paused = state.paused !== false
     videoPath = typeof state.videoPath === 'string' ? state.videoPath : ''
+    // While scrubbing, the video's delayed position reports must not pull the playhead back.
+    if (scrubbing) return
+    currentTime = Math.max(0, Number(state.currentTime) || 0)
     if (!drag) render()
   }
 
   async function init(containerId = 'events-module', options = {}) {
     host = document.getElementById(containerId)
     if (!host) return
-    projectId = options.projectId || ''
     animalCatalog = options.animalCatalog || null
     trialCatalog = options.trialCatalog || null
-    try {
-      const stored = await window.electronAPI?.getProjectObservations?.(projectId)
-      observations = normalizeObservationData(stored).observations
-    } catch (error) {
-      observations = []
-      console.error('Could not load project observations:', error)
+    store = options.observationStore
+    if (!store) {
+      store = createObservationStore({ projectId: options.projectId || '', api: window.electronAPI })
+      await store.load()
     }
+    store.subscribe(onStoreChange)
 
     try {
       workspaceSettings = await window.electronAPI?.getAppSettings?.() || {}
@@ -526,10 +508,9 @@ export function createTimelineModule() {
       render()
       emitActiveStates()
     })
-    window.addEventListener('trial-removed', onTrialRemoved)
     document.addEventListener('keydown', onKeyDown)
     render()
-    return { getObservations: () => observations.map((item) => ({ ...item })) }
+    return { getObservations: () => store.getAll().map((item) => ({ ...item })) }
   }
 
   return { init }
