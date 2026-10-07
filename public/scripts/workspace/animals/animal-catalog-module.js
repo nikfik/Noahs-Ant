@@ -1,8 +1,5 @@
+import { escapeHtml } from '../../shared/escape-html.js'
 import { chooseAnimalColor, createAnimal, createGroup, createId, normalizeAnimalData } from './animal-model.js'
-
-const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-})[character])
 
 function renderCatalog(data) {
   if (!data.groups.length) {

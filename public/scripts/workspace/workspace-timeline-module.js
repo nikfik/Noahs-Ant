@@ -1,14 +1,11 @@
 //Single responsibility principle
+import { escapeHtml } from '../shared/escape-html.js'
 import { normalizeObservationData, getObservationDisplayEnd } from './observations/observation-model.js'
 
 const LABEL_WIDTH = 150
 const LANE_HEIGHT = 32
 const MIN_LANE_WIDTH = 4
 const MAX_HISTORY = 100
-
-const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-})[character])
 
 const videoFileName = (videoPath) => String(videoPath || '').split(/[\\/]/).pop()
 
@@ -53,7 +50,10 @@ export function toggleObservation(observations, request, context) {
   if (!context.animalId || !request?.activityId) return observations
 
   const next = observations.map((item) => ({ ...item }))
-  const matching = next.filter((item) => item.animalId === context.animalId && item.activityId === request.activityId)
+  const trialId = context.trialId ?? null
+  const matching = next.filter((item) =>
+    item.animalId === context.animalId && item.activityId === request.activityId && (item.trialId ?? null) === trialId
+  )
 
   if (!request.continuous) {
     if (context.repeat) return observations
@@ -66,7 +66,8 @@ export function toggleObservation(observations, request, context) {
       kind: 'point',
       start: time,
       end: time,
-      lane: null
+      lane: null,
+      trialId
     })
     return next
   }
@@ -96,7 +97,8 @@ export function toggleObservation(observations, request, context) {
     kind: 'interval',
     start: time,
     end: null,
-    lane: null
+    lane: null,
+    trialId
   })
   return next
 }
@@ -104,6 +106,7 @@ export function toggleObservation(observations, request, context) {
 export function createTimelineModule() {
   let projectId = ''
   let animalCatalog = null
+  let trialCatalog = null
   let observations = []
   let duration = 0
   let currentTime = 0
@@ -124,6 +127,15 @@ export function createTimelineModule() {
 
   function currentAnimals() {
     return animalCatalog?.getData?.().animals || []
+  }
+
+  function activeTrialId() {
+    return trialCatalog?.getActiveTrial?.()?.id ?? null
+  }
+
+  function trialObservations() {
+    const trialId = activeTrialId()
+    return observations.filter((item) => (item.trialId ?? null) === trialId)
   }
 
   function animalMap() {
@@ -203,7 +215,7 @@ export function createTimelineModule() {
   }
 
   function renderTrackEvents(animal, lane, width, placements) {
-    return observations.filter((item) => item.animalId === animal.id && placements.get(item.id)?.lane === lane).map((item) => {
+    return trialObservations().filter((item) => item.animalId === animal.id && placements.get(item.id)?.lane === lane).map((item) => {
       const placement = placements.get(item.id)
       const left = Math.max(0, Math.min(width, (item.start / duration) * width))
       const right = Math.max(left, Math.min(width, (placement.displayEnd / duration) * width))
@@ -275,7 +287,7 @@ export function createTimelineModule() {
     const content = host.querySelector('.timeline-content')
     const width = getScaleWidth()
     effectiveScale = duration > 0 ? width / duration : pixelsPerSecond
-    const laneLayout = allocateAnimalLanes(observations, animals, currentTime, duration)
+    const laneLayout = allocateAnimalLanes(trialObservations(), animals, currentTime, duration)
     const animalLookup = animalMap()
     const rowsHtml = animals.map((animal) => {
       const count = laneLayout.laneCounts.get(animal.id) || 1
@@ -331,7 +343,7 @@ export function createTimelineModule() {
       announce('Wczytaj film przed oznaczaniem.')
       return
     }
-    const next = toggleObservation(observations, request, { animalId, currentTime, duration, repeat: request.repeat })
+    const next = toggleObservation(observations, request, { animalId, currentTime, duration, repeat: request.repeat, trialId: activeTrialId() })
     if (next === observations) return
     await commit(next)
     announce(`${request.activityName || 'Czynność'} · ${formatTime(currentTime)}`)
@@ -341,7 +353,7 @@ export function createTimelineModule() {
     if (!snapEnabled || event.altKey) return time
     const frameStep = 1 / 30
     const candidates = [Math.round(time / frameStep) * frameStep]
-    observations.forEach((item) => {
+    trialObservations().forEach((item) => {
       candidates.push(item.start)
       if (item.end !== null) candidates.push(item.end)
     })
@@ -435,7 +447,7 @@ export function createTimelineModule() {
   }
 
   function emitActiveStates() {
-    const active = new Set(observations.filter((item) => item.kind === 'interval' && item.end === null).map((item) => `${item.animalId}:${item.activityId}`))
+    const active = new Set(trialObservations().filter((item) => item.kind === 'interval' && item.end === null).map((item) => `${item.animalId}:${item.activityId}`))
     window.dispatchEvent(new CustomEvent('timeline-active-observations', { detail: { active } }))
   }
 
@@ -464,6 +476,17 @@ export function createTimelineModule() {
     }
   }
 
+  async function onTrialRemoved(event) {
+    const { trialId } = event.detail || {}
+    if (!trialId) return
+    observations = observations.filter((item) => item.trialId !== trialId)
+    history = []
+    future = []
+    selectedId = null
+    render()
+    await persist()
+  }
+
   function onVideoState(event) {
     const state = event.detail || {}
     currentTime = Math.max(0, Number(state.currentTime) || 0)
@@ -478,6 +501,7 @@ export function createTimelineModule() {
     if (!host) return
     projectId = options.projectId || ''
     animalCatalog = options.animalCatalog || null
+    trialCatalog = options.trialCatalog || null
     try {
       const stored = await window.electronAPI?.getProjectObservations?.(projectId)
       observations = normalizeObservationData(stored).observations
@@ -497,6 +521,12 @@ export function createTimelineModule() {
     window.addEventListener('video-timeline-state', onVideoState)
     window.addEventListener('etogram-activity-request', onActivityRequest)
     window.addEventListener('active-animal-changed', () => render())
+    window.addEventListener('active-trial-changed', () => {
+      selectedId = null
+      render()
+      emitActiveStates()
+    })
+    window.addEventListener('trial-removed', onTrialRemoved)
     document.addEventListener('keydown', onKeyDown)
     render()
     return { getObservations: () => observations.map((item) => ({ ...item })) }

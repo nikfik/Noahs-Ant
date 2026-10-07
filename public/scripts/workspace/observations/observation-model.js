@@ -26,7 +26,8 @@ export function normalizeObservationData(value = {}) {
           kind: item.kind === 'point' ? 'point' : 'interval',
           start,
           end: item.kind === 'point' ? start : end,
-          lane: Number.isInteger(item.lane) && item.lane >= 0 ? item.lane : null
+          lane: Number.isInteger(item.lane) && item.lane >= 0 ? item.lane : null,
+          trialId: item.trialId ? String(item.trialId) : null
         }
       })
       .filter(Boolean)

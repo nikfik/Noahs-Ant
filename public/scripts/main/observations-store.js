@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createEmptyObservationData, normalizeObservationData } from '../workspace/observations/observation-model.js'
 
-export function createObservationsStore(projectsDirectory) {
+export function createObservationsStore(projectsDirectory, { getDefaultTrialId = () => null } = {}) {
   function getObservationsPath(projectId) {
     if (typeof projectId !== 'string' || !projectId || path.basename(projectId) !== projectId) {
       throw new Error('Invalid project identifier')
@@ -24,7 +24,13 @@ export function createObservationsStore(projectsDirectory) {
       return empty
     }
 
-    return normalizeObservationData(JSON.parse(fs.readFileSync(filePath, 'utf8')))
+    const data = normalizeObservationData(JSON.parse(fs.readFileSync(filePath, 'utf8')))
+    const defaultTrialId = data.observations.some((item) => !item.trialId) ? getDefaultTrialId(projectId) : null
+    if (!defaultTrialId) return data
+
+    // Events recorded before trials existed belong to the project's first trial.
+    data.observations.forEach((item) => { item.trialId = item.trialId || defaultTrialId })
+    return write(projectId, data)
   }
 
   function write(projectId, value) {

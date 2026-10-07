@@ -5,6 +5,7 @@ import { createProjectStore } from '../public/scripts/main/project-store.js'
 import { createAnimalsStore } from '../public/scripts/main/animals-store.js'
 import { createObservationsStore } from '../public/scripts/main/observations-store.js'
 import { createSettingsStore } from '../public/scripts/main/settings-store.js'
+import { createTrialsStore } from '../public/scripts/main/trials-store.js'
 import { createThemeState } from '../public/scripts/main/theme-state.js'
 import { createDefaultAppSettings } from '../public/scripts/settings/settings-config.js'
 
@@ -131,6 +132,49 @@ describe('main process stores', () => {
     expect(animals.animals.map((animal) => animal.etogramPresetId)).toEqual(['preset-a', 'preset-a'])
     expect(saved.groups[0].etogramPresetId).toBeUndefined()
     expect(saved.animals.map((animal) => animal.etogramPresetId)).toEqual(['preset-a', 'preset-a'])
+
+    fs.rmSync(projectsDirectory, { recursive: true, force: true })
+  })
+
+  test('creates the first trial from the legacy project video and persists trial changes', () => {
+    const projectsDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'noahs-ant-trials-'))
+    const projectDirectory = path.join(projectsDirectory, 'Study')
+    fs.mkdirSync(projectDirectory)
+    fs.writeFileSync(path.join(projectDirectory, 'Study_ini.json'), JSON.stringify({
+      projectName: 'Study',
+      videoPath: 'C:/videos/old.mp4'
+    }), 'utf8')
+
+    const store = createTrialsStore(projectsDirectory)
+    const data = store.read('Study')
+    expect(data.trials).toHaveLength(1)
+    expect(data.trials[0]).toMatchObject({ name: 'Próba 1', videoPath: 'C:/videos/old.mp4' })
+    expect(fs.existsSync(path.join(projectDirectory, 'Study_trials.json'))).toBe(true)
+
+    const written = store.write('Study', { ...data, trials: [{ ...data.trials[0], name: 'A2M1 / Head / 1' }] })
+    expect(store.read('Study').trials[0].name).toBe('A2M1 / Head / 1')
+    expect(written.activeTrialId).toBe(data.trials[0].id)
+    expect(() => store.read('../escape')).toThrow('Invalid project identifier')
+
+    fs.rmSync(projectsDirectory, { recursive: true, force: true })
+  })
+
+  test('assigns events recorded before trials existed to the first trial', () => {
+    const projectsDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'noahs-ant-legacy-events-'))
+    const projectDirectory = path.join(projectsDirectory, 'Study')
+    fs.mkdirSync(projectDirectory)
+    const event = { id: 'e1', animalId: 'ant-1', activityId: 'run', kind: 'point', start: 1, end: 1 }
+    fs.writeFileSync(path.join(projectDirectory, 'Study_observations.json'), JSON.stringify({ observations: [event] }), 'utf8')
+
+    const trialsStore = createTrialsStore(projectsDirectory)
+    const store = createObservationsStore(projectsDirectory, {
+      getDefaultTrialId: (projectId) => trialsStore.read(projectId).trials[0].id
+    })
+
+    const firstTrialId = trialsStore.read('Study').trials[0].id
+    expect(store.read('Study').observations[0].trialId).toBe(firstTrialId)
+    const saved = JSON.parse(fs.readFileSync(path.join(projectDirectory, 'Study_observations.json'), 'utf8'))
+    expect(saved.observations[0].trialId).toBe(firstTrialId)
 
     fs.rmSync(projectsDirectory, { recursive: true, force: true })
   })

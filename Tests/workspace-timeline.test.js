@@ -105,6 +105,43 @@ describe('Workspace timeline UI integration', () => {
     window.removeEventListener('video-seek-request', seekListener)
   })
 
+  test('shows, records and removes events per trial', async () => {
+    window.electronAPI.getProjectObservations.mockResolvedValue({
+      observations: [
+        { ...interval('first', 1, 3), trialId: 'trial-1' },
+        { ...interval('second', 2, 4), trialId: 'trial-2' }
+      ]
+    })
+    let activeTrial = { id: 'trial-1' }
+    const trialCatalog = { getActiveTrial: () => activeTrial }
+    const animal = { id: 'animal-1', name: 'Mrówka', color: '#42a56b' }
+    const animalCatalog = { getData: () => ({ animals: [animal], activeAnimalId: animal.id }) }
+    const timeline = createTimelineModule()
+    const instance = await timeline.init('events-module', { projectId: 'Study', animalCatalog, trialCatalog })
+    window.dispatchEvent(new CustomEvent('video-timeline-state', { detail: { currentTime: 1, duration: 10, paused: true } }))
+
+    const visibleIds = () => Array.from(document.querySelectorAll('.timeline-event')).map((node) => node.dataset.observationId)
+    expect(visibleIds()).toEqual(['first'])
+
+    activeTrial = { id: 'trial-2' }
+    window.dispatchEvent(new CustomEvent('active-trial-changed', { detail: { trial: activeTrial } }))
+    expect(visibleIds()).toEqual(['second'])
+
+    window.dispatchEvent(new CustomEvent('etogram-activity-request', { detail: { ...request, activityId: 'run', animalId: animal.id } }))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const recorded = instance.getObservations().filter((item) => item.end === null)
+    expect(recorded).toHaveLength(1)
+    expect(recorded[0].trialId).toBe('trial-2')
+    expect(instance.getObservations()).toHaveLength(3)
+
+    window.dispatchEvent(new CustomEvent('trial-removed', { detail: { trialId: 'trial-2' } }))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(instance.getObservations().map((item) => item.id)).toEqual(['first'])
+    expect(window.electronAPI.saveProjectObservations).toHaveBeenLastCalledWith('Study', expect.objectContaining({
+      observations: [expect.objectContaining({ id: 'first', trialId: 'trial-1' })]
+    }))
+  })
+
   test('moves and resizes a saved interval, then deletes the selected event', async () => {
     window.electronAPI.getProjectObservations.mockResolvedValue({
       observations: [{ ...interval('saved', 2, 5), animalId: 'animal-1', activityId: 'run', activityName: 'Bieg' }]

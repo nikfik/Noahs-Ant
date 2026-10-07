@@ -7,7 +7,8 @@ import { VideoZoomControls } from './VideoZoomControls.js'
 export class VideoPlayerController {
   constructor(containerId = 'video-module', options = {}) {
     this.containerId = containerId
-    this.projectFile = options.projectFile || ''
+    this.trialCatalog = options.trialCatalog || null
+    this.trialId = null
     this.host = null
     this.video = null
     this.videoPath = ''
@@ -51,6 +52,32 @@ export class VideoPlayerController {
     this.openBtn?.classList.remove('disabled')
     this.autoplayGuard = false
     this.zoomControls?.fitToContainer()
+  }
+
+  clearVideo() {
+    if (!this.video) return
+
+    this.video.pause()
+    this.video.removeAttribute('src')
+    this.video.load()
+    this.videoPath = ''
+    this.openBtn?.setAttribute('disabled', '')
+    this.openBtn?.classList.add('disabled')
+    this.zoomControls?.fitToContainer()
+    this.playbackControls?.syncPlaybackButton(this.playPauseBtn)
+    this.playbackControls?.syncTimeLabel()
+    this.publishTimelineState()
+  }
+
+  showTrial(trial) {
+    if (!trial || (trial.id === this.trialId && trial.videoPath === this.videoPath)) return
+
+    this.trialId = trial.id
+    if (trial.videoPath) {
+      this.setVideoSource(trial.videoPath)
+    } else {
+      this.clearVideo()
+    }
   }
 
   bindEvents() {
@@ -134,11 +161,14 @@ export class VideoPlayerController {
       event.detail?.respond?.(this.publishTimelineState())
     })
 
+    window.addEventListener('active-trial-changed', (event) => this.showTrial(event.detail?.trial))
+
     this.pickBtn?.addEventListener('click', async () => {
-      const selected = await VideoIOService.selectAndSaveProjectVideo(this.projectFile)
-      if (selected) {
-        this.setVideoSource(selected)
-      }
+      const selected = await VideoIOService.selectVideoFile()
+      if (!selected) return
+
+      this.setVideoSource(selected)
+      await this.trialCatalog?.setVideoPath(this.trialId, selected)
     })
 
     this.openBtn?.addEventListener('click', () => {
@@ -151,7 +181,9 @@ export class VideoPlayerController {
     this.host = document.getElementById(this.containerId)
     if (!this.host) return
 
-    const existingVideoPath = await VideoIOService.loadProjectVideo(this.projectFile)
+    const activeTrial = this.trialCatalog?.getActiveTrial() || null
+    this.trialId = activeTrial?.id ?? null
+    const existingVideoPath = activeTrial?.videoPath || ''
     const ui = new VideoPlayerUI(this.host, existingVideoPath)
     const elements = ui.render()
     this.pickBtn = elements.pickBtn

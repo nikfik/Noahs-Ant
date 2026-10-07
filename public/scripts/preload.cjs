@@ -15,9 +15,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveProjectEtograms: (projectId, presets) => ipcRenderer.invoke('save-project-etograms', projectId, presets),
   getProjectObservations: (projectId) => ipcRenderer.invoke('get-project-observations', projectId),
   saveProjectObservations: (projectId, data) => ipcRenderer.invoke('save-project-observations', projectId, data),
+  getProjectTrials: (projectId) => ipcRenderer.invoke('get-project-trials', projectId),
+  saveProjectTrials: (projectId, data) => ipcRenderer.invoke('save-project-trials', projectId, data),
   saveProjectEtogram: (fileName, etogramRows) => ipcRenderer.invoke('save-project-etogram', fileName, etogramRows),
   selectVideoFile: () => ipcRenderer.invoke('select-video-file'),
-  saveProjectVideoPath: (fileName, videoPath) => ipcRenderer.invoke('save-project-video', fileName, videoPath),
   onThemeChange: (callback) => {
     const subscription = (_event, theme) => callback(theme)
     ipcRenderer.on('theme-changed', subscription)

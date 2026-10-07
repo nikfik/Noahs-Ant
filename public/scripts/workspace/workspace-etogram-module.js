@@ -1,9 +1,7 @@
 //Single responsibility principle
-const defaultEtogramRows = []
+import { escapeHtml } from '../shared/escape-html.js'
 
-const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-})[character])
+const defaultEtogramRows = []
 
 function normalizeShortcut(value) {
   if (typeof value === 'string') {

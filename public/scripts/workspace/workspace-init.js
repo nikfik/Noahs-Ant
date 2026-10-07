@@ -3,6 +3,7 @@ import { initWorkspaceToolbar } from './workspace-toolbar.js'
 import { WorkspaceVideoModule } from './workspace-video-module.js'
 import { WorkspaceEtogramModule } from './workspace-etogram-module.js'
 import { AnimalCatalogModule } from './animals/animal-catalog-module.js'
+import { TrialCatalogModule } from './trials/trial-catalog-module.js'
 import { WorkspaceTimelineModule } from './workspace-timeline-module.js'
 
 async function initModule(name, init) {
@@ -28,14 +29,18 @@ export const initWorkspace = async () => {
     ? await initModule('animal catalog', () => AnimalCatalogModule.init('animal-panel', { projectId: projectFile }))
     : null
 
+  const trialCatalog = projectFile
+    ? await initModule('trial catalog', () => TrialCatalogModule.init('trial-panel', { projectId: projectFile }))
+    : null
+
   await initModule('etogram module', () => WorkspaceEtogramModule.init('etogram-module', { projectFile, animalCatalog }))
-  await initModule('timeline module', () => WorkspaceTimelineModule.init('events-module', { projectId: projectFile, animalCatalog }))
+  await initModule('timeline module', () => WorkspaceTimelineModule.init('events-module', { projectId: projectFile, animalCatalog, trialCatalog }))
 
   if (projectFile) {
     await initModule('project state', () => appState.loadProject(projectFile))
   }
 
-  await initModule('video module', () => WorkspaceVideoModule.init('video-module', { projectFile }))
+  await initModule('video module', () => WorkspaceVideoModule.init('video-module', { projectFile, trialCatalog }))
 
   backBtn?.addEventListener('click', () => {
     window.location.href = 'ProjectList.html'

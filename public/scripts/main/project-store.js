@@ -106,14 +106,6 @@ export function createProjectStore(projectsDirectory) {
     return writeProjectFile(projectId, project)
   }
 
-  function saveProjectVideo(projectId, videoPath) {
-    ensureProjectsDirectory()
-    const project = readProjectFile(projectId)
-    project.videoPath = videoPath
-    project.MostRecentOpen = new Date().toISOString()
-    return writeProjectFile(projectId, project)
-  }
-
   function saveProjectEtogram(projectId, etogramRows) {
     ensureProjectsDirectory()
     const project = readProjectFile(projectId)
@@ -126,7 +118,6 @@ export function createProjectStore(projectsDirectory) {
     createProject,
     listProjects,
     openProject,
-    saveProjectVideo,
     saveProjectEtogram
   }
 }
