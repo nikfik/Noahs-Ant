@@ -6,7 +6,3 @@ export async function init(containerId = 'video-module', options = {}) {
 }
 
 export const WorkspaceVideoModule = { init }
-
-if (typeof window !== 'undefined') {
-  window.WorkspaceVideoModule = WorkspaceVideoModule
-}

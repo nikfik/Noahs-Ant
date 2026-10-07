@@ -6,7 +6,3 @@ export function navigateToWorkspace(project) {
 export const WorkspaceRouter = {
   navigateToWorkspace,
 }
-
-if (typeof window !== 'undefined') {
-  window.WorkspaceRouter = WorkspaceRouter
-}

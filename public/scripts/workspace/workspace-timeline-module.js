@@ -506,7 +506,3 @@ export function createTimelineModule() {
 }
 
 export const WorkspaceTimelineModule = createTimelineModule()
-
-if (typeof window !== 'undefined') {
-  window.WorkspaceTimelineModule = WorkspaceTimelineModule
-}

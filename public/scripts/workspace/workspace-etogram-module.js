@@ -384,7 +384,3 @@ export const WorkspaceEtogramModule = {
   loadRows,
   persistRows,
 }
-
-if (typeof window !== 'undefined') {
-  window.WorkspaceEtogramModule = WorkspaceEtogramModule
-}

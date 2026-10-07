@@ -1,93 +1,49 @@
 import { AppState } from '../services/AppState.js'
-import { UiToolbar } from '../ui/ui-toolbar.js'
-import { WorkspaceToolbar } from './workspace-toolbar.js'
-import { WorkspaceRouter } from './workspace-router.js'
+import { initWorkspaceToolbar } from './workspace-toolbar.js'
 import { WorkspaceVideoModule } from './workspace-video-module.js'
 import { WorkspaceEtogramModule } from './workspace-etogram-module.js'
-import { WorkspaceEventsModule } from './workspace-events-module.js'
 import { AnimalCatalogModule } from './animals/animal-catalog-module.js'
 import { WorkspaceTimelineModule } from './workspace-timeline-module.js'
 
-if (typeof window !== 'undefined') {
-  window.AppState = AppState
-  window.UiToolbar = UiToolbar
-  window.WorkspaceToolbar = WorkspaceToolbar
-  window.WorkspaceRouter = WorkspaceRouter
-  window.WorkspaceVideoModule = WorkspaceVideoModule
-  window.WorkspaceEtogramModule = WorkspaceEtogramModule
-  window.WorkspaceEventsModule = WorkspaceEventsModule
-  window.AnimalCatalogModule = AnimalCatalogModule
-  window.WorkspaceTimelineModule = WorkspaceTimelineModule
+async function initModule(name, init) {
+  try {
+    return await init()
+  } catch (error) {
+    console.error(`Failed to init ${name}:`, error)
+    return null
+  }
 }
 
 export const initWorkspace = async () => {
-  const appState = window.AppState?.getInstance?.()
+  const appState = AppState.getInstance()
   const backBtn = document.getElementById('back-to-projects')
   const optionsBtn = document.getElementById('options-btn')
 
-  if (window.WorkspaceToolbar?.initWorkspaceToolbar) {
-    window.WorkspaceToolbar.initWorkspaceToolbar()
-  }
+  initWorkspaceToolbar()
 
   const params = new URLSearchParams(window.location.search)
   const projectFile = params.get('project')
-  let animalCatalog = null
 
-  if (projectFile && window.AnimalCatalogModule?.init) {
-    try {
-      animalCatalog = await window.AnimalCatalogModule.init('animal-panel', { projectId: projectFile })
-    } catch (error) {
-      console.error('Failed to init animal catalog:', error)
-    }
+  const animalCatalog = projectFile
+    ? await initModule('animal catalog', () => AnimalCatalogModule.init('animal-panel', { projectId: projectFile }))
+    : null
+
+  await initModule('etogram module', () => WorkspaceEtogramModule.init('etogram-module', { projectFile, animalCatalog }))
+  await initModule('timeline module', () => WorkspaceTimelineModule.init('events-module', { projectId: projectFile, animalCatalog }))
+
+  if (projectFile) {
+    await initModule('project state', () => appState.loadProject(projectFile))
   }
 
-  // Initialize modules
-  if (window.WorkspaceEtogramModule?.init) {
-    try {
-      await window.WorkspaceEtogramModule.init('etogram-module', { projectFile, animalCatalog })
-    } catch (error) {
-      console.error('Failed to init etogram module:', error)
-    }
-  }
+  await initModule('video module', () => WorkspaceVideoModule.init('video-module', { projectFile }))
 
-  if (window.WorkspaceTimelineModule?.init) {
-    try {
-      await window.WorkspaceTimelineModule.init('events-module', { projectId: projectFile, animalCatalog })
-    } catch (error) {
-      console.error('Failed to init timeline module:', error)
-    }
-  }
+  backBtn?.addEventListener('click', () => {
+    window.location.href = 'ProjectList.html'
+  })
 
-  if (projectFile && appState?.loadProject) {
-    try {
-      await appState.loadProject(projectFile)
-    } catch (error) {
-      console.error('Failed to load project:', error)
-    }
-  }
-
-  if (window.WorkspaceVideoModule?.init) {
-    try {
-      await window.WorkspaceVideoModule.init('video-module', { projectFile })
-    } catch (error) {
-      console.error('Failed to init video module:', error)
-    }
-  }
-
-  // Bind button listeners
-  if (backBtn) {
-    backBtn.addEventListener('click', () => {
-      window.location.href = 'ProjectList.html'
-    })
-  }
-
-  if (optionsBtn) {
-    optionsBtn.addEventListener('click', () => {
-      if (window.electronAPI?.openSettingsWindow) {
-        window.electronAPI.openSettingsWindow()
-      }
-    })
-  }
+  optionsBtn?.addEventListener('click', () => {
+    window.electronAPI?.openSettingsWindow?.()
+  })
 }
 
 document.addEventListener('DOMContentLoaded', () => {

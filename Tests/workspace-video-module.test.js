@@ -3,7 +3,7 @@
  */
 
 import { jest } from '@jest/globals'
-import '../public/scripts/workspace/workspace-video-module.js'
+import { WorkspaceVideoModule } from '../public/scripts/workspace/workspace-video-module.js'
 
 describe('WorkspaceVideoModule', () => {
   beforeEach(() => {
@@ -16,7 +16,7 @@ describe('WorkspaceVideoModule', () => {
   })
 
   test('renderuje pełne kontrolki odtwarzania dla video', async () => {
-    await window.WorkspaceVideoModule.init('video-module', { projectFile: 'demo.json' })
+    await WorkspaceVideoModule.init('video-module', { projectFile: 'demo.json' })
 
     const host = document.getElementById('video-module')
     const markup = host.innerHTML

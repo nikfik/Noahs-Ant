@@ -22,7 +22,6 @@ describe('AppState singleton', () => {
     const state2 = AppState.getInstance()
 
     expect(state1).toBe(state2)
-    expect(window.AppState.getInstance()).toBe(state1)
   })
 
   test('ładuje projekt i zapisuje stan w singletonie', async () => {

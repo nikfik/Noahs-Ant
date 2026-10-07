@@ -47,7 +47,3 @@ export const UiToolbar = {
   initToolbarButtons,
   renderIcon,
 }
-
-if (typeof window !== 'undefined') {
-  window.UiToolbar = UiToolbar
-}

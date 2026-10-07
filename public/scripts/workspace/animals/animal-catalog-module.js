@@ -233,7 +233,3 @@ export async function init(containerId = 'animal-panel', options = {}) {
 }
 
 export const AnimalCatalogModule = { init, renderCatalog }
-
-if (typeof window !== 'undefined') {
-  window.AnimalCatalogModule = AnimalCatalogModule
-}

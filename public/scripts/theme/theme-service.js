@@ -9,7 +9,3 @@ export function applyTheme(theme) {
 export const ThemeService = {
   applyTheme,
 }
-
-if (typeof window !== 'undefined') {
-  window.ThemeService = ThemeService
-}

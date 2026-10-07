@@ -1,8 +1,10 @@
+import { UiToolbar } from '../ui/ui-toolbar.js'
+
 export function initWorkspaceToolbar() {
   const bottomToolbar = document.getElementById('bottom-toolbar')
   if (!bottomToolbar) return
 
-  window.UiToolbar.initToolbarButtons(bottomToolbar, {
+  UiToolbar.initToolbarButtons(bottomToolbar, {
     selector: '.tb-btn',
     activeClass: 'active',
     onChange: (button) => {
@@ -15,8 +17,4 @@ export function initWorkspaceToolbar() {
 
 export const WorkspaceToolbar = {
   initWorkspaceToolbar,
-}
-
-if (typeof window !== 'undefined') {
-  window.WorkspaceToolbar = WorkspaceToolbar
 }

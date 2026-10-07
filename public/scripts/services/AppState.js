@@ -1,3 +1,5 @@
+import { applyTheme } from '../theme/theme-service.js'
+
 export class AppState {
   static #instance = null
 
@@ -76,9 +78,7 @@ export class AppState {
       await globalThis.window.electronAPI.setTheme(this.#currentTheme)
     }
 
-    if (globalThis.window?.ThemeService?.applyTheme) {
-      globalThis.window.ThemeService.applyTheme(this.#currentTheme)
-    }
+    applyTheme(this.#currentTheme)
 
     return this.getTheme()
   }
@@ -94,8 +94,3 @@ export class AppState {
     }
   }
 }
-
-if (typeof window !== 'undefined') {
-  window.AppState = AppState
-}
-

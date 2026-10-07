@@ -4,6 +4,9 @@
 
 import { jest } from '@jest/globals'
 
+const navigateToWorkspace = jest.fn()
+jest.unstable_mockModule('../public/scripts/workspace/workspace-router.js', () => ({ navigateToWorkspace }))
+
 describe('ProjectList bootstrap', () => {
   beforeEach(() => {
     document.body.innerHTML = `
@@ -14,8 +17,6 @@ describe('ProjectList bootstrap', () => {
       <div id="project-name-error"></div><form id="project-modal-form"></form>
       <div id="project-modal" class="hidden"></div>
     `
-    window.projectUtils = { isValidProjectName: (name) => name.length >= 3 }
-    window.WorkspaceRouter = { navigateToWorkspace: jest.fn() }
     window.electronAPI = {
       getTheme: jest.fn().mockResolvedValue(null),
       onThemeChange: jest.fn(),
@@ -39,6 +40,7 @@ describe('ProjectList bootstrap', () => {
     document.getElementById('project-modal-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(window.electronAPI.createProject).toHaveBeenCalledWith('Demo Project')
+    expect(navigateToWorkspace).toHaveBeenCalledWith({ projectName: 'Demo', fileName: 'Demo' })
 
     document.querySelector('.settings-tab').click()
     expect(window.electronAPI.openSettingsWindow).toHaveBeenCalled()

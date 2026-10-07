@@ -37,8 +37,8 @@ describe('Renderer entry point wiring', () => {
     expect(window.electronAPI.getAppSettings).toHaveBeenCalled()
   })
 
-  test('Workspace bootstrap imports an existing toolbar module and exports its initializer', async () => {
-    const entry = fs.readFileSync(path.join(root, 'scripts', 'workspace', 'workspace-init.js'), 'utf8')
+  test('Workspace toolbar imports an existing ui-toolbar module and the bootstrap exports its initializer', async () => {
+    const entry = fs.readFileSync(path.join(root, 'scripts', 'workspace', 'workspace-toolbar.js'), 'utf8')
     const toolbarImport = entry.match(/from ['"]([^'"]*ui-toolbar\.js)['"]/)?.[1]
     expect(toolbarImport).toBe('../ui/ui-toolbar.js')
     expect(fs.existsSync(path.resolve(root, 'scripts', 'workspace', toolbarImport))).toBe(true)
