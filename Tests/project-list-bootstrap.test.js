@@ -8,7 +8,7 @@ describe('ProjectList bootstrap', () => {
   beforeEach(() => {
     document.body.innerHTML = `
       <span class="settings-tab"></span>
-      <div id="project-grid"></div><div id="project-status"></div>
+      <div id="project-grid"></div>
       <button id="new-project-btn"></button><button id="project-cancel-btn"></button>
       <button id="open-project-btn"></button><input id="project-name" />
       <div id="project-name-error"></div><form id="project-modal-form"></form>

@@ -17,32 +17,30 @@ describe('Settings model defaults and normalization', () => {
       textColor: '#e0e0e0',
       primaryColor: '#ff4f1a'
     })
-    expect(settings.graphics['frame-rate']).toBe('60fps')
-    expect(settings.graphics['motion-blur']).toBe(true)
-    expect(settings.programShortcuts.find(({ id }) => id === 'move-forward').value.primary).toBe('W')
+    expect(settings.timeline).toEqual({ snapEnabled: true, snapThresholdPx: 9 })
+    expect(settings.programShortcuts.map(({ id }) => id)).toEqual(['temp1', 'temp2'])
+    expect(settings.programShortcuts[0].value).toEqual({ primary: '', secondary: '', operator: '/' })
   })
 
   test('merges legacy shortcut settings with defaults for new fields', () => {
     const settings = normalizeAppSettings({
-      programShortcuts: [{ id: 'move-forward', value: 'q' }],
+      programShortcuts: [{ id: 'temp1', value: 'q' }],
       projectShortcuts: []
     })
 
-    expect(settings.programShortcuts.find(({ id }) => id === 'move-forward').value.primary).toBe('Q')
-    expect(settings.programShortcuts.find(({ id }) => id === 'move-left').value.primary).toBe('A')
+    expect(settings.programShortcuts.find(({ id }) => id === 'temp1').value.primary).toBe('Q')
+    expect(settings.programShortcuts.find(({ id }) => id === 'temp2').value.primary).toBe('')
     expect(settings.theme.bgColor).toBe('#1a1a1a')
-    expect(settings.graphics['frame-rate']).toBe('60fps')
   })
 
-  test('rejects invalid theme and graphics values in favor of defaults', () => {
+  test('rejects invalid theme and timeline values in favor of defaults', () => {
     const settings = normalizeAppSettings({
       theme: { bgColor: 'red' },
-      graphics: { 'frame-rate': 'unlimited', 'motion-blur': 'yes' }
+      timeline: { snapEnabled: 'yes', snapThresholdPx: 99 }
     })
 
     expect(settings.theme.bgColor).toBe('#1a1a1a')
-    expect(settings.graphics['frame-rate']).toBe('60fps')
-    expect(settings.graphics['motion-blur']).toBe(true)
+    expect(settings.timeline).toEqual({ snapEnabled: true, snapThresholdPx: 9 })
   })
 
   test('loads saved preferences and persists settings together with the theme', async () => {
@@ -54,13 +52,13 @@ describe('Settings model defaults and normalization', () => {
 
     const settings = await loadSettings(electronAPI)
     expect(settings.theme.primaryColor).toBe('#00ff00')
-    settings.graphics['motion-blur'] = false
+    settings.timeline.snapEnabled = false
 
     await saveSettings(electronAPI, settings)
 
     expect(electronAPI.saveAppSettings).toHaveBeenCalledWith(expect.objectContaining({
       theme: expect.objectContaining({ primaryColor: '#00ff00' }),
-      graphics: expect.objectContaining({ 'motion-blur': false })
+      timeline: expect.objectContaining({ snapEnabled: false })
     }))
     expect(electronAPI.setTheme).toHaveBeenCalledWith(settings.theme)
   })

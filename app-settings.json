@@ -4,71 +4,26 @@
     "textColor": "#e0e0e0",
     "primaryColor": "#ff4f1a"
   },
-  "graphics": {
-    "frame-rate": "60fps",
-    "shadow-quality": "Ultra High",
-    "effects-quality": "High",
-    "lod-bias": "High",
-    "capsule-ao": true,
-    "volumetric-fog": true,
-    "volumetric-lighting": true,
-    "motion-blur": true
-  },
+  "graphics": {},
   "timeline": {
     "snapEnabled": true,
     "snapThresholdPx": 9
   },
   "programShortcuts": [
     {
-      "id": "move-forward",
-      "label": "Ruch do przodu",
+      "id": "temp1",
+      "label": "Temp1",
       "value": {
-        "primary": "W",
+        "primary": "",
         "secondary": "",
         "operator": "/"
       }
     },
     {
-      "id": "move-left",
-      "label": "Ruch w lewo",
+      "id": "temp2",
+      "label": "Temp2",
       "value": {
-        "primary": "A",
-        "secondary": "",
-        "operator": "/"
-      }
-    },
-    {
-      "id": "move-right",
-      "label": "Ruch w prawo",
-      "value": {
-        "primary": "D",
-        "secondary": "",
-        "operator": "/"
-      }
-    },
-    {
-      "id": "sprint",
-      "label": "Sprint",
-      "value": {
-        "primary": "Shift",
-        "secondary": "",
-        "operator": "/"
-      }
-    },
-    {
-      "id": "interact",
-      "label": "Interakcja",
-      "value": {
-        "primary": "E",
-        "secondary": "",
-        "operator": "/"
-      }
-    },
-    {
-      "id": "menu",
-      "label": "Menu",
-      "value": {
-        "primary": "Esc",
+        "primary": "",
         "secondary": "",
         "operator": "/"
       }

@@ -147,10 +147,6 @@ button:hover {
     border: 1px solid var(--muted-text, #888888);
 }
 
-.project-panel {
-    padding: 0 20px 20px;
-}
-
 .modal {
     position: fixed;
     inset: 0;
@@ -215,12 +211,6 @@ button:hover {
     display: flex;
     gap: 10px;
     justify-content: flex-end;
-}
-
-.project-status {
-    margin-bottom: 12px;
-    font-size: 14px;
-    color: var(--muted-text, #888888);
 }
 
 .projects-list {

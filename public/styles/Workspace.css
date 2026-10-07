@@ -120,11 +120,6 @@
   color: var(--text-color);
   text-align: center;
 }
-.video-state {
-  color: var(--muted-text, #888888);
-  font-size: 15px;
-  text-align: center;
-}
 .video-controls {
   display: flex;
   flex-direction: column;
@@ -353,6 +348,11 @@
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.timeline-ruler-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .timeline-ruler-track {
   position: relative;

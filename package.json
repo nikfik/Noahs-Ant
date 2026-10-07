@@ -21,7 +21,8 @@
     "semver": "^7.8.5",
     "sumchecker": "^3.0.1",
     "undici": "^7.28.0",
-    "undici-types": "^7.18.2"
+    "undici-types": "^7.18.2",
+    "xlsx": "^0.18.5"
   },
   "repository": {
     "type": "git",

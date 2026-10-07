@@ -27,15 +27,15 @@ describe('main process stores', () => {
     expect(settingsStore.readAppSettings()).toEqual(createDefaultAppSettings())
     settingsStore.writeAppSettings({
       theme: { bgColor: '#abcdef' },
-      graphics: { 'motion-blur': false },
-      programShortcuts: [{ id: 'move-forward', value: 'Q' }],
+      timeline: { snapEnabled: false, snapThresholdPx: 14 },
+      programShortcuts: [{ id: 'temp1', value: 'Q' }],
       projectShortcuts: ['project shortcut'],
       invalid: true
     })
 
     const settings = settingsStore.readAppSettings()
     expect(settings.theme.bgColor).toBe('#abcdef')
-    expect(settings.graphics['motion-blur']).toBe(false)
+    expect(settings.timeline).toEqual({ snapEnabled: false, snapThresholdPx: 14 })
     expect(settings.programShortcuts[0].value.primary).toBe('Q')
     expect(settings.projectShortcuts).toEqual(['project shortcut'])
     expect(settings.invalid).toBeUndefined()

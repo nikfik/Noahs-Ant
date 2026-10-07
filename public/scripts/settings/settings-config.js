@@ -4,14 +4,7 @@ export const defaultTheme = {
   primaryColor: '#ff4f1a'
 }
 
-export const defaultShortcuts = {
-  'move-forward': { primary: 'W', secondary: '', operator: '/' },
-  'move-left': { primary: 'A', secondary: '', operator: '/' },
-  'move-right': { primary: 'D', secondary: '', operator: '/' },
-  sprint: { primary: 'Shift', secondary: '', operator: '/' },
-  interact: { primary: 'E', secondary: '', operator: '/' },
-  menu: { primary: 'Esc', secondary: '', operator: '/' }
-}
+export const defaultShortcuts = {}
 
 export const settingsCatalog = {
   general: {
@@ -25,25 +18,14 @@ export const settingsCatalog = {
   graphics: {
     title: 'Graficzne',
     options: [
-      { id: 'frame-rate', label: 'Frame Rate', type: 'select', defaultValue: '60fps', values: ['30fps', '60fps', '120fps'] },
-      { id: 'shadow-quality', label: 'Shadow Quality', type: 'select', defaultValue: 'Ultra High', values: ['Low', 'Medium', 'High', 'Ultra High'] },
-      { id: 'effects-quality', label: 'Special Effects Quality', type: 'select', defaultValue: 'High', values: ['Low', 'Medium', 'High', 'Ultra High'] },
-      { id: 'lod-bias', label: 'LOD Bias', type: 'select', defaultValue: 'High', values: ['Low', 'Medium', 'High'] },
-      { id: 'capsule-ao', label: 'Capsule AO', type: 'toggle', defaultValue: true },
-      { id: 'volumetric-fog', label: 'Volumetric Fog', type: 'toggle', defaultValue: true },
-      { id: 'volumetric-lighting', label: 'Volumetric Lighting', type: 'toggle', defaultValue: true },
-      { id: 'motion-blur', label: 'Motion Blur', type: 'toggle', defaultValue: true }
+
     ]
   },
   shortcuts: {
     title: 'Skróty klawiszowe',
     options: [
-      { id: 'move-forward', label: 'Ruch do przodu', type: 'keybind' },
-      { id: 'move-left', label: 'Ruch w lewo', type: 'keybind' },
-      { id: 'move-right', label: 'Ruch w prawo', type: 'keybind' },
-      { id: 'sprint', label: 'Sprint', type: 'keybind' },
-      { id: 'interact', label: 'Interakcja', type: 'keybind' },
-      { id: 'menu', label: 'Menu', type: 'keybind' }
+      { id: 'temp1', label: 'Temp1', type: 'keybind' },
+      { id: 'temp2', label: 'Temp2', type: 'keybind' },
     ]
   },
   timeline: {
@@ -59,7 +41,7 @@ export function createDefaultAppSettings() {
   const programShortcuts = settingsCatalog.shortcuts.options.map(({ id, label }) => ({
     id,
     label,
-    value: { ...defaultShortcuts[id] }
+    value: { ...(defaultShortcuts[id] ?? { primary: '', secondary: '', operator: '/' }) }
   }))
   const graphics = Object.fromEntries(settingsCatalog.graphics.options.map((option) => [option.id, option.defaultValue]))
   const timeline = {

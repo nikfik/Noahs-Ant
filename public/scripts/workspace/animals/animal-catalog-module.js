@@ -28,7 +28,6 @@ function renderCatalog(data) {
             <button class="animal-entry-select" type="button" data-action="select-animal" data-animal-id="${escapeHtml(animal.id)}">
               <span class="animal-color-dot" style="--animal-color:${escapeHtml(animal.color)}"></span>
               <span class="animal-entry-name">${escapeHtml(animal.name)}</span>
-              <span class="animal-entry-status" aria-hidden="true">${animal.id === data.activeAnimalId ? '● aktywne' : ''}</span>
             </button>
             <button class="animal-color-reroll" type="button" data-action="reroll-color" data-animal-id="${escapeHtml(animal.id)}" title="Losuj inny kolor" aria-label="Losuj inny kolor dla ${escapeHtml(animal.name)}">🎲</button>
             <button class="animal-entry-remove" type="button" data-action="remove-animal" data-animal-id="${escapeHtml(animal.id)}" title="Usuń zwierzę" aria-label="Usuń zwierzę ${escapeHtml(animal.name)}">×</button>
@@ -63,7 +62,6 @@ export async function init(containerId = 'animal-panel', options = {}) {
         <button class="animal-add-group" type="button" data-action="add-group" title="Dodaj grupę">＋ Grupa</button>
       </header>
       <div class="animal-catalog-tree">${renderCatalog(data)}</div>
-      <footer class="animal-catalog-footer"><span class="animal-active-caption">${data.activeAnimalId ? 'Aktywne zwierzę' : 'Nie wybrano zwierzęcia'}</span><span class="animal-color-dice" title="Kolor dobierany jest automatycznie z rozróżnialnej palety">🎲</span></footer>
     </section>
     <div class="animal-name-modal hidden">
       <form class="animal-name-dialog" role="dialog" aria-modal="true" aria-labelledby="animal-name-title">
@@ -84,14 +82,6 @@ export async function init(containerId = 'animal-panel', options = {}) {
   function emitSelection() {
     const activeAnimal = data.animals.find((animal) => animal.id === data.activeAnimalId) || null
     const activeGroup = data.groups.find((group) => group.id === data.activeGroupId) || null
-    const footerCaption = host.querySelector('.animal-active-caption')
-    if (footerCaption) {
-      footerCaption.textContent = activeAnimal
-        ? `Aktywne: ${activeAnimal.name}`
-        : activeGroup
-          ? `Grupa: ${activeGroup.name} · wybierz osobnika`
-          : 'Nie wybrano zwierzęcia'
-    }
     window.dispatchEvent(new CustomEvent('active-animal-changed', {
       detail: { data: getData(), activeAnimal, activeGroup }
     }))

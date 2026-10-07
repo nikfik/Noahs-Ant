@@ -1,4 +1,9 @@
+//Single responsibility principle
 const defaultEtogramRows = []
+
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+})[character])
 
 function normalizeShortcut(value) {
   if (typeof value === 'string') {
@@ -34,9 +39,9 @@ export function normalizeRows(rows) {
 
 export function renderCompactTable(rows) {
   return rows.map((row) => `
-    <tr data-row-id="${row.id}" data-shortcut="${shortcutLabel(row.shortcut)}" style="--etogram-color:${row.color}">
-      <td><span class="kbd">${shortcutLabel(row.shortcut)}</span></td>
-      <td>${row.name}</td>
+    <tr data-row-id="${escapeHtml(row.id)}" style="--etogram-color:${escapeHtml(row.color)}">
+      <td><span class="kbd">${escapeHtml(shortcutLabel(row.shortcut))}</span></td>
+      <td>${escapeHtml(row.name)}</td>
     </tr>
   `).join('')
 }
@@ -46,19 +51,19 @@ export function renderEditorTable(rows) {
     const shortcut = normalizeShortcut(row.shortcut)
     return `
     <tr data-index="${index}">
-      <td><button class="etogram-remove-row" type="button" data-action="remove-row" data-index="${index}" aria-label="Usuń czynność">×</button></td>
-      <td><input data-field="category" data-index="${index}" value="${row.category}" /></td>
-      <td><input data-field="name" data-index="${index}" value="${row.name}" /></td>
-      <td><textarea data-field="description" data-index="${index}" rows="2">${row.description}</textarea></td>
+      <td class="etogram-remove-cell"><button class="etogram-remove-row" type="button" data-action="remove-row" data-index="${index}" aria-label="Usuń czynność ${escapeHtml(row.name || index + 1)}">×</button></td>
+      <td><input data-field="category" data-index="${index}" value="${escapeHtml(row.category)}" placeholder="Kategoria" /></td>
+      <td><input data-field="name" data-index="${index}" value="${escapeHtml(row.name)}" placeholder="Nazwa czynności" /></td>
+      <td><textarea data-field="description" data-index="${index}" rows="2" placeholder="Opis">${escapeHtml(row.description)}</textarea></td>
       <td>
         <div class="etogram-shortcut-editor">
-          <button class="option-keybind" type="button" data-action="capture-key" data-field="primary" data-index="${index}">${shortcut.primary || '—'}</button>
-          <button class="combo-operator" type="button" data-action="toggle-operator" data-index="${index}" ${shortcut.secondary ? '' : 'disabled'}>${shortcut.secondary ? shortcut.operator : '+'}</button>
-          <button class="option-keybind combo-slot" type="button" data-action="capture-key" data-field="secondary" data-index="${index}">${shortcut.secondary || '+'}</button>
+          <button class="option-keybind etogram-keybind" type="button" data-action="capture-key" data-field="primary" data-index="${index}" aria-label="Ustaw główny skrót">${escapeHtml(shortcut.primary || '—')}</button>
+          <button class="combo-operator ${shortcut.secondary ? 'active' : ''}" type="button" data-action="toggle-operator" data-index="${index}" ${shortcut.secondary ? '' : 'disabled'} aria-label="Zmień operator">${shortcut.secondary ? escapeHtml(shortcut.operator) : '+'}</button>
+          <button class="option-keybind combo-slot ${shortcut.secondary ? 'active' : 'muted'}" type="button" data-action="capture-key" data-field="secondary" data-index="${index}" aria-label="Ustaw dodatkowy skrót">${escapeHtml(shortcut.secondary || '+')}</button>
         </div>
       </td>
-      <td><input data-field="color" data-index="${index}" type="color" value="${row.color}" aria-label="Kolor czynności" /></td>
-      <td><input data-field="continuous" data-index="${index}" type="checkbox" ${row.continuous ? 'checked' : ''} /></td>
+      <td><input data-field="color" data-index="${index}" type="color" value="${escapeHtml(row.color)}" aria-label="Kolor ${escapeHtml(row.name || 'czynności')}" /></td>
+      <td class="etogram-continuous-cell"><input data-field="continuous" data-index="${index}" type="checkbox" ${row.continuous ? 'checked' : ''} aria-label="Czynność ciągła" /></td>
     </tr>
   `
   }).join('')
@@ -156,33 +161,40 @@ async function init(containerId = 'etogram-module', options = {}) {
       </div>
     </div>
     <div id="etogram-modal" class="modal hidden">
-      <section class="modal-card etogram-dialog" role="dialog" aria-modal="true" aria-labelledby="etogram-title">
-        <div class="modal-head">
-          <h4 id="etogram-title">Edytor etogramu</h4>
-          <button id="close-etogram-modal" class="modal-close" type="button">×</button>
+      <section class="etogram-dialog" role="dialog" aria-modal="true" aria-labelledby="etogram-title">
+        <header class="etogram-dialog-header">
+          <div><span class="etogram-eyebrow">Ustawienia projektu</span><h2 id="etogram-title">Edytor etogramu</h2><p>Zarządzaj czynnościami, kolorami oraz skrótami.</p></div>
+          <button id="close-etogram-modal" class="modal-close" type="button" aria-label="Zamknij edytor">×</button>
+        </header>
+        <div class="etogram-dialog-body">
+          <div class="etogram-editor-main">
+            <div class="etogram-table-scroll">
+              <table class="shortcut-table editor-table">
+                <colgroup>
+                  <col class="etogram-col-remove" />
+                  <col class="etogram-col-category" />
+                  <col class="etogram-col-name" />
+                  <col class="etogram-col-description" />
+                  <col class="etogram-col-shortcut" />
+                  <col class="etogram-col-color" />
+                  <col class="etogram-col-continuous" />
+                </colgroup>
+                <thead><tr><th></th><th>Kategoria</th><th>Czynność</th><th>Opis</th><th>Skrót</th><th>Kolor</th><th>Ciągła</th></tr></thead>
+                <tbody>${renderEditorTable(rows)}</tbody>
+              </table>
+            </div>
+          </div>
+          <aside class="etogram-editor-sidebar">
+            <h3>Opcje</h3>
+            <p>Dodaj lub usuń czynności etogramu.</p>
+            <button id="add-etogram-row" class="etogram-add-button" type="button"><span>＋</span> Dodaj czynność</button>
+            <div class="etogram-sidebar-note"><span class="etogram-note-icon">i</span><span>Ustaw skrót główny i opcjonalny dodatkowy. Kombinacja może używać operatora „+” lub „/”.</span></div>
+          </aside>
         </div>
-        <div class="table-wrap">
-          <table class="shortcut-table editor-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th>Kategoria</th>
-                <th>Nazwa czynności</th>
-                <th>Opis</th>
-                <th>Skrót</th>
-                <th>Kolor</th>
-                <th>Ciągła</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${renderEditorTable(rows)}
-            </tbody>
-          </table>
-        </div>
-        <div class="modal-actions">
-          <button id="add-etogram-row" class="module-action" type="button">Dodaj czynność</button>
-          <button id="save-etogram" class="module-action" type="button">Zapisz</button>
-        </div>
+        <footer class="etogram-dialog-footer">
+          <span id="etogram-save-status" role="status"></span>
+          <div><button id="cancel-etogram" class="etogram-cancel-button" type="button">Anuluj</button><button id="save-etogram" class="etogram-save-button" type="button">Zapisz zmiany</button></div>
+        </footer>
       </section>
     </div>
   `
@@ -231,6 +243,7 @@ async function init(containerId = 'etogram-module', options = {}) {
     modal?.classList.remove('hidden')
   })
   closeBtn?.addEventListener('click', () => modal?.classList.add('hidden'))
+  host.querySelector('#cancel-etogram')?.addEventListener('click', () => modal?.classList.add('hidden'))
   modal?.addEventListener('click', (event) => {
     if (event.target === modal) {
       modal.classList.add('hidden')

@@ -1,3 +1,4 @@
+//Single responsibility principle
 import { normalizeObservationData, getObservationDisplayEnd } from './observations/observation-model.js'
 
 const LABEL_WIDTH = 150
@@ -8,6 +9,8 @@ const MAX_HISTORY = 100
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 })[character])
+
+const videoFileName = (videoPath) => String(videoPath || '').split(/[\\/]/).pop()
 
 export function allocateAnimalLanes(observations, animals, playhead, duration) {
   const result = new Map()
@@ -105,6 +108,7 @@ export function createTimelineModule() {
   let duration = 0
   let currentTime = 0
   let paused = true
+  let videoPath = ''
   let pixelsPerSecond = 24
   let effectiveScale = 24
   let snapEnabled = true
@@ -292,7 +296,7 @@ export function createTimelineModule() {
     }).join('')
 
     content.innerHTML = `
-      <div class="timeline-ruler-row"><div class="timeline-ruler-label">WIDEO</div>${renderRuler(width)}</div>
+      <div class="timeline-ruler-row"><div class="timeline-ruler-label" title="${escapeHtml(videoPath)}"><span class="timeline-ruler-name">${escapeHtml(videoFileName(videoPath) || 'WIDEO')}</span></div>${renderRuler(width)}</div>
       ${rowsHtml || '<div class="timeline-empty">Brak zwierząt</div>'}
     `
     host.querySelector('.timeline-current-time').textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`
@@ -465,6 +469,7 @@ export function createTimelineModule() {
     currentTime = Math.max(0, Number(state.currentTime) || 0)
     duration = Math.max(0, Number(state.duration) || 0)
     paused = state.paused !== false
+    videoPath = typeof state.videoPath === 'string' ? state.videoPath : ''
     if (!drag) render()
   }
 
