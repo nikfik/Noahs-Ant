@@ -133,6 +133,22 @@ export async function init(containerId = 'animal-panel', options = {}) {
     await savePresets(presets)
   }
 
+  // Steps through all animals in the order of the list (group by group) and wraps around; used by the keyboard shortcuts.
+  async function selectAdjacentAnimal(step) {
+    const order = data.groups.flatMap((group) => data.animals.filter((animal) => animal.groupId === group.id))
+    if (!order.length) return
+
+    const index = order.findIndex((animal) => animal.id === data.activeAnimalId)
+    const next = index === -1
+      ? (step > 0 ? order[0] : order[order.length - 1])
+      : order[(index + step + order.length) % order.length]
+
+    data.activeGroupId = next.groupId
+    data.activeAnimalId = next.id
+    await ensureAnimalPreset(next)
+    await persist()
+  }
+
   function openNameDialog(action, title, hint, placeholder) {
     dialogAction = action
     form.querySelector('h3').textContent = title
@@ -225,6 +241,7 @@ export async function init(containerId = 'animal-panel', options = {}) {
     saveData,
     getPresets: () => presets,
     savePresets,
+    selectAdjacentAnimal,
     chooseAnimalColor: () => chooseAnimalColor(data.animals)
   }
 }

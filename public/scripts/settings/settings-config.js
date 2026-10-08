@@ -4,7 +4,21 @@ export const defaultTheme = {
   primaryColor: '#ff4f1a'
 }
 
-export const defaultShortcuts = {}
+const single = (primary) => ({ primary, secondary: '', operator: '/' })
+
+// Keyboard shortcuts of the program itself (the shortcuts of behaviors live in each project's etogram).
+export const shortcutActions = [
+  { id: 'play-pause', label: 'Odtwórz / zatrzymaj', group: 'Wideo', defaultValue: { primary: 'Space', secondary: 'Enter', operator: '/' } },
+  { id: 'skip-forward', label: 'Do przodu o 5 s', group: 'Wideo', defaultValue: single('ArrowRight') },
+  { id: 'skip-back', label: 'Cofnij o 5 s', group: 'Wideo', defaultValue: single('ArrowLeft') },
+  { id: 'frame-forward', label: 'Jedna klatka do przodu', group: 'Wideo', defaultValue: single('.') },
+  { id: 'frame-back', label: 'Jedna klatka do tyłu', group: 'Wideo', defaultValue: single(',') },
+  { id: 'toggle-mute', label: 'Wycisz / włącz dźwięk', group: 'Wideo', defaultValue: { primary: 'Shift', secondary: 'M', operator: '+' } },
+  { id: 'next-animal', label: 'Następne zwierzę', group: 'Zwierzęta', defaultValue: { primary: 'Alt', secondary: 'ArrowRight', operator: '+' } },
+  { id: 'previous-animal', label: 'Poprzednie zwierzę', group: 'Zwierzęta', defaultValue: { primary: 'Alt', secondary: 'ArrowLeft', operator: '+' } }
+]
+
+export const defaultShortcuts = Object.fromEntries(shortcutActions.map(({ id, defaultValue }) => [id, defaultValue]))
 
 export const settingsCatalog = {
   general: {
@@ -23,10 +37,7 @@ export const settingsCatalog = {
   },
   shortcuts: {
     title: 'Skróty klawiszowe',
-    options: [
-      { id: 'temp1', label: 'Temp1', type: 'keybind' },
-      { id: 'temp2', label: 'Temp2', type: 'keybind' },
-    ]
+    options: shortcutActions.map(({ id, label, group }) => ({ id, label, group, type: 'keybind' }))
   },
   timeline: {
     title: 'Oś czasu',
@@ -41,7 +52,7 @@ export function createDefaultAppSettings() {
   const programShortcuts = settingsCatalog.shortcuts.options.map(({ id, label }) => ({
     id,
     label,
-    value: { ...(defaultShortcuts[id] ?? { primary: '', secondary: '', operator: '/' }) }
+    value: { ...(defaultShortcuts[id] ?? single('')) }
   }))
   const graphics = Object.fromEntries(settingsCatalog.graphics.options.map((option) => [option.id, option.defaultValue]))
   const timeline = {

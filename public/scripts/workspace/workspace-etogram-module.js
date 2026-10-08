@@ -1,27 +1,34 @@
 //Single responsibility principle
 import { escapeHtml } from '../shared/escape-html.js'
 import { isVideoViewActive } from '../shared/workspace-view.js'
+import { isModifierKey, keyLabel, normalizeKey } from '../shared/keys.js'
+import {
+  clearShortcutKey,
+  cycleOperator,
+  describeShortcut,
+  normalizeShortcutEntry,
+  setShortcutKey,
+  shortcutsOverlap
+} from '../settings/shortcut-utils.js'
+import { eventKey, matchesShortcut } from './shortcuts/shortcut-matching.js'
 
 const defaultEtogramRows = []
+const OPERATOR_HINT = '„+” – oba klawisze naraz, „/” – jeden z dwóch. Kolejne kliknięcie przełącza: + → / → tylko pierwszy klawisz.'
 
-function normalizeShortcut(value) {
-  if (typeof value === 'string') {
-    return { primary: value.trim().toUpperCase(), secondary: '', operator: '/' }
-  }
-  if (value && typeof value === 'object') {
-    return {
-      primary: String(value.primary || '').trim().toUpperCase(),
-      secondary: String(value.secondary || '').trim().toUpperCase(),
-      operator: value.operator === '+' ? '+' : '/'
-    }
-  }
-  return { primary: '', secondary: '', operator: '/' }
-}
+const normalizeShortcut = normalizeShortcutEntry
+const shortcutLabel = (value) => describeShortcut(value) || '—'
 
-function shortcutLabel(value) {
-  const shortcut = normalizeShortcut(value)
-  if (!shortcut.primary) return '—'
-  return shortcut.secondary ? `${shortcut.primary} ${shortcut.operator} ${shortcut.secondary}` : shortcut.primary
+// One message per behavior: the key is also used by another behavior of this etogram, or by a program shortcut.
+export function findShortcutConflicts(rows, programShortcuts = []) {
+  return rows.map((row, index) => {
+    const messages = []
+    const duplicates = rows.filter((other, otherIndex) => otherIndex !== index && shortcutsOverlap(row.shortcut, other.shortcut))
+    if (duplicates.length) messages.push(`Ten skrót ma też: ${duplicates.map((other) => other.name || 'czynność bez nazwy').join(', ')}`)
+
+    const taken = programShortcuts.filter((entry) => shortcutsOverlap(row.shortcut, entry.value))
+    if (taken.length) messages.push(`Zajęty przez program: ${taken.map((entry) => entry.label).join(', ')}`)
+    return messages.join(' · ')
+  })
 }
 
 export function normalizeRows(rows) {
@@ -36,16 +43,16 @@ export function normalizeRows(rows) {
   }))
 }
 
-export function renderCompactTable(rows) {
-  return rows.map((row) => `
+export function renderCompactTable(rows, conflicts = []) {
+  return rows.map((row, index) => `
     <tr data-row-id="${escapeHtml(row.id)}" style="--etogram-color:${escapeHtml(row.color)}">
-      <td><span class="kbd">${escapeHtml(shortcutLabel(row.shortcut))}</span></td>
+      <td><span class="kbd">${escapeHtml(shortcutLabel(row.shortcut))}</span>${conflicts[index] ? `<span class="etogram-conflict" title="${escapeHtml(conflicts[index])}" aria-label="${escapeHtml(conflicts[index])}">⚠</span>` : ''}</td>
       <td>${escapeHtml(row.name)}</td>
     </tr>
   `).join('')
 }
 
-export function renderEditorTable(rows) {
+export function renderEditorTable(rows, conflicts = []) {
   return rows.map((row, index) => {
     const shortcut = normalizeShortcut(row.shortcut)
     return `
@@ -56,10 +63,11 @@ export function renderEditorTable(rows) {
       <td><textarea data-field="description" data-index="${index}" rows="2" placeholder="Opis">${escapeHtml(row.description)}</textarea></td>
       <td>
         <div class="etogram-shortcut-editor">
-          <button class="option-keybind etogram-keybind" type="button" data-action="capture-key" data-field="primary" data-index="${index}" aria-label="Ustaw główny skrót">${escapeHtml(shortcut.primary || '—')}</button>
-          <button class="combo-operator ${shortcut.secondary ? 'active' : ''}" type="button" data-action="toggle-operator" data-index="${index}" ${shortcut.secondary ? '' : 'disabled'} aria-label="Zmień operator">${shortcut.secondary ? escapeHtml(shortcut.operator) : '+'}</button>
-          <button class="option-keybind combo-slot ${shortcut.secondary ? 'active' : 'muted'}" type="button" data-action="capture-key" data-field="secondary" data-index="${index}" aria-label="Ustaw dodatkowy skrót">${escapeHtml(shortcut.secondary || '+')}</button>
+          <button class="option-keybind etogram-keybind" type="button" data-action="capture-key" data-field="primary" data-index="${index}" aria-label="Ustaw główny skrót" title="Kliknij i naciśnij klawisz. Backspace czyści, Esc anuluje.">${escapeHtml(shortcut.primary ? keyLabel(shortcut.primary) : '—')}</button>
+          <button class="combo-operator active" type="button" data-action="toggle-operator" data-index="${index}" ${shortcut.secondary ? '' : 'hidden'} aria-label="Zmień sposób łączenia klawiszy" title="${OPERATOR_HINT}">${escapeHtml(shortcut.operator)}</button>
+          <button class="option-keybind combo-slot ${shortcut.secondary ? 'active' : 'muted'}" type="button" data-action="capture-key" data-field="secondary" data-index="${index}" aria-label="Ustaw dodatkowy skrót" title="${shortcut.secondary ? 'Kliknij, aby zmienić drugi klawisz. Backspace go usuwa.' : 'Dodaj drugi klawisz lub kombinację'}">${escapeHtml(shortcut.secondary ? keyLabel(shortcut.secondary) : '+')}</button>
         </div>
+        ${conflicts[index] ? `<div class="etogram-shortcut-warning" role="status">${escapeHtml(conflicts[index])}</div>` : ''}
       </td>
       <td><input data-field="color" data-index="${index}" type="color" value="${escapeHtml(row.color)}" aria-label="Kolor ${escapeHtml(row.name || 'czynności')}" /></td>
       <td class="etogram-continuous-cell"><input data-field="continuous" data-index="${index}" type="checkbox" ${row.continuous ? 'checked' : ''} aria-label="Czynność ciągła" /></td>
@@ -130,6 +138,8 @@ async function init(containerId = 'etogram-module', options = {}) {
 
   const projectFile = options.projectFile || ''
   const animalCatalog = options.animalCatalog || null
+  const shortcutManager = options.shortcutManager || null
+  const programShortcuts = () => shortcutManager?.getShortcuts?.() || []
   let activeAnimalId = animalCatalog?.getData?.().activeAnimalId || null
   let rows = normalizeRows(await loadRows(projectFile, animalCatalog, activeAnimalId))
   let draftRows = normalizeRows(rows)
@@ -149,7 +159,7 @@ async function init(containerId = 'etogram-module', options = {}) {
             </tr>
           </thead>
           <tbody>
-            ${renderCompactTable(rows)}
+            ${renderCompactTable(rows, findShortcutConflicts(rows, programShortcuts()))}
           </tbody>
         </table>
       </div>
@@ -179,7 +189,7 @@ async function init(containerId = 'etogram-module', options = {}) {
                   <col class="etogram-col-continuous" />
                 </colgroup>
                 <thead><tr><th></th><th>Kategoria</th><th>Czynność</th><th>Opis</th><th>Skrót</th><th>Kolor</th><th>Ciągła</th></tr></thead>
-                <tbody>${renderEditorTable(rows)}</tbody>
+                <tbody>${renderEditorTable(rows, findShortcutConflicts(rows, programShortcuts()))}</tbody>
               </table>
             </div>
           </div>
@@ -207,7 +217,16 @@ async function init(containerId = 'etogram-module', options = {}) {
   let pendingShortcut = null
 
   function renderDraft() {
-    editorBody.innerHTML = renderEditorTable(draftRows)
+    editorBody.innerHTML = renderEditorTable(draftRows, findShortcutConflicts(draftRows, programShortcuts()))
+  }
+
+  function renderCompact() {
+    compactBody.innerHTML = renderCompactTable(rows, findShortcutConflicts(rows, programShortcuts()))
+  }
+
+  function stopCapturing() {
+    pendingShortcut = null
+    delete document.body.dataset.capturingKey
   }
 
   function collectDraft() {
@@ -219,11 +238,7 @@ async function init(containerId = 'etogram-module', options = {}) {
         category: String(get('category')?.value || '').trim(),
         name: String(get('name')?.value || '').trim(),
         description: String(get('description')?.value || '').trim(),
-        shortcut: {
-          primary: previous.shortcut?.primary || '',
-          secondary: previous.shortcut?.secondary || '',
-          operator: previous.shortcut?.operator === '+' ? '+' : '/'
-        },
+        shortcut: normalizeShortcut(previous.shortcut),
         color: get('color')?.value || '#ff4f1a',
         continuous: Boolean(get('continuous')?.checked)
       }
@@ -252,8 +267,7 @@ async function init(containerId = 'etogram-module', options = {}) {
   saveBtn?.addEventListener('click', async () => {
     const normalized = normalizeRows(collectDraft())
     rows.splice(0, rows.length, ...normalized)
-    const compactMarkup = renderCompactTable(normalized)
-    compactBody.innerHTML = compactMarkup
+    renderCompact()
     await persistRows(projectFile, normalized, animalCatalog)
     modal?.classList.add('hidden')
   })
@@ -282,12 +296,11 @@ async function init(containerId = 'etogram-module', options = {}) {
       draftRows.splice(rowIndex, 1)
       renderDraft()
     } else if (button.dataset.action === 'toggle-operator' && draftRows[rowIndex]) {
-      const shortcut = normalizeShortcut(draftRows[rowIndex].shortcut)
-      shortcut.operator = shortcut.operator === '+' ? '/' : '+'
-      draftRows[rowIndex].shortcut = shortcut
+      draftRows[rowIndex].shortcut = cycleOperator(draftRows[rowIndex].shortcut)
       renderDraft()
     } else if (button.dataset.action === 'capture-key') {
       pendingShortcut = { rowIndex, field: button.dataset.field }
+      document.body.dataset.capturingKey = 'true'
       button.textContent = '…'
     }
   })
@@ -295,35 +308,31 @@ async function init(containerId = 'etogram-module', options = {}) {
   document.addEventListener('keydown', (event) => {
     if (pendingShortcut) {
       event.preventDefault()
-      if (['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) return
+      const key = normalizeKey(event.key)
+      if (!key || isModifierKey(key)) return
+
       const { rowIndex, field } = pendingShortcut
-      const shortcut = normalizeShortcut(draftRows[rowIndex]?.shortcut)
-      shortcut[field] = String(event.key || '').toUpperCase()
-      if (draftRows[rowIndex]) draftRows[rowIndex].shortcut = shortcut
-      pendingShortcut = null
+      if (draftRows[rowIndex] && key !== 'Escape') {
+        draftRows[rowIndex].shortcut = key === 'Backspace' || key === 'Delete'
+          ? clearShortcutKey(draftRows[rowIndex].shortcut, field)
+          : setShortcutKey(draftRows[rowIndex].shortcut, field, key)
+      }
+      stopCapturing()
       renderDraft()
       return
     }
-    if (event.repeat || !isVideoViewActive() || (modal && !modal.classList.contains('hidden'))) return
+    // A key the program itself uses was already handled (and its default action cancelled) before we got here.
+    if (event.defaultPrevented || event.repeat || !isVideoViewActive() || (modal && !modal.classList.contains('hidden'))) return
     if (event.target?.matches?.('input, textarea, select, [contenteditable="true"]')) return
     const animalData = animalCatalog?.getData?.()
     const activeAnimal = animalData?.animals?.find((animal) => animal.id === activeAnimalId) || null
     if (animalCatalog && !activeAnimal) return
 
-    const key = String(event.key || '').toUpperCase()
+    const key = eventKey(event)
     if (!key) return
     pressedKeys.add(key)
 
-    const matchingRows = rows.filter((row) => {
-      const shortcut = normalizeShortcut(row.shortcut)
-      if (!shortcut.primary) return false
-      if (shortcut.operator === '+') {
-        return Boolean(shortcut.secondary)
-          && (key === shortcut.primary || key === shortcut.secondary)
-          && pressedKeys.has(key === shortcut.primary ? shortcut.secondary : shortcut.primary)
-      }
-      return shortcut.primary === key || shortcut.secondary === key
-    })
+    const matchingRows = rows.filter((row) => matchesShortcut(row.shortcut, event, pressedKeys))
     if (!matchingRows.length) return
     event.preventDefault()
 
@@ -345,7 +354,7 @@ async function init(containerId = 'etogram-module', options = {}) {
   })
 
   document.addEventListener('keyup', (event) => {
-    const key = String(event.key || '').toUpperCase()
+    const key = eventKey(event)
     pressedKeys.delete(key)
     rows.forEach((row) => {
       const shortcut = normalizeShortcut(row.shortcut)
@@ -369,8 +378,17 @@ async function init(containerId = 'etogram-module', options = {}) {
   window.addEventListener('active-animal-changed', async (event) => {
     activeAnimalId = event.detail?.activeAnimal?.id || animalCatalog?.getData?.().activeAnimalId || null
     rows = normalizeRows(await loadRows(projectFile, animalCatalog, activeAnimalId))
-    compactBody.innerHTML = renderCompactTable(rows)
-    editorBody.innerHTML = renderEditorTable(rows)
+    renderCompact()
+    editorBody.innerHTML = renderEditorTable(rows, findShortcutConflicts(rows, programShortcuts()))
+  })
+
+  // Keys changed in the settings window: refresh the warnings, and keep what is being typed in an open editor.
+  shortcutManager?.subscribe(() => {
+    renderCompact()
+    if (modal && !modal.classList.contains('hidden')) {
+      collectDraft()
+      renderDraft()
+    }
   })
 }
 
@@ -380,6 +398,7 @@ export const WorkspaceEtogramModule = {
   normalizeRows,
   renderCompactTable,
   renderEditorTable,
+  findShortcutConflicts,
   loadRows,
   persistRows,
 }

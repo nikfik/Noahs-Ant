@@ -49,6 +49,44 @@ describe('WorkspaceVideoModule', () => {
     expect(document.querySelector('.video-stage-inner').contains(zoomControls)).toBe(false)
   })
 
+  test('registers the video shortcuts, runs them, and shows the current keys in the tooltips', async () => {
+    const registered = {}
+    let keys = { 'play-pause': 'Spacja / Enter', 'toggle-mute': 'Shift + M', 'skip-forward': '→', 'skip-back': '←', 'frame-forward': '.', 'frame-back': ',' }
+    let onKeysChanged = () => {}
+    const shortcutManager = {
+      register: jest.fn((id, handler, options) => { registered[id] = { handler, options } }),
+      subscribe: jest.fn((callback) => { onKeysChanged = callback }),
+      describe: (id) => keys[id] || ''
+    }
+    await WorkspaceVideoModule.init('video-module', { projectFile: 'demo.json', shortcutManager })
+
+    expect(Object.keys(registered).sort()).toEqual(['frame-back', 'frame-forward', 'play-pause', 'skip-back', 'skip-forward', 'toggle-mute'])
+    expect(registered['skip-forward'].options).toEqual({ allowRepeat: true })
+    expect(registered['play-pause'].options).toBeUndefined()
+
+    expect(document.getElementById('play-pause-video-btn').title).toBe('Odtwórz (Spacja / Enter)')
+    expect(document.getElementById('skip-forward-video-btn').title).toBe('Do przodu o 5 s (→)')
+    expect(document.getElementById('step-back-video-btn').title).toBe('Cofnij o 1 klatkę (,)')
+    expect(document.getElementById('mute-video-btn').title).toBe('Wycisz (Shift + M)')
+
+    const video = document.getElementById('video-player')
+    Object.defineProperty(video, 'duration', { value: 100, configurable: true })
+    Object.defineProperty(video, 'currentTime', { value: 10, writable: true, configurable: true })
+    registered['skip-forward'].handler()
+    expect(video.currentTime).toBe(15)
+    registered['skip-back'].handler()
+    expect(video.currentTime).toBe(10)
+    registered['frame-forward'].handler()
+    expect(video.currentTime).toBeCloseTo(10 + 1 / 30)
+    registered['toggle-mute'].handler()
+    expect(video.muted).toBe(true)
+
+    keys = { ...keys, 'skip-forward': 'L', 'toggle-mute': '' }
+    onKeysChanged()
+    expect(document.getElementById('skip-forward-video-btn').title).toBe('Do przodu o 5 s (L)')
+    expect(document.getElementById('mute-video-btn').title).toBe('Włącz dźwięk')
+  })
+
   test('swaps the play and mute icons with the state of the video', async () => {
     await WorkspaceVideoModule.init('video-module', { projectFile: 'demo.json' })
     const video = document.getElementById('video-player')

@@ -20,6 +20,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveProjectEtogram: (fileName, etogramRows) => ipcRenderer.invoke('save-project-etogram', fileName, etogramRows),
   selectVideoFile: () => ipcRenderer.invoke('select-video-file'),
   exportWorkbook: (request) => ipcRenderer.invoke('export-workbook', request),
+  onSettingsChange: (callback) => {
+    const subscription = (_event, settings) => callback(settings)
+    ipcRenderer.on('app-settings-changed', subscription)
+    return () => ipcRenderer.removeListener('app-settings-changed', subscription)
+  },
   onThemeChange: (callback) => {
     const subscription = (_event, theme) => callback(theme)
     ipcRenderer.on('theme-changed', subscription)

@@ -5,9 +5,18 @@ import { VideoPlayerUI } from './VideoPlayerUI.js'
 import { VideoPlaybackControls } from './VideoPlaybackControls.js'
 import { VideoZoomControls } from './VideoZoomControls.js'
 
+// Buttons whose tooltip shows the keyboard shortcut: [element property, shortcut action, tooltip without the keys].
+const SHORTCUT_BUTTONS = [
+  ['skipBackBtn', 'skip-back', 'Cofnij o 5 s'],
+  ['stepBackBtn', 'frame-back', 'Cofnij o 1 klatkę'],
+  ['stepForwardBtn', 'frame-forward', 'Do przodu o 1 klatkę'],
+  ['skipForwardBtn', 'skip-forward', 'Do przodu o 5 s']
+]
+
 export class VideoPlayerController {
   constructor(containerId = 'video-module', options = {}) {
     this.containerId = containerId
+    this.shortcutManager = options.shortcutManager || null
     this.trialCatalog = options.trialCatalog || null
     this.trialId = null
     this.host = null
@@ -73,6 +82,32 @@ export class VideoPlayerController {
     if (trial && Math.abs((trial.duration ?? 0) - duration) > 0.001) {
       this.trialCatalog.updateTrial(this.trialId, { duration }).catch((error) => console.error('Could not save video duration:', error))
     }
+  }
+
+  shortcutHint(actionId) {
+    const keys = this.shortcutManager?.describe(actionId)
+    return keys ? ` (${keys})` : ''
+  }
+
+  refreshShortcutHints() {
+    SHORTCUT_BUTTONS.forEach(([property, actionId, title]) => {
+      if (this[property]) this[property].title = `${title}${this.shortcutHint(actionId)}`
+    })
+    this.playbackControls?.syncPlaybackButton(this.playPauseBtn)
+    this.playbackControls?.syncMuteButton(this.muteBtn)
+  }
+
+  registerShortcuts() {
+    const manager = this.shortcutManager
+    if (!manager) return
+
+    manager.register('play-pause', () => this.playbackControls.playPause(this.playPauseBtn))
+    manager.register('skip-forward', () => this.playbackControls.skipForward(), { allowRepeat: true })
+    manager.register('skip-back', () => this.playbackControls.skipBackward(), { allowRepeat: true })
+    manager.register('frame-forward', () => this.playbackControls.stepForward(), { allowRepeat: true })
+    manager.register('frame-back', () => this.playbackControls.stepBackward(), { allowRepeat: true })
+    manager.register('toggle-mute', () => this.playbackControls.toggleMute(this.muteBtn))
+    manager.subscribe(() => this.refreshShortcutHints())
   }
 
   showTrial(trial) {
@@ -190,6 +225,7 @@ export class VideoPlayerController {
     this.skipForwardBtn = elements.skipForwardBtn
 
     this.playbackControls = new VideoPlaybackControls(this.video, {
+      getHint: (actionId) => this.shortcutHint(actionId),
       onSyncState: () => {
         this.playbackControls.syncPlaybackButton(this.playPauseBtn)
         this.playbackControls.syncMuteButton(this.muteBtn)
@@ -205,6 +241,8 @@ export class VideoPlayerController {
     })
 
     this.bindEvents()
+    this.registerShortcuts()
+    this.refreshShortcutHints()
 
     if (this.video && existingVideoPath) {
       this.setVideoSource(existingVideoPath)

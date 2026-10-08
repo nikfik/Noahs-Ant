@@ -42,7 +42,7 @@ function registerThemeHandlers() {
 }
 
 function registerSettingsHandlers() {
-  registerSettingsHandlersModule({ ipcMain, settingsStore, openSettingsWindow })
+  registerSettingsHandlersModule({ ipcMain, BrowserWindow, settingsStore, openSettingsWindow })
 }
 
 function registerProjectHandlers() {

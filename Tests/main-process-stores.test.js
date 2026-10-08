@@ -29,7 +29,7 @@ describe('main process stores', () => {
     settingsStore.writeAppSettings({
       theme: { bgColor: '#abcdef' },
       timeline: { snapEnabled: false, snapThresholdPx: 14 },
-      programShortcuts: [{ id: 'temp1', value: 'Q' }],
+      programShortcuts: [{ id: 'play-pause', value: 'Q' }],
       projectShortcuts: ['project shortcut'],
       invalid: true
     })

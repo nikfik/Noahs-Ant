@@ -10,6 +10,7 @@ import { DataEventsModule } from './data/data-events-module.js'
 import { DataMetricsModule } from './data/data-metrics-module.js'
 import { initDataTabs } from './data/data-tabs.js'
 import { initViewSwitcher } from './workspace-view-switcher.js'
+import { createShortcutManager } from './shortcuts/shortcut-manager.js'
 
 async function initModule(name, init) {
   try {
@@ -39,13 +40,21 @@ export const initWorkspace = async () => {
     ? await initModule('trial catalog', () => TrialCatalogModule.init('trial-panel', { projectId: projectFile }))
     : null
 
+  const shortcutManager = createShortcutManager({ api: window.electronAPI })
+  await shortcutManager.load()
+  shortcutManager.attach()
+  if (animalCatalog) {
+    shortcutManager.register('next-animal', () => animalCatalog.selectAdjacentAnimal(1))
+    shortcutManager.register('previous-animal', () => animalCatalog.selectAdjacentAnimal(-1))
+  }
+
   const observationStore = createObservationStore({ projectId: projectFile || '', api: window.electronAPI })
   await observationStore.load()
   window.addEventListener('trial-removed', (event) => {
     observationStore.removeTrialEvents(event.detail?.trialId).catch((error) => console.error('Failed to remove trial events:', error))
   })
 
-  await initModule('etogram module', () => WorkspaceEtogramModule.init('etogram-module', { projectFile, animalCatalog }))
+  await initModule('etogram module', () => WorkspaceEtogramModule.init('etogram-module', { projectFile, animalCatalog, shortcutManager }))
   await initModule('timeline module', () => WorkspaceTimelineModule.init('events-module', { animalCatalog, trialCatalog, observationStore }))
   await initModule('data events module', () => DataEventsModule.init('data-module', { observationStore, animalCatalog, trialCatalog }))
   await initModule('data metrics module', () => DataMetricsModule.init('data-metrics-module', { observationStore, animalCatalog, trialCatalog, projectName: projectFile }))
@@ -55,7 +64,7 @@ export const initWorkspace = async () => {
     await initModule('project state', () => appState.loadProject(projectFile))
   }
 
-  await initModule('video module', () => WorkspaceVideoModule.init('video-module', { projectFile, trialCatalog }))
+  await initModule('video module', () => WorkspaceVideoModule.init('video-module', { projectFile, trialCatalog, shortcutManager }))
 
   backBtn?.addEventListener('click', () => {
     window.location.href = 'ProjectList.html'

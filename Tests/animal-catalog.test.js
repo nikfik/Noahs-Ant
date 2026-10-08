@@ -51,6 +51,44 @@ describe('Animal catalog UI', () => {
     }
   })
 
+  test('steps to the next and previous animal across groups and wraps around', async () => {
+    const data = {
+      version: 1,
+      activeGroupId: 'g1',
+      activeAnimalId: null,
+      groups: [{ id: 'g1', name: 'Mrówki' }, { id: 'g2', name: 'Koty' }],
+      animals: [
+        { id: 'a1', groupId: 'g1', name: 'Mrówka 1', color: '#ef5350', etogramPresetId: 'p1' },
+        { id: 'a2', groupId: 'g1', name: 'Mrówka 2', color: '#42a56b', etogramPresetId: 'p1' },
+        { id: 'c1', groupId: 'g2', name: 'Kot 1', color: '#448aff', etogramPresetId: 'p2' }
+      ]
+    }
+    window.electronAPI.getProjectAnimals.mockResolvedValue(data)
+    window.electronAPI.getProjectEtograms.mockResolvedValue([{ id: 'p1', name: 'A', activities: [] }, { id: 'p2', name: 'B', activities: [] }])
+    const catalog = await AnimalCatalogModule.init('animal-panel', { projectId: 'Study' })
+    const active = () => catalog.getData().activeAnimalId
+
+    await catalog.selectAdjacentAnimal(1)
+    expect(active()).toBe('a1')
+    await catalog.selectAdjacentAnimal(1)
+    expect(active()).toBe('a2')
+    await catalog.selectAdjacentAnimal(1)
+    expect(active()).toBe('c1')
+    expect(catalog.getData().activeGroupId).toBe('g2')
+    await catalog.selectAdjacentAnimal(1)
+    expect(active()).toBe('a1')
+    await catalog.selectAdjacentAnimal(-1)
+    expect(active()).toBe('c1')
+    expect(document.querySelector('.animal-entry.active')).not.toBeNull()
+  })
+
+  test('does nothing when the project has no animals', async () => {
+    const catalog = await AnimalCatalogModule.init('animal-panel', { projectId: 'Study' })
+    await catalog.selectAdjacentAnimal(1)
+    expect(catalog.getData().activeAnimalId).toBeNull()
+    expect(window.electronAPI.saveProjectAnimals).not.toHaveBeenCalled()
+  })
+
   test('adds a group and animal, selects the animal, and persists changes', async () => {
     const selectionListener = jest.fn()
     window.addEventListener('active-animal-changed', selectionListener)

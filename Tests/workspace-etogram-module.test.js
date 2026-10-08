@@ -37,7 +37,7 @@ describe('WorkspaceEtogramModule editor', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true, cancelable: true }))
     modal.querySelector('[data-action="capture-key"][data-field="secondary"]').click()
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', bubbles: true, cancelable: true }))
-    modal.querySelector('[data-action="toggle-operator"]').click()
+    // a second key starts as a "+" combination, so no toggling is needed
 
     document.getElementById('add-etogram-row').click()
     const rowsBeforeRemove = modal.querySelectorAll('.editor-table tbody tr')

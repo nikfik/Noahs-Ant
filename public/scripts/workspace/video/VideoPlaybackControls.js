@@ -2,9 +2,10 @@ import { VideoPlayerUtils } from './VideoPlayerUtils.js'
 import { icon } from './video-icons.js'
 
 export class VideoPlaybackControls {
-  constructor(video, { onSyncState } = {}) {
+  constructor(video, { onSyncState, getHint } = {}) {
     this.video = video
     this.onSyncState = onSyncState || (() => {})
+    this.getHint = getHint || (() => '')
   }
 
   syncPlaybackButton(playPauseBtn) {
@@ -12,8 +13,9 @@ export class VideoPlaybackControls {
 
     const playing = !this.video.paused
     playPauseBtn.innerHTML = icon(playing ? 'pause' : 'play', 20)
-    playPauseBtn.title = playing ? 'Zatrzymaj' : 'Odtwórz'
-    playPauseBtn.setAttribute('aria-label', playPauseBtn.title)
+    const name = playing ? 'Zatrzymaj' : 'Odtwórz'
+    playPauseBtn.title = `${name}${this.getHint('play-pause')}`
+    playPauseBtn.setAttribute('aria-label', name)
   }
 
   syncMuteButton(muteBtn) {
@@ -21,8 +23,9 @@ export class VideoPlaybackControls {
 
     const muted = this.video.muted
     muteBtn.innerHTML = icon(muted ? 'muted' : 'volume')
-    muteBtn.title = muted ? 'Włącz dźwięk' : 'Wycisz'
-    muteBtn.setAttribute('aria-label', muteBtn.title)
+    const name = muted ? 'Włącz dźwięk' : 'Wycisz'
+    muteBtn.title = `${name}${this.getHint('toggle-mute')}`
+    muteBtn.setAttribute('aria-label', name)
   }
 
   async playPause(playPauseBtn) {

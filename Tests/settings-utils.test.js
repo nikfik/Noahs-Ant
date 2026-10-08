@@ -18,18 +18,25 @@ describe('Settings model defaults and normalization', () => {
       primaryColor: '#ff4f1a'
     })
     expect(settings.timeline).toEqual({ snapEnabled: true, snapThresholdPx: 9 })
-    expect(settings.programShortcuts.map(({ id }) => id)).toEqual(['temp1', 'temp2'])
-    expect(settings.programShortcuts[0].value).toEqual({ primary: '', secondary: '', operator: '/' })
+    expect(settings.programShortcuts.map(({ id }) => id)).toEqual([
+      'play-pause', 'skip-forward', 'skip-back', 'frame-forward', 'frame-back', 'toggle-mute', 'next-animal', 'previous-animal'
+    ])
+    const value = (id) => settings.programShortcuts.find((entry) => entry.id === id).value
+    expect(value('play-pause')).toEqual({ primary: 'Space', secondary: 'Enter', operator: '/' })
+    expect(value('skip-forward')).toEqual({ primary: 'ArrowRight', secondary: '', operator: '/' })
+    expect(value('toggle-mute')).toEqual({ primary: 'Shift', secondary: 'M', operator: '+' })
+    expect(value('previous-animal')).toEqual({ primary: 'Alt', secondary: 'ArrowLeft', operator: '+' })
   })
 
   test('merges legacy shortcut settings with defaults for new fields', () => {
     const settings = normalizeAppSettings({
-      programShortcuts: [{ id: 'temp1', value: 'q' }],
+      programShortcuts: [{ id: 'play-pause', value: 'q' }, { id: 'temp1', value: 'x' }],
       projectShortcuts: []
     })
 
-    expect(settings.programShortcuts.find(({ id }) => id === 'temp1').value.primary).toBe('Q')
-    expect(settings.programShortcuts.find(({ id }) => id === 'temp2').value.primary).toBe('')
+    expect(settings.programShortcuts.find(({ id }) => id === 'play-pause').value).toEqual({ primary: 'Q', secondary: '', operator: '/' })
+    expect(settings.programShortcuts.find(({ id }) => id === 'skip-forward').value.primary).toBe('ArrowRight')
+    expect(settings.programShortcuts.some(({ id }) => id === 'temp1')).toBe(false)
     expect(settings.theme.bgColor).toBe('#1a1a1a')
   })
 
@@ -69,7 +76,7 @@ describe('Shortcut utilities', () => {
     expect(normalizeKeyValue(' q ')).toBe('Q')
     expect(normalizeShortcutEntry({ primary: 'q', secondary: 'shift', operator: '+' })).toEqual({
       primary: 'Q',
-      secondary: 'shift',
+      secondary: 'Shift',
       operator: '+'
     })
     expect(getShortcutSignature({ primary: 'Q', secondary: 'E', operator: '+' })).toBe('Q+E')

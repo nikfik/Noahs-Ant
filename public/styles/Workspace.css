@@ -1090,3 +1090,14 @@
   color: var(--text-color);
   font: inherit;
 }
+.etogram-shortcut-warning {
+  margin-top: 6px;
+  color: #ffb36b;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.etogram-conflict {
+  margin-left: 6px;
+  color: #ffb36b;
+  cursor: help;
+}

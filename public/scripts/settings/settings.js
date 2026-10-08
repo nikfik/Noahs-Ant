@@ -1,11 +1,11 @@
-import { createDefaultAppSettings, defaultShortcuts, defaultTheme, settingsCatalog } from './settings-config.js'
-import { getShortcutConflictMessage as findShortcutConflictMessage, normalizeKeyValue, normalizeShortcutEntry } from './shortcut-utils.js'
+import { createDefaultAppSettings, defaultTheme, settingsCatalog } from './settings-config.js'
+import { createKeybindControl } from './keybind-control.js'
 import { loadSettings, saveSettings } from './settings-service.js'
 
 let appSettings = createDefaultAppSettings()
 let themeState = { ...appSettings.theme }
 let hasUnsavedChanges = false
-let pendingShortcutEdit = null
+let keybindControls = []
 
 function getColorValue(key) {
   return (themeState[key] || defaultTheme[key]).toUpperCase()
@@ -15,8 +15,8 @@ function getProgramShortcuts() {
   return appSettings.programShortcuts
 }
 
-function getShortcutConflictMessage(optionId, shortcut) {
-  return findShortcutConflictMessage(optionId, shortcut, getProgramShortcuts())
+function renderActiveTab() {
+  renderOptions(document.querySelector('.settings-tab.active')?.dataset.tab || 'general')
 }
 
 async function persistAppSettings() {
@@ -24,6 +24,8 @@ async function persistAppSettings() {
   appSettings = await saveSettings(window.electronAPI, appSettings)
   themeState = { ...appSettings.theme }
   hasUnsavedChanges = false
+  // Saving replaces the settings object, so the controls on screen must be rebuilt to edit the saved one.
+  renderActiveTab()
 }
 
 async function loadSavedAppSettings() {
@@ -45,8 +47,7 @@ function syncTheme(theme = {}) {
   }
   appSettings.theme = { ...themeState }
 
-  const activeTab = document.querySelector('.settings-tab.active')?.dataset.tab || 'general'
-  renderOptions(activeTab)
+  renderActiveTab()
 }
 
 function renderTabs() {
@@ -85,8 +86,18 @@ function renderOptions(tabId) {
 
   sectionTitle.textContent = section.title
   container.innerHTML = ''
+  keybindControls = []
 
+  let currentGroup = null
   section.options.forEach((option) => {
+    if (option.group && option.group !== currentGroup) {
+      currentGroup = option.group
+      const heading = document.createElement('h3')
+      heading.className = 'settings-group'
+      heading.textContent = option.group
+      container.appendChild(heading)
+    }
+
     const row = document.createElement('div')
     row.className = 'settings-option'
 
@@ -158,142 +169,19 @@ function renderOptions(tabId) {
     }
 
     if (option.type === 'keybind') {
-      const shortcutEntry = appSettings.programShortcuts.find((entry) => entry.id === option.id)
-      const shortcut = normalizeShortcutEntry(shortcutEntry?.value ?? defaultShortcuts[option.id])
-      if (shortcutEntry) {
-        shortcutEntry.value = shortcut
-      }
-
-      const primaryButton = document.createElement('button')
-      primaryButton.type = 'button'
-      primaryButton.className = 'option-keybind'
-      primaryButton.textContent = shortcut.primary || '—'
-
-      const operatorButton = document.createElement('button')
-      operatorButton.type = 'button'
-      operatorButton.className = `combo-operator ${shortcut.secondary ? 'active' : ''}`
-      operatorButton.textContent = shortcut.secondary ? shortcut.operator : ''
-      operatorButton.title = shortcut.secondary ? 'Kliknij by zmienić operator. Prawy klik usuwa kombinację.' : 'Dodaj kombinację klawiszy'
-
-      const secondaryButton = document.createElement('button')
-      secondaryButton.type = 'button'
-      secondaryButton.className = `option-keybind combo-slot ${shortcut.secondary ? 'active' : 'muted'}`
-      secondaryButton.textContent = shortcut.secondary || ''
-      secondaryButton.title = shortcut.secondary ? 'Kliknij, aby zmienić drugi klawisz.' : 'Kliknij, aby dodać drugi klawisz.'
-      if (!shortcut.secondary) {
-        secondaryButton.disabled = false
-      }
-
-      const setWarning = () => {
-        const conflictText = getShortcutConflictMessage(option.id, shortcut)
-        const warning = row.querySelector('.keybind-warning')
-
-        if (warning) {
-          warning.textContent = conflictText
-          warning.hidden = !conflictText
-        } else if (conflictText) {
-          const newWarning = document.createElement('div')
-          newWarning.className = 'keybind-warning'
-          newWarning.textContent = conflictText
-          row.appendChild(newWarning)
-        }
-      }
-
-      const refreshButtons = () => {
-        primaryButton.textContent = shortcut.primary || '—'
-        operatorButton.textContent = shortcut.secondary ? shortcut.operator : ''
-        operatorButton.classList.toggle('active', Boolean(shortcut.secondary))
-        operatorButton.title = shortcut.secondary ? 'Kliknij by zmienić operator. Prawy klik usuwa kombinację.' : 'Dodaj kombinację klawiszy'
-        secondaryButton.textContent = shortcut.secondary || ''
-        secondaryButton.classList.toggle('active', Boolean(shortcut.secondary))
-        secondaryButton.classList.toggle('muted', !shortcut.secondary)
-        secondaryButton.title = shortcut.secondary ? 'Kliknij, aby zmienić drugi klawisz.' : 'Kliknij, aby dodać drugi klawisz.'
-        if (shortcutEntry) {
-          shortcutEntry.value = shortcut
-        }
-        setWarning()
-      }
-
-      const assignKey = (fieldName, callback) => {
-        pendingShortcutEdit = { optionId: option.id, fieldName }
-
-        const capture = (event) => {
-          event.preventDefault()
-          const nextKey = normalizeKeyValue(event.key)
-
-          if (!nextKey) {
-            window.removeEventListener('keydown', capture)
-            pendingShortcutEdit = null
-            return
+      const entry = appSettings.programShortcuts.find((item) => item.id === option.id)
+      if (entry) {
+        const control = createKeybindControl({
+          entry,
+          getEntries: getProgramShortcuts,
+          onChange: () => {
+            hasUnsavedChanges = true
+            keybindControls.forEach((item) => item.refresh())
           }
-
-          if (fieldName === 'primary') {
-            shortcut.primary = nextKey
-          } else {
-            shortcut.secondary = nextKey
-          }
-
-          hasUnsavedChanges = true
-          refreshButtons()
-          callback?.()
-          pendingShortcutEdit = null
-          window.removeEventListener('keydown', capture)
-        }
-
-        window.addEventListener('keydown', capture, { once: true })
-      }
-
-      primaryButton.addEventListener('click', () => {
-        primaryButton.textContent = '...'
-        assignKey('primary', () => {
-          primaryButton.textContent = shortcut.primary || '—'
         })
-      })
-
-      secondaryButton.addEventListener('click', () => {
-        if (!shortcut.secondary) {
-          secondaryButton.textContent = '...'
-          assignKey('secondary', () => {
-            secondaryButton.textContent = shortcut.secondary || ''
-          })
-          return
-        }
-
-        secondaryButton.textContent = '...'
-        assignKey('secondary', () => {
-          secondaryButton.textContent = shortcut.secondary || ''
-        })
-      })
-
-      operatorButton.addEventListener('click', () => {
-        if (!shortcut.secondary) {
-          return
-        }
-
-        shortcut.operator = shortcut.operator === '+' ? '/' : '+'
-        hasUnsavedChanges = true
-        refreshButtons()
-      })
-
-      const cancelShortcutEdit = () => {
-        shortcut.primary = ''
-        shortcut.secondary = ''
-        shortcut.operator = '/'
-        hasUnsavedChanges = true
-        pendingShortcutEdit = null
-        refreshButtons()
+        keybindControls.push(control)
+        controlWrap.appendChild(control.element)
       }
-
-      document.getElementById('apply-btn')?.addEventListener('click', () => {
-        if (pendingShortcutEdit && pendingShortcutEdit.optionId === option.id) {
-          cancelShortcutEdit()
-        }
-      })
-
-      controlWrap.appendChild(primaryButton)
-      controlWrap.appendChild(operatorButton)
-      controlWrap.appendChild(secondaryButton)
-      setWarning()
     }
 
     row.appendChild(label)
@@ -320,7 +208,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     appSettings = createDefaultAppSettings()
     themeState = { ...appSettings.theme }
     hasUnsavedChanges = true
-    renderOptions(document.querySelector('.settings-tab.active')?.dataset.tab || 'general')
     await persistAppSettings()
   })
 

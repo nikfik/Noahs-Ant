@@ -11,21 +11,75 @@
   },
   "programShortcuts": [
     {
-      "id": "temp1",
-      "label": "Temp1",
+      "id": "play-pause",
+      "label": "Odtwórz / zatrzymaj",
       "value": {
-        "primary": "",
+        "primary": "Space",
+        "secondary": "Enter",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "skip-forward",
+      "label": "Do przodu o 5 s",
+      "value": {
+        "primary": "ArrowRight",
         "secondary": "",
         "operator": "/"
       }
     },
     {
-      "id": "temp2",
-      "label": "Temp2",
+      "id": "skip-back",
+      "label": "Cofnij o 5 s",
       "value": {
-        "primary": "",
+        "primary": "ArrowLeft",
         "secondary": "",
         "operator": "/"
+      }
+    },
+    {
+      "id": "frame-forward",
+      "label": "Jedna klatka do przodu",
+      "value": {
+        "primary": ".",
+        "secondary": "",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "frame-back",
+      "label": "Jedna klatka do tyłu",
+      "value": {
+        "primary": ",",
+        "secondary": "",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "toggle-mute",
+      "label": "Wycisz / włącz dźwięk",
+      "value": {
+        "primary": "Shift",
+        "secondary": "M",
+        "operator": "+"
+      }
+    },
+    {
+      "id": "next-animal",
+      "label": "Następne zwierzę",
+      "value": {
+        "primary": "Shift",
+        "secondary": "ArrowRight",
+        "operator": "+"
+      }
+    },
+    {
+      "id": "previous-animal",
+      "label": "Poprzednie zwierzę",
+      "value": {
+        "primary": "Shift",
+        "secondary": "ArrowLeft",
+        "operator": "+"
       }
     }
   ],
