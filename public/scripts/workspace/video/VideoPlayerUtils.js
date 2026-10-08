@@ -1,7 +1,9 @@
 const DEFAULT_FRAME_STEP = 1 / 30
-const ZOOM_MIN = 0.25
-const ZOOM_MAX = 3
-const ZOOM_STEP = 0.1
+// 1 = the picture fits the window; zooming out further would only shrink it into black.
+const ZOOM_MIN = 1
+const ZOOM_MAX = 8
+const ZOOM_BUTTON_FACTOR = 1.25
+const ZOOM_WHEEL_FACTOR = 1.15
 
 function toFileUrl(videoPath) {
   const cleanedPath = String(videoPath || '').trim().replace(/\\/g, '/')
@@ -21,19 +23,11 @@ function toFileUrl(videoPath) {
   return `file://${cleanedPath.startsWith('/') ? cleanedPath : `/${cleanedPath}`}`
 }
 
-function formatTime(value) {
-  const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0
-  const minutes = Math.floor(safeValue / 60)
-  const seconds = Math.floor(safeValue % 60)
-
-  return `${minutes}:${String(seconds).padStart(2, '0')}`
-}
-
 export const VideoPlayerUtils = {
   DEFAULT_FRAME_STEP,
   ZOOM_MIN,
   ZOOM_MAX,
-  ZOOM_STEP,
-  toFileUrl,
-  formatTime
+  ZOOM_BUTTON_FACTOR,
+  ZOOM_WHEEL_FACTOR,
+  toFileUrl
 }

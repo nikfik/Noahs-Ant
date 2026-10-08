@@ -34,6 +34,62 @@ describe('WorkspaceVideoModule', () => {
     expect(markup).toContain('video-volume')
   })
 
+  test('has one slim control bar, without the Open button and without a second timer', async () => {
+    await WorkspaceVideoModule.init('video-module', { projectFile: 'demo.json' })
+    const markup = document.getElementById('video-module').innerHTML
+
+    expect(markup).not.toContain('open-video-placeholder')
+    expect(markup).not.toContain('video-time')
+    expect(markup).not.toContain('Odtwórz</button>')
+    expect(document.querySelectorAll('.video-controls button')).toHaveLength(7)
+    expect(document.querySelectorAll('.video-controls svg').length).toBeGreaterThanOrEqual(7)
+
+    const zoomControls = document.querySelector('.video-zoom-controls')
+    expect(zoomControls.parentElement.classList.contains('video-stage')).toBe(true)
+    expect(document.querySelector('.video-stage-inner').contains(zoomControls)).toBe(false)
+  })
+
+  test('swaps the play and mute icons with the state of the video', async () => {
+    await WorkspaceVideoModule.init('video-module', { projectFile: 'demo.json' })
+    const video = document.getElementById('video-player')
+    const play = document.getElementById('play-pause-video-btn')
+    const mute = document.getElementById('mute-video-btn')
+    expect(play.title).toBe('Odtwórz')
+
+    Object.defineProperty(video, 'paused', { value: false, configurable: true })
+    video.dispatchEvent(new Event('play'))
+    expect(play.title).toBe('Zatrzymaj')
+
+    mute.click()
+    expect(video.muted).toBe(true)
+    expect(mute.title).toBe('Włącz dźwięk')
+  })
+
+  test('shows a large file button while the trial has no video, and both file buttons pick a video', async () => {
+    const trialCatalog = {
+      getActiveTrial: () => ({ id: 'trial-1', videoPath: '' }),
+      setVideoPath: jest.fn(async () => {})
+    }
+    await WorkspaceVideoModule.init('video-module', { projectFile: 'Study', trialCatalog })
+    const empty = document.querySelector('.video-empty')
+    expect(empty.hidden).toBe(false)
+
+    window.electronAPI.selectVideoFile.mockResolvedValue('C:/videos/one.mp4')
+    document.getElementById('pick-video-empty-btn').click()
+    await flush()
+    expect(empty.hidden).toBe(true)
+    expect(trialCatalog.setVideoPath).toHaveBeenCalledWith('trial-1', 'C:/videos/one.mp4')
+
+    window.dispatchEvent(new CustomEvent('active-trial-changed', { detail: { trial: { id: 'trial-2', videoPath: '' } } }))
+    expect(empty.hidden).toBe(false)
+
+    window.electronAPI.selectVideoFile.mockResolvedValue('C:/videos/two.mp4')
+    document.getElementById('pick-video-btn').click()
+    await flush()
+    expect(document.getElementById('video-player').getAttribute('src')).toBe('file:///C:/videos/two.mp4')
+    expect(empty.hidden).toBe(true)
+  })
+
   test('ładuje nowy moduł wideo w oddzielnych komponentach', async () => {
     await import('../public/scripts/workspace/video/VideoPlayerController.js')
     await import('../public/scripts/workspace/video/VideoPlayerUI.js')

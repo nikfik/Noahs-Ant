@@ -1,159 +1,155 @@
 import { VideoPlayerUtils } from './VideoPlayerUtils.js'
 
+// "+ 0" turns a negative zero into a plain 0, so a centred picture is never reported as translate(-0px).
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value)) + 0
+
+// The size of the picture itself inside the player box (the box is letterboxed around it).
+export function pictureSize(box, video) {
+  const width = video?.videoWidth
+  const height = video?.videoHeight
+  if (!width || !height) return { width: box.width, height: box.height }
+
+  const scale = Math.min(box.width / width, box.height / height)
+  return { width: width * scale, height: height * scale }
+}
+
+// The picture may be moved only while it is bigger than the window, and never so far that an edge shows a gap.
+export function clampPan(pan, zoom, box, picture) {
+  const limitX = Math.max(0, (picture.width * zoom - box.width) / 2)
+  const limitY = Math.max(0, (picture.height * zoom - box.height) / 2)
+  return { x: clamp(pan.x, -limitX, limitX), y: clamp(pan.y, -limitY, limitY) }
+}
+
+// Zooms so that the point under the cursor stays where it is. `cursor` is measured from the centre of the window.
+export function zoomAround(state, nextZoom, cursor) {
+  const ratio = nextZoom / state.zoom
+  return {
+    zoom: nextZoom,
+    pan: { x: cursor.x - (cursor.x - state.pan.x) * ratio, y: cursor.y - (cursor.y - state.pan.y) * ratio }
+  }
+}
+
 export class VideoZoomControls {
   constructor(host, video) {
-    this.host = host
     this.video = video
-    this.stageInner = this.host?.querySelector('.video-stage-inner') || null
-    this.stage = this.host?.querySelector('.video-stage') || null
+    this.stage = host?.querySelector('.video-stage') || null
+    this.stageInner = host?.querySelector('.video-stage-inner') || null
+    this.zoomInput = null
     this.zoom = 1
-    this.panX = 0
-    this.panY = 0
-    this.isPanning = false
-    this.startX = 0
-    this.startY = 0
-    this.startPanX = 0
-    this.startPanY = 0
+    this.pan = { x: 0, y: 0 }
+    this.panning = null
   }
 
-  applyTransform() {
+  getBox() {
+    const rect = this.stage?.getBoundingClientRect()
+    return { width: rect?.width || 0, height: rect?.height || 0, left: rect?.left || 0, top: rect?.top || 0 }
+  }
+
+  apply() {
     if (!this.stageInner) return
-    this.stageInner.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`
-  }
 
-  clampPan() {
-    if (!this.video || !this.stageInner || !this.stage) return
-
-    const viewport = this.stage
-    const vw = viewport.clientWidth
-    const vh = viewport.clientHeight
-    const baseW = (this.video.clientWidth || this.video.videoWidth || vw)
-    const baseH = (this.video.clientHeight || this.video.videoHeight || vh)
-    const scaledW = baseW * this.zoom
-    const scaledH = baseH * this.zoom
-
-    if (scaledW <= vw) {
-      this.panX = (vw - scaledW) / 2
-    } else {
-      const minX = vw - scaledW
-      const maxX = 0
-      this.panX = Math.min(maxX, Math.max(minX, this.panX))
-    }
-
-    if (scaledH <= vh) {
-      this.panY = (vh - scaledH) / 2
-    } else {
-      const minY = vh - scaledH
-      const maxY = 0
-      this.panY = Math.min(maxY, Math.max(minY, this.panY))
-    }
+    const box = this.getBox()
+    this.pan = clampPan(this.pan, this.zoom, box, pictureSize(box, this.video))
+    this.stageInner.style.transform = this.zoom === 1 ? '' : `translate(${this.pan.x}px, ${this.pan.y}px) scale(${this.zoom})`
+    this.stage?.classList.toggle('is-zoomed', this.zoom > 1)
+    this.setZoomDisplay()
   }
 
   setZoomDisplay() {
-    const node = this.host?.querySelector('#zoom-level-input')
-    if (!node) return
-    node.value = `${Math.round(this.zoom * 100)}%`
+    if (this.zoomInput) this.zoomInput.value = `${Math.round(this.zoom * 100)}%`
   }
 
-  parseZoomInput(val) {
-    if (val == null) return null
-    const raw = String(val).trim().replace('%', '')
-    const num = Number(raw)
-    if (!Number.isFinite(num)) return null
-    return Math.max(VideoPlayerUtils.ZOOM_MIN, Math.min(VideoPlayerUtils.ZOOM_MAX, num / 100))
+  parseZoomInput(value) {
+    const number = Number(String(value ?? '').trim().replace('%', '').replace(',', '.'))
+    return Number.isFinite(number) && number > 0 ? number / 100 : null
   }
 
   setZoomAt(value, clientX, clientY) {
-    const newZoom = Math.max(VideoPlayerUtils.ZOOM_MIN, Math.min(VideoPlayerUtils.ZOOM_MAX, Number(value) || 1))
-    if (!this.stageInner) {
-      this.zoom = newZoom
-      return
-    }
+    const nextZoom = clamp(Number(value) || 1, VideoPlayerUtils.ZOOM_MIN, VideoPlayerUtils.ZOOM_MAX)
+    const box = this.getBox()
+    const cursor = typeof clientX === 'number' && typeof clientY === 'number'
+      ? { x: clientX - (box.left + box.width / 2), y: clientY - (box.top + box.height / 2) }
+      : { x: 0, y: 0 }
 
-    const rect = this.stageInner.getBoundingClientRect()
-    const vpX = (typeof clientX === 'number') ? (clientX - rect.left) : (rect.width / 2)
-    const vpY = (typeof clientY === 'number') ? (clientY - rect.top) : (rect.height / 2)
-
-    const newPanX = (((vpX + this.panX) * this.zoom) / newZoom) - vpX
-    const newPanY = (((vpY + this.panY) * this.zoom) / newZoom) - vpY
-
-    this.zoom = newZoom
-    this.panX = newPanX
-    this.panY = newPanY
-
-    this.clampPan()
-    this.applyTransform()
-    this.setZoomDisplay()
+    const next = zoomAround({ zoom: this.zoom, pan: this.pan }, nextZoom, cursor)
+    this.zoom = next.zoom
+    this.pan = next.pan
+    this.apply()
   }
 
   setZoom(value) {
     this.setZoomAt(value)
   }
 
+  zoomBy(factor, clientX, clientY) {
+    this.setZoomAt(this.zoom * factor, clientX, clientY)
+  }
+
+  // Double click: zoom in at the cursor, or back to fit when already zoomed.
+  toggleZoom(clientX, clientY) {
+    if (this.zoom > 1) this.fitToContainer()
+    else this.setZoomAt(2, clientX, clientY)
+  }
+
   fitToContainer() {
     this.zoom = 1
-    this.panX = 0
-    this.panY = 0
-    if (this.video && this.stageInner) {
-      this.video.style.maxWidth = '100%'
-    }
-    this.applyTransform()
-    this.setZoomDisplay()
+    this.pan = { x: 0, y: 0 }
+    this.apply()
+  }
+
+  commitZoomInput() {
+    const parsed = this.parseZoomInput(this.zoomInput?.value)
+    if (parsed === null) this.setZoomDisplay()
+    else this.setZoomAt(parsed)
   }
 
   attachInteractions({ zoomInput, zoomOutBtn, zoomInBtn, zoomFitBtn }) {
-    zoomInput?.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter') {
-        const parsed = this.parseZoomInput(zoomInput.value)
-        if (parsed != null) this.setZoomAt(parsed)
-        else this.setZoomDisplay()
-        zoomInput.blur()
-      }
-    })
+    this.zoomInput = zoomInput || null
 
-    zoomInput?.addEventListener('blur', () => {
-      const parsed = this.parseZoomInput(zoomInput.value)
-      if (parsed != null) this.setZoomAt(parsed)
-      else this.setZoomDisplay()
+    zoomInput?.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return
+      this.commitZoomInput()
+      zoomInput.blur()
     })
+    zoomInput?.addEventListener('blur', () => this.commitZoomInput())
 
-    zoomInBtn?.addEventListener('click', () => this.setZoom(this.zoom + VideoPlayerUtils.ZOOM_STEP))
-    zoomOutBtn?.addEventListener('click', () => this.setZoom(this.zoom - VideoPlayerUtils.ZOOM_STEP))
+    zoomInBtn?.addEventListener('click', () => this.zoomBy(VideoPlayerUtils.ZOOM_BUTTON_FACTOR))
+    zoomOutBtn?.addEventListener('click', () => this.zoomBy(1 / VideoPlayerUtils.ZOOM_BUTTON_FACTOR))
     zoomFitBtn?.addEventListener('click', () => this.fitToContainer())
 
-    this.stageInner?.addEventListener('pointerdown', (ev) => {
-      ev.preventDefault()
-      this.isPanning = true
-      this.startX = ev.clientX
-      this.startY = ev.clientY
-      this.startPanX = this.panX
-      this.startPanY = this.panY
-      this.stageInner.setPointerCapture(ev.pointerId)
+    this.stageInner?.addEventListener('pointerdown', (event) => {
+      if (this.zoom <= 1 || event.button !== 0) return
+
+      event.preventDefault()
+      this.panning = { x: event.clientX, y: event.clientY, startPan: { ...this.pan } }
+      this.stage?.classList.add('is-panning')
+      this.stageInner.setPointerCapture?.(event.pointerId)
     })
 
-    this.stageInner?.addEventListener('pointermove', (ev) => {
-      if (!this.isPanning) return
-      const dx = ev.clientX - this.startX
-      const dy = ev.clientY - this.startY
-      this.panX = this.startPanX + dx
-      this.panY = this.startPanY + dy
-      this.clampPan()
-      this.applyTransform()
+    this.stageInner?.addEventListener('pointermove', (event) => {
+      if (!this.panning) return
+
+      this.pan = {
+        x: this.panning.startPan.x + event.clientX - this.panning.x,
+        y: this.panning.startPan.y + event.clientY - this.panning.y
+      }
+      this.apply()
     })
 
-    this.stageInner?.addEventListener('pointerup', (ev) => {
-      this.isPanning = false
-      try { this.stageInner.releasePointerCapture(ev.pointerId) } catch (_error) {}
-    })
-    this.stageInner?.addEventListener('pointercancel', () => { this.isPanning = false })
+    const stopPanning = (event) => {
+      this.panning = null
+      this.stage?.classList.remove('is-panning')
+      try { this.stageInner.releasePointerCapture?.(event.pointerId) } catch (_error) { /* nothing was captured */ }
+    }
+    this.stageInner?.addEventListener('pointerup', stopPanning)
+    this.stageInner?.addEventListener('pointercancel', stopPanning)
 
-    this.stage?.addEventListener('wheel', (ev) => {
-      if (!this.stageInner || !this.video) return
-      ev.preventDefault()
-      const delta = ev.deltaY
-      const direction = delta > 0 ? -1 : 1
-      const next = this.zoom + direction * VideoPlayerUtils.ZOOM_STEP
-      this.setZoomAt(next, ev.clientX, ev.clientY)
+    this.stage?.addEventListener('wheel', (event) => {
+      event.preventDefault()
+      const factor = event.deltaY > 0 ? 1 / VideoPlayerUtils.ZOOM_WHEEL_FACTOR : VideoPlayerUtils.ZOOM_WHEEL_FACTOR
+      this.zoomBy(factor, event.clientX, event.clientY)
     }, { passive: false })
+
+    window.addEventListener('resize', () => this.apply())
   }
 }

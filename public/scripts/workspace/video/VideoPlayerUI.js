@@ -1,4 +1,5 @@
 import { VideoPlayerUtils } from './VideoPlayerUtils.js'
+import { icon } from './video-icons.js'
 
 export class VideoPlayerUI {
   static renderVideoMarkup(videoPath) {
@@ -11,46 +12,42 @@ export class VideoPlayerUI {
             <div class="video-stage-inner">
               <video id="video-player" class="video-player" playsinline preload="metadata" ${src ? `src="${src}"` : ''}></video>
             </div>
-            <div class="video-zoom-controls">
-              <button id="zoom-out-btn" class="module-action" type="button">−</button>
-              <button id="zoom-fit-btn" class="module-action" type="button">Dopasuj</button>
-              <button id="zoom-in-btn" class="module-action" type="button">+</button>
-              <input id="zoom-level-input" class="video-zoom-input" value="100%" aria-label="Zoom percentage" />
+            <div class="video-empty" ${videoPath ? 'hidden' : ''}>
+              <p>Ta próba nie ma jeszcze filmu</p>
+              <button id="pick-video-empty-btn" class="video-pick-cta" type="button">${icon('folder', 20)}Wybierz plik wideo</button>
+            </div>
+            <div class="video-zoom-controls" role="group" aria-label="Powiększenie obrazu">
+              <button id="zoom-out-btn" class="vp-btn vp-btn-bare" type="button" title="Pomniejsz (kółko myszy)" aria-label="Pomniejsz">${icon('minus', 16)}</button>
+              <input id="zoom-level-input" class="video-zoom-input" value="100%" aria-label="Powiększenie w procentach" title="Powiększenie – wpisz wartość i naciśnij Enter" />
+              <button id="zoom-in-btn" class="vp-btn vp-btn-bare" type="button" title="Powiększ (kółko myszy)" aria-label="Powiększ">${icon('plus', 16)}</button>
+              <span class="video-zoom-separator" aria-hidden="true"></span>
+              <button id="zoom-fit-btn" class="vp-btn vp-btn-bare" type="button" title="Dopasuj do okna (dwuklik na obrazie)" aria-label="Dopasuj do okna">${icon('fit', 16)}</button>
             </div>
           </div>
 
           <div class="video-controls">
-            <div class="video-control-row">
-              <button id="skip-back-video-btn" class="module-action" type="button">⏪ 5s</button>
-              <button id="step-back-video-btn" class="module-action" type="button">◀ 1k</button>
-              <button id="play-pause-video-btn" class="module-action" type="button">▶ Odtwórz</button>
-              <button id="step-forward-video-btn" class="module-action" type="button">1k ▶</button>
-              <button id="skip-forward-video-btn" class="module-action" type="button">5s ⏩</button>
-            </div>
+            <button id="skip-back-video-btn" class="vp-btn" type="button" title="Cofnij o 5 s" aria-label="Cofnij o 5 sekund">${icon('skipBack', 20)}</button>
+            <button id="step-back-video-btn" class="vp-btn" type="button" title="Cofnij o 1 klatkę" aria-label="Cofnij o jedną klatkę">${icon('stepBack')}</button>
+            <button id="play-pause-video-btn" class="vp-btn vp-btn-primary" type="button" title="Odtwórz" aria-label="Odtwórz">${icon('play', 20)}</button>
+            <button id="step-forward-video-btn" class="vp-btn" type="button" title="Do przodu o 1 klatkę" aria-label="Do przodu o jedną klatkę">${icon('stepForward')}</button>
+            <button id="skip-forward-video-btn" class="vp-btn" type="button" title="Do przodu o 5 s" aria-label="Do przodu o 5 sekund">${icon('skipForward', 20)}</button>
 
-            <div class="video-control-row">
-              <label class="video-inline-field">
-                <span>Prędkość</span>
-                <select id="video-speed" class="video-select">
-                  <option value="0.5">0.5x</option>
-                  <option value="1" selected>1x</option>
-                  <option value="1.5">1.5x</option>
-                  <option value="2">2x</option>
-                </select>
-              </label>
+            <span class="video-controls-separator" aria-hidden="true"></span>
 
-              <button id="mute-video-btn" class="module-action" type="button">🔊</button>
-              <label class="video-inline-field video-volume-field">
-                <span>Głośność</span>
-                <input id="video-volume" type="range" min="0" max="1" step="0.05" value="1" />
-              </label>
-              <span id="video-time" class="video-time">00:00 / 00:00</span>
-            </div>
-          </div>
+            <select id="video-speed" class="video-select" title="Prędkość odtwarzania" aria-label="Prędkość odtwarzania">
+              <option value="0.25">0.25x</option>
+              <option value="0.5">0.5x</option>
+              <option value="1" selected>1x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2x</option>
+            </select>
 
-          <div class="video-actions">
-            <button id="pick-video-btn" class="module-action" type="button">Wybierz plik wideo</button>
-            <button id="open-video-placeholder" class="module-action ${videoPath ? '' : 'disabled'}" type="button" ${videoPath ? '' : 'disabled'}>Otwórz</button>
+            <button id="mute-video-btn" class="vp-btn vp-btn-bare" type="button" title="Wycisz" aria-label="Wycisz">${icon('volume')}</button>
+            <input id="video-volume" class="video-volume" type="range" min="0" max="1" step="0.05" value="1" title="Głośność" aria-label="Głośność" />
+
+            <span class="video-controls-spacer"></span>
+
+            <button id="pick-video-btn" class="vp-btn vp-btn-labeled" type="button" title="Wybierz inny plik wideo dla tej próby">${icon('folder')}<span>Zmień film</span></button>
           </div>
         </div>
       </div>
@@ -73,14 +70,13 @@ export class VideoPlayerUI {
     if (!this.host) return {}
 
     return {
-      pickBtn: this.host.querySelector('#pick-video-btn'),
-      openBtn: this.host.querySelector('#open-video-placeholder'),
+      pickButtons: Array.from(this.host.querySelectorAll('#pick-video-btn, #pick-video-empty-btn')),
+      emptyState: this.host.querySelector('.video-empty'),
       video: this.host.querySelector('#video-player'),
       playPauseBtn: this.host.querySelector('#play-pause-video-btn'),
       muteBtn: this.host.querySelector('#mute-video-btn'),
       volumeInput: this.host.querySelector('#video-volume'),
       speedSelect: this.host.querySelector('#video-speed'),
-      timeNode: this.host.querySelector('#video-time'),
       stepBackBtn: this.host.querySelector('#step-back-video-btn'),
       stepForwardBtn: this.host.querySelector('#step-forward-video-btn'),
       skipBackBtn: this.host.querySelector('#skip-back-video-btn'),

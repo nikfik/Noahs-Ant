@@ -13,19 +13,18 @@ export class VideoPlayerController {
     this.host = null
     this.video = null
     this.videoPath = ''
-    this.openBtn = null
+    this.pickButtons = []
+    this.emptyState = null
     this.playPauseBtn = null
     this.muteBtn = null
     this.volumeInput = null
     this.speedSelect = null
-    this.timeNode = null
     this.stepBackBtn = null
     this.stepForwardBtn = null
     this.skipBackBtn = null
     this.skipForwardBtn = null
     this.zoomControls = null
     this.playbackControls = null
-    this.autoplayGuard = false
     this.publishTimelineState = () => {
       if (!this.video) return
       const state = {
@@ -48,9 +47,7 @@ export class VideoPlayerController {
     this.videoPath = videoPath
     this.video.src = src
     this.video.load()
-    this.openBtn?.removeAttribute('disabled')
-    this.openBtn?.classList.remove('disabled')
-    this.autoplayGuard = false
+    if (this.emptyState) this.emptyState.hidden = true
     this.zoomControls?.fitToContainer()
   }
 
@@ -61,11 +58,9 @@ export class VideoPlayerController {
     this.video.removeAttribute('src')
     this.video.load()
     this.videoPath = ''
-    this.openBtn?.setAttribute('disabled', '')
-    this.openBtn?.classList.add('disabled')
+    if (this.emptyState) this.emptyState.hidden = false
     this.zoomControls?.fitToContainer()
     this.playbackControls?.syncPlaybackButton(this.playPauseBtn)
-    this.playbackControls?.syncTimeLabel()
     this.publishTimelineState()
   }
 
@@ -124,12 +119,8 @@ export class VideoPlayerController {
       this.playbackControls.skipForward()
     })
 
-    this.video?.addEventListener('dblclick', () => {
-      if (this.video.style.transform) {
-        this.zoomControls.fitToContainer()
-      } else {
-        this.zoomControls.setZoom(1.5)
-      }
+    this.video?.addEventListener('dblclick', (event) => {
+      this.zoomControls.toggleZoom(event.clientX, event.clientY)
     })
 
     this.video?.addEventListener('play', () => {
@@ -141,15 +132,12 @@ export class VideoPlayerController {
     })
 
     this.video?.addEventListener('loadedmetadata', () => {
-      this.playbackControls.syncTimeLabel()
       this.publishTimelineState()
       this.reportDuration()
+      this.zoomControls?.apply()
     })
 
-    this.video?.addEventListener('timeupdate', () => {
-      this.playbackControls.syncTimeLabel()
-      this.publishTimelineState()
-    })
+    this.video?.addEventListener('timeupdate', this.publishTimelineState)
 
     this.video?.addEventListener('seeked', this.publishTimelineState)
     this.video?.addEventListener('durationchange', this.publishTimelineState)
@@ -171,18 +159,13 @@ export class VideoPlayerController {
       if (event.detail?.view !== VIDEO_VIEW) this.video?.pause()
     })
 
-    this.pickBtn?.addEventListener('click', async () => {
+    this.pickButtons.forEach((button) => button.addEventListener('click', async () => {
       const selected = await VideoIOService.selectVideoFile()
       if (!selected) return
 
       this.setVideoSource(selected)
       await this.trialCatalog?.setVideoPath(this.trialId, selected)
-    })
-
-    this.openBtn?.addEventListener('click', () => {
-      if (!this.video?.src) return
-      this.video.currentTime = 0
-    })
+    }))
   }
 
   async init() {
@@ -194,21 +177,19 @@ export class VideoPlayerController {
     const existingVideoPath = activeTrial?.videoPath || ''
     const ui = new VideoPlayerUI(this.host, existingVideoPath)
     const elements = ui.render()
-    this.pickBtn = elements.pickBtn
-    this.openBtn = elements.openBtn
+    this.pickButtons = elements.pickButtons
+    this.emptyState = elements.emptyState
     this.video = elements.video
     this.playPauseBtn = elements.playPauseBtn
     this.muteBtn = elements.muteBtn
     this.volumeInput = elements.volumeInput
     this.speedSelect = elements.speedSelect
-    this.timeNode = elements.timeNode
     this.stepBackBtn = elements.stepBackBtn
     this.stepForwardBtn = elements.stepForwardBtn
     this.skipBackBtn = elements.skipBackBtn
     this.skipForwardBtn = elements.skipForwardBtn
 
     this.playbackControls = new VideoPlaybackControls(this.video, {
-      timeNode: this.timeNode,
       onSyncState: () => {
         this.playbackControls.syncPlaybackButton(this.playPauseBtn)
         this.playbackControls.syncMuteButton(this.muteBtn)
@@ -231,7 +212,6 @@ export class VideoPlayerController {
 
     this.playbackControls.syncPlaybackButton(this.playPauseBtn)
     this.playbackControls.syncMuteButton(this.muteBtn)
-    this.playbackControls.syncTimeLabel()
     this.zoomControls.setZoomDisplay()
     this.publishTimelineState()
   }
