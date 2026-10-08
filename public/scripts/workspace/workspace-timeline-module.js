@@ -4,9 +4,15 @@ import { isVideoViewActive } from '../shared/workspace-view.js'
 import { getObservationDisplayEnd } from './observations/observation-model.js'
 import { createObservationStore } from './observations/observation-store.js'
 
-const LABEL_WIDTH = 150
+// Where time 0 starts, measured from the left edge of the timeline: the 150 px label column plus an 8 px gap (see Workspace.css).
+const LABEL_WIDTH = 158
 const LANE_HEIGHT = 32
 const MIN_LANE_WIDTH = 4
+// Zoom 1x fits the whole video in view. Zooming in stops at the closer of these limits, so a long video can never
+// stretch the timeline (and the page) without bound.
+const MAX_TIMELINE_WIDTH = 60000
+const MAX_PIXELS_PER_SECOND = 300
+const ANNOUNCEMENT_MS = 3500
 
 const videoFileName = (videoPath) => String(videoPath || '').split(/[\\/]/).pop()
 
@@ -110,10 +116,10 @@ export function createTimelineModule() {
   let store = null
   let duration = 0
   let currentTime = 0
-  let paused = true
   let videoPath = ''
-  let pixelsPerSecond = 24
-  let effectiveScale = 24
+  let zoomLevel = 0
+  let effectiveScale = 1
+  let announcementTimer = 0
   let snapEnabled = true
   let snapThresholdPx = 9
   let selectedId = null
@@ -145,9 +151,45 @@ export function createTimelineModule() {
     if (reason !== 'preview') emitActiveStates()
   }
 
+  const visibleTrackWidth = () => Math.max(500, (scroller?.clientWidth || 1000) - LABEL_WIDTH)
+
+  // How far this video can be zoomed in (1 = no zoom, the whole video fits the view).
+  function maxZoom() {
+    if (duration <= 0) return 1
+    return Math.max(1, Math.min(MAX_TIMELINE_WIDTH, MAX_PIXELS_PER_SECOND * duration) / visibleTrackWidth())
+  }
+
+  const zoomFactor = () => maxZoom() ** (zoomLevel / 100)
+
   function getScaleWidth() {
-    const availableWidth = Math.max(500, (scroller?.clientWidth || 1000) - LABEL_WIDTH)
-    return Math.max(availableWidth, duration * pixelsPerSecond)
+    return Math.round(visibleTrackWidth() * zoomFactor())
+  }
+
+  // The slider is logarithmic (equal steps feel like equal magnification) and keeps the middle of the view in place.
+  function setZoom(level) {
+    const visible = (scroller?.clientWidth || 1000) - LABEL_WIDTH
+    const centerTime = (scroller.scrollLeft + visible / 2) / effectiveScale
+    zoomLevel = level
+    render()
+    if (duration > 0) scroller.scrollLeft = Math.max(0, centerTime * effectiveScale - visible / 2)
+  }
+
+  // Keeps the playhead in view when the video moves it out (playback, frame steps, seeking).
+  function followPlayhead() {
+    const visible = (scroller?.clientWidth || 0) - LABEL_WIDTH
+    if (!scroller || visible <= 0 || duration <= 0) return
+
+    const x = currentTime * effectiveScale
+    if (x < scroller.scrollLeft || x > scroller.scrollLeft + visible) {
+      scroller.scrollLeft = Math.max(0, x - visible * 0.2)
+    }
+  }
+
+  function updateZoomControl() {
+    const slider = host.querySelector('[data-timeline-zoom]')
+    const factor = zoomFactor()
+    slider.disabled = maxZoom() < 1.05
+    host.querySelector('[data-timeline-zoom-value]').textContent = `${factor >= 10 ? Math.round(factor) : factor.toFixed(1)}×`
   }
 
   function saveTimelineSettings() {
@@ -196,7 +238,7 @@ export function createTimelineModule() {
       const selected = selectedId === item.id ? ' selected' : ''
       const isOpen = item.kind === 'interval' && item.end === null
       const style = `left:${left}px;${isPoint ? '' : `width:${eventWidth}px;`}--event-color:${escapeHtml(item.activityColor)}`
-      return `<div class="timeline-event ${isPoint ? 'point' : 'interval'}${isOpen ? ' open' : ''}${selected}" data-observation-id="${escapeHtml(item.id)}" data-animal-id="${escapeHtml(item.animalId)}" title="${escapeHtml(item.activityName)} · ${formatTime(item.start)}${item.end === null ? ' · trwa' : `–${formatTime(item.end)}`}" style="${style}" tabindex="0">${isPoint ? '' : `<span class="timeline-event-label">${escapeHtml(item.activityName)}</span>`}<span class="timeline-resize-handle start" data-resize="start"></span>${isPoint || isOpen ? '' : '<span class="timeline-resize-handle end" data-resize="end"></span>'}</div>`
+      return `<div class="timeline-event ${isPoint ? 'point' : 'interval'}${isOpen ? ' open' : ''}${selected}" data-observation-id="${escapeHtml(item.id)}" data-animal-id="${escapeHtml(item.animalId)}" title="${escapeHtml(item.activityName)} · ${formatTime(item.start)}${item.end === null ? ' · trwa' : `–${formatTime(item.end)}`} (Delete usuwa zaznaczone)" style="${style}" tabindex="0">${isPoint ? '' : `<span class="timeline-event-label">${escapeHtml(item.activityName)}</span>`}<span class="timeline-resize-handle start" data-resize="start"></span>${isPoint || isOpen ? '' : '<span class="timeline-resize-handle end" data-resize="end"></span>'}</div>`
     }).join('')
   }
 
@@ -219,19 +261,16 @@ export function createTimelineModule() {
               <button type="button" data-timeline-action="redo" title="Ponów (Ctrl+Y)" aria-label="Ponów">↷</button>
               <button type="button" data-timeline-action="snap" title="Przyciąganie (Alt chwilowo wyłącza)" aria-pressed="true">Snap: wł.</button>
               <label class="timeline-snap-label" title="Odległość przyciągania">Czułość <select data-timeline-snap-threshold><option value="5">Niska</option><option value="9">Średnia</option><option value="14">Wysoka</option><option value="20">Bardzo wysoka</option></select></label>
-              <label class="timeline-zoom-label" title="Powiększenie osi">Zoom <input type="range" min="1" max="80" value="24" data-timeline-zoom></label>
+              <label class="timeline-zoom-label" title="Powiększenie osi czasu: 1× pokazuje całe wideo, dalej da się zbliżać tylko do sensownej granicy">Zoom <input type="range" min="0" max="100" step="1" value="0" data-timeline-zoom><output data-timeline-zoom-value>1×</output></label>
             </div>
           </header>
           <div class="timeline-scroller" tabindex="0" aria-label="Oś czasu zwierząt">
             <div class="timeline-content"></div>
           </div>
-          <footer class="timeline-status"><span data-timeline-message>Gotowe</span><span>Delete usuwa zaznaczone zdarzenie · Alt wyłącza Snap</span></footer>
+          <footer class="timeline-status" role="status" hidden><span data-timeline-message></span></footer>
         </section>`
       scroller = host.querySelector('.timeline-scroller')
-      host.querySelector('[data-timeline-zoom]').addEventListener('input', (event) => {
-        pixelsPerSecond = Number(event.target.value)
-        render()
-      })
+      host.querySelector('[data-timeline-zoom]').addEventListener('input', (event) => setZoom(Number(event.target.value)))
       host.querySelectorAll('[data-timeline-action]').forEach((button) => {
         button.addEventListener('click', () => {
           if (button.dataset.timelineAction === 'undo') store.undo()
@@ -258,7 +297,7 @@ export function createTimelineModule() {
 
     const content = host.querySelector('.timeline-content')
     const width = getScaleWidth()
-    effectiveScale = duration > 0 ? width / duration : pixelsPerSecond
+    effectiveScale = duration > 0 ? width / duration : 1
     const laneLayout = allocateAnimalLanes(trialObservations(), animals, currentTime, duration)
     const animalLookup = animalMap()
     const rowsHtml = animals.map((animal) => {
@@ -284,15 +323,21 @@ export function createTimelineModule() {
       ${rowsHtml || '<div class="timeline-empty">Brak zwierząt</div>'}
     `
     host.querySelector('.timeline-current-time').textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`
-    host.querySelector('[data-timeline-message]').textContent = paused ? 'Wstrzymano' : 'Odtwarzanie'
+    updateZoomControl()
     const snapButton = host.querySelector('[data-timeline-action="snap"]')
     snapButton.textContent = `Snap: ${snapEnabled ? 'wł.' : 'wył.'}`
     snapButton.setAttribute('aria-pressed', String(snapEnabled))
   }
 
+  // Short feedback ("select an animal first") that shows below the timeline for a moment; nothing permanent is shown there.
   function announce(message) {
-    const node = host?.querySelector('[data-timeline-message]')
-    if (node) node.textContent = message
+    const footer = host?.querySelector('.timeline-status')
+    if (!footer) return
+
+    footer.querySelector('[data-timeline-message]').textContent = message
+    footer.hidden = false
+    window.clearTimeout(announcementTimer)
+    announcementTimer = window.setTimeout(() => { footer.hidden = true }, ANNOUNCEMENT_MS)
   }
 
   function activeAnimalId() {
@@ -472,12 +517,14 @@ export function createTimelineModule() {
   function onVideoState(event) {
     const state = event.detail || {}
     duration = Math.max(0, Number(state.duration) || 0)
-    paused = state.paused !== false
     videoPath = typeof state.videoPath === 'string' ? state.videoPath : ''
     // While scrubbing, the video's delayed position reports must not pull the playhead back.
     if (scrubbing) return
     currentTime = Math.max(0, Number(state.currentTime) || 0)
-    if (!drag) render()
+    if (drag) return
+
+    render()
+    followPlayhead()
   }
 
   async function init(containerId = 'events-module', options = {}) {
@@ -501,6 +548,7 @@ export function createTimelineModule() {
     }
 
     window.addEventListener('video-timeline-state', onVideoState)
+    window.addEventListener('resize', () => render())
     window.addEventListener('etogram-activity-request', onActivityRequest)
     window.addEventListener('active-animal-changed', () => render())
     window.addEventListener('active-trial-changed', () => {

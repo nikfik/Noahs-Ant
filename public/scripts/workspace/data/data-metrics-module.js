@@ -158,7 +158,7 @@ export function createDataMetricsModule() {
             </table>
           </div>
         </details>
-        <footer class="data-status"><span data-data-message role="status">${escapeHtml(message)}</span><span>Najedź na nazwę kolumny lub opcji, aby zobaczyć opis</span></footer>
+        <footer class="data-status"><span data-data-message role="status">${escapeHtml(message)}</span></footer>
       </section>`
   }
 

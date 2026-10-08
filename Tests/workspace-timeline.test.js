@@ -101,17 +101,18 @@ describe('Workspace timeline UI integration', () => {
     window.addEventListener('video-seek-request', seekListener)
     ruler.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 250 }))
     window.dispatchEvent(new MouseEvent('pointermove', { clientX: 400 }))
-    expect(parseFloat(document.querySelector('.timeline-playhead-ruler').style.left)).toBeCloseTo(400 - 150)
+    expect(parseFloat(document.querySelector('.timeline-playhead-ruler').style.left)).toBeCloseTo(400 - 158)
     window.dispatchEvent(new CustomEvent('video-timeline-state', { detail: { currentTime: 0.2, duration: 10, paused: true } }))
-    expect(parseFloat(document.querySelector('.timeline-playhead-ruler').style.left)).toBeCloseTo(400 - 150)
+    expect(parseFloat(document.querySelector('.timeline-playhead-ruler').style.left)).toBeCloseTo(400 - 158)
     window.dispatchEvent(new MouseEvent('pointerup', { clientX: 400 }))
     window.dispatchEvent(new MouseEvent('pointermove', { clientX: 600 }))
     window.dispatchEvent(new CustomEvent('video-timeline-state', { detail: { currentTime: 0.2, duration: 10, paused: true } }))
-    expect(parseFloat(document.querySelector('.timeline-playhead-ruler').style.left)).toBeCloseTo(0.2 * 85)
+    expect(parseFloat(document.querySelector('.timeline-playhead-ruler').style.left)).toBeCloseTo(0.2 * 84.2)
     const seekTimes = seekListener.mock.calls.map(([seekEvent]) => seekEvent.detail.time)
     expect(seekTimes).toHaveLength(2)
-    expect(seekTimes[0]).toBeCloseTo((250 - 150) / 85)
-    expect(seekTimes[1]).toBeCloseTo((400 - 150) / 85)
+    // time 0 starts 158 px from the left edge (label column + gap); 10 s fill the 842 px that are left of a 1000 px view
+    expect(seekTimes[0]).toBeCloseTo((250 - 158) / 84.2)
+    expect(seekTimes[1]).toBeCloseTo((400 - 158) / 84.2)
     window.removeEventListener('video-seek-request', seekListener)
   })
 
@@ -167,8 +168,8 @@ describe('Workspace timeline UI integration', () => {
     const dragMovingEvent = async (altKey) => {
       document.querySelector('[data-observation-id="moving"]')
         .dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 320, clientY: 20 }))
-      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 320 + 5.02 * 42.5, clientY: 20, altKey }))
-      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 320 + 5.02 * 42.5, clientY: 20 }))
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 320 + 5.02 * 42.1, clientY: 20, altKey }))
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 320 + 5.02 * 42.1, clientY: 20 }))
       await new Promise((resolve) => setTimeout(resolve, 0))
       return instance.getObservations().find((item) => item.id === 'moving').start
     }
@@ -180,6 +181,67 @@ describe('Workspace timeline UI integration', () => {
     expect(instance.getObservations().find((item) => item.id === 'moving').start).toBe(2)
 
     expect(await dragMovingEvent(true)).toBeCloseTo(7.02)
+  })
+
+  describe('zoom and layout', () => {
+    async function setupTimeline(duration) {
+      window.electronAPI.getProjectObservations.mockResolvedValue({ observations: [] })
+      const animalCatalog = { getData: () => ({ animals: [{ id: 'animal-1', name: 'Mrówka', color: '#42a56b' }] }) }
+      await createTimelineModule().init('events-module', { projectId: 'Study', animalCatalog })
+      window.dispatchEvent(new CustomEvent('video-timeline-state', { detail: { currentTime: 0, duration, paused: true } }))
+    }
+    const trackWidth = () => parseFloat(document.querySelector('.timeline-ruler-track').style.width)
+    const setSlider = (value) => {
+      const slider = document.querySelector('[data-timeline-zoom]')
+      slider.value = String(value)
+      slider.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+
+    test('starts with the whole video in view and zooms in logarithmically up to a hard limit', async () => {
+      await setupTimeline(600)
+      expect(trackWidth()).toBe(842)
+      expect(document.querySelector('[data-timeline-zoom-value]').textContent).toBe('1.0×')
+
+      setSlider(50)
+      const half = trackWidth()
+      expect(half).toBeGreaterThan(842 * 5)
+      expect(half).toBeLessThan(60000)
+
+      setSlider(100)
+      expect(trackWidth()).toBe(60000)
+      expect(document.querySelector('[data-timeline-zoom-value]').textContent).toBe('71×')
+    })
+
+    test('never stretches a long video: 50 minutes still fit the view and cap at the width limit', async () => {
+      await setupTimeline(50 * 60)
+      expect(trackWidth()).toBe(842)
+
+      setSlider(100)
+      expect(trackWidth()).toBe(60000)
+      const ticks = document.querySelectorAll('.timeline-tick').length
+      expect(ticks).toBeGreaterThan(5)
+      expect(ticks).toBeLessThan(1000)
+    })
+
+    test('disables the slider when a video is too short to zoom into', async () => {
+      await setupTimeline(2)
+      expect(document.querySelector('[data-timeline-zoom]').disabled).toBe(true)
+
+      await setupTimeline(10)
+      expect(document.querySelector('[data-timeline-zoom]').disabled).toBe(false)
+    })
+
+    test('shows no permanent status text, only short announcements', async () => {
+      await setupTimeline(10)
+      const footer = document.querySelector('.timeline-status')
+      expect(footer.hidden).toBe(true)
+      expect(document.body.textContent).not.toMatch(/Wstrzymano|Odtwarzanie|Delete usuwa zaznaczone zdarzenie ·/)
+
+      window.dispatchEvent(new CustomEvent('etogram-activity-request', { detail: { activityId: 'run', continuous: true } }))
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      expect(footer.hidden).toBe(false)
+      expect(footer.textContent).toMatch(/Wybierz aktywne zwierzę/)
+    })
   })
 
   test('moves and resizes a saved interval, then deletes the selected event', async () => {
@@ -195,16 +257,16 @@ describe('Workspace timeline UI integration', () => {
     scroller.getBoundingClientRect = () => ({ left: 0, right: 1000, top: 0, bottom: 300, width: 1000, height: 300 })
     const intervalNode = document.querySelector('.timeline-event.interval')
     intervalNode.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 320, clientY: 20 }))
-    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 405, clientY: 20 }))
-    window.dispatchEvent(new MouseEvent('pointerup', { clientX: 405, clientY: 20 }))
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 404.2, clientY: 20 }))
+    window.dispatchEvent(new MouseEvent('pointerup', { clientX: 404.2, clientY: 20 }))
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(instance.getObservations()[0].start).toBeCloseTo(3)
     expect(instance.getObservations()[0].end).toBeCloseTo(6)
 
     const endHandle = document.querySelector('.timeline-resize-handle.end')
-    endHandle.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 405, clientY: 20 }))
-    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 490, clientY: 20 }))
-    window.dispatchEvent(new MouseEvent('pointerup', { clientX: 490, clientY: 20 }))
+    endHandle.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 404.2, clientY: 20 }))
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 488.4, clientY: 20 }))
+    window.dispatchEvent(new MouseEvent('pointerup', { clientX: 488.4, clientY: 20 }))
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(instance.getObservations()[0].end).toBeCloseTo(7)
 
