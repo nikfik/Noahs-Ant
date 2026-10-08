@@ -17,6 +17,8 @@ export class VideoPlayerController {
   constructor(containerId = 'video-module', options = {}) {
     this.containerId = containerId
     this.shortcutManager = options.shortcutManager || null
+    this.projectId = options.projectFile || ''
+    this.busy = null
     this.trialCatalog = options.trialCatalog || null
     this.trialId = null
     this.host = null
@@ -84,6 +86,66 @@ export class VideoPlayerController {
     }
   }
 
+  currentTrial() {
+    return this.trialCatalog?.getData?.().trials.find((item) => item.id === this.trialId) || null
+  }
+
+  // One step is one real picture of the video (1/25 s, 1/50 s, ...); 1/30 s only when the frame rate is not known.
+  frameStep() {
+    return 1 / (this.currentTrial()?.frameRate || VideoPlayerUtils.DEFAULT_FRAME_RATE)
+  }
+
+  // Older trials do not know their frame rate yet; ask once and remember it.
+  async ensureFrameRate() {
+    const trial = this.currentTrial()
+    if (!trial || trial.frameRate || !this.videoPath) return
+
+    const info = await VideoIOService.probeVideo(this.videoPath)
+    if (info?.frameRate) await this.trialCatalog.updateTrial(trial.id, { frameRate: info.frameRate })
+  }
+
+  showBusy(text, percent = null, { error = false } = {}) {
+    const busy = this.busy
+    if (!busy?.root) return
+
+    busy.root.hidden = false
+    busy.root.classList.toggle('is-error', error)
+    busy.text.textContent = text
+    busy.progress.hidden = error || percent === null
+    if (percent !== null) busy.progress.value = percent
+    busy.cancel.hidden = error
+    busy.close.hidden = !error
+  }
+
+  hideBusy() {
+    if (this.busy?.root) this.busy.root.hidden = true
+  }
+
+  async chooseVideo() {
+    const selected = await VideoIOService.selectVideoFile()
+    if (!selected) return
+
+    const trialId = this.trialId
+    this.showBusy('Sprawdzanie filmu…')
+    try {
+      const result = await VideoIOService.prepareVideo(this.projectId, selected, (percent) => {
+        this.showBusy(`Konwertowanie filmu… ${Math.round(percent)}%`, percent)
+      })
+      this.hideBusy()
+      if (result.status === 'cancelled') return
+
+      if (this.trialId === trialId) this.setVideoSource(result.videoPath)
+      await this.trialCatalog?.updateTrial(trialId, {
+        videoPath: result.videoPath,
+        sourcePath: result.sourcePath || '',
+        frameRate: result.frameRate ?? null
+      })
+    } catch (error) {
+      console.error('Could not prepare the video:', error)
+      this.showBusy(VideoIOService.friendlyError(error), null, { error: true })
+    }
+  }
+
   shortcutHint(actionId) {
     const keys = this.shortcutManager?.describe(actionId)
     return keys ? ` (${keys})` : ''
@@ -116,6 +178,7 @@ export class VideoPlayerController {
     this.trialId = trial.id
     if (trial.videoPath) {
       this.setVideoSource(trial.videoPath)
+      this.ensureFrameRate().catch((error) => console.error('Could not read the frame rate:', error))
     } else {
       this.clearVideo()
     }
@@ -194,13 +257,9 @@ export class VideoPlayerController {
       if (event.detail?.view !== VIDEO_VIEW) this.video?.pause()
     })
 
-    this.pickButtons.forEach((button) => button.addEventListener('click', async () => {
-      const selected = await VideoIOService.selectVideoFile()
-      if (!selected) return
-
-      this.setVideoSource(selected)
-      await this.trialCatalog?.setVideoPath(this.trialId, selected)
-    }))
+    this.pickButtons.forEach((button) => button.addEventListener('click', () => this.chooseVideo()))
+    this.busy?.cancel?.addEventListener('click', () => VideoIOService.cancelConversion())
+    this.busy?.close?.addEventListener('click', () => this.hideBusy())
   }
 
   async init() {
@@ -214,6 +273,7 @@ export class VideoPlayerController {
     const elements = ui.render()
     this.pickButtons = elements.pickButtons
     this.emptyState = elements.emptyState
+    this.busy = elements.busy
     this.video = elements.video
     this.playPauseBtn = elements.playPauseBtn
     this.muteBtn = elements.muteBtn
@@ -226,6 +286,7 @@ export class VideoPlayerController {
 
     this.playbackControls = new VideoPlaybackControls(this.video, {
       getHint: (actionId) => this.shortcutHint(actionId),
+      getFrameStep: () => this.frameStep(),
       onSyncState: () => {
         this.playbackControls.syncPlaybackButton(this.playPauseBtn)
         this.playbackControls.syncMuteButton(this.muteBtn)
@@ -246,6 +307,7 @@ export class VideoPlayerController {
 
     if (this.video && existingVideoPath) {
       this.setVideoSource(existingVideoPath)
+      this.ensureFrameRate().catch((error) => console.error('Could not read the frame rate:', error))
     }
 
     this.playbackControls.syncPlaybackButton(this.playPauseBtn)

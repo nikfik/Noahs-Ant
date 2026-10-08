@@ -91,3 +91,17 @@ describe('Trial catalog module', () => {
     expect(catalog.getActiveTrial().videoPath).toBe('C:/new.mp4')
   })
 })
+
+describe('Trial panel look', () => {
+  test('uses the shared side panel header', async () => {
+    document.body.innerHTML = '<div id="trial-panel"></div>'
+    window.electronAPI = {
+      getProjectTrials: jest.fn().mockResolvedValue({ version: 1, activeTrialId: 't', trials: [{ id: 't', name: 'Próba 1', videoPath: '' }] }),
+      saveProjectTrials: jest.fn(async (_id, data) => data)
+    }
+    await TrialCatalogModule.init('trial-panel', { projectId: 'Study' })
+
+    expect(document.querySelector('.trial-card').classList.contains('side-panel')).toBe(true)
+    expect(document.querySelector('.trial-card .side-panel-header h3').textContent).toBe('Próba')
+  })
+})

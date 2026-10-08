@@ -68,7 +68,7 @@
       "id": "next-animal",
       "label": "Następne zwierzę",
       "value": {
-        "primary": "Shift",
+        "primary": "Alt",
         "secondary": "ArrowRight",
         "operator": "+"
       }
@@ -77,7 +77,7 @@
       "id": "previous-animal",
       "label": "Poprzednie zwierzę",
       "value": {
-        "primary": "Shift",
+        "primary": "Alt",
         "secondary": "ArrowLeft",
         "operator": "+"
       }

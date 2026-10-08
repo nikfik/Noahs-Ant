@@ -119,3 +119,19 @@ describe('Animal catalog UI', () => {
     window.removeEventListener('active-animal-changed', selectionListener)
   })
 })
+
+describe('Animal catalog panel look', () => {
+  test('uses the shared side panel header', async () => {
+    document.body.innerHTML = '<div id="animal-panel"></div>'
+    window.electronAPI = {
+      getProjectAnimals: jest.fn().mockResolvedValue(createEmptyAnimalData()),
+      saveProjectAnimals: jest.fn(async (_id, data) => data),
+      getProjectEtograms: jest.fn().mockResolvedValue([]),
+      saveProjectEtograms: jest.fn(async (_id, presets) => presets)
+    }
+    await AnimalCatalogModule.init('animal-panel', { projectId: 'Study' })
+
+    expect(document.querySelector('.side-panel > .side-panel-header h3').textContent).toBe('Zwierzęta')
+    expect(document.querySelector('.side-panel-header [data-action="add-group"]').classList.contains('side-panel-action')).toBe(true)
+  })
+})

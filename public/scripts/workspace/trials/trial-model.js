@@ -14,6 +14,10 @@ function normalizeTrial(trial) {
     id: String(trial.id || createId('trial')),
     name: String(trial.name || '').trim() || 'Bez nazwy',
     videoPath: typeof trial.videoPath === 'string' ? trial.videoPath : '',
+    // The original file when the player works on a converted copy (e.g. a camera MTS file).
+    sourcePath: typeof trial.sourcePath === 'string' ? trial.sourcePath : '',
+    // Pictures per second of the video; frame steps and snapping use it instead of a fixed 30.
+    frameRate: positiveOrNull(trial.frameRate),
     duration: positiveOrNull(trial.duration),
     windowStart,
     windowEnd: windowEnd !== null && windowEnd <= (windowStart ?? 0) ? null : windowEnd

@@ -409,3 +409,8 @@ body.applied {
     max-width: 320px;
     text-align: right;
 }
+
+.combo-operator.placeholder {
+    opacity: 0.3;
+    pointer-events: none;
+}

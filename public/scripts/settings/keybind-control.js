@@ -36,11 +36,12 @@ export function createKeybindControl({ entry, getEntries, onChange }) {
     primaryButton.title = 'Kliknij, a potem naciśnij klawisz. Backspace czyści, Esc anuluje.'
     primaryButton.classList.remove('capturing')
 
-    operatorButton.hidden = !secondary
-    operatorButton.textContent = operator
+    // Without a second key the operator and the second slot stay as empty placeholders, so the row does not jump around.
+    operatorButton.textContent = secondary ? operator : ''
     operatorButton.classList.toggle('active', Boolean(secondary))
+    operatorButton.classList.toggle('placeholder', !secondary)
 
-    secondaryButton.textContent = secondary ? keyLabel(secondary) : '＋ drugi klawisz'
+    secondaryButton.textContent = secondary ? keyLabel(secondary) : ''
     secondaryButton.title = secondary ? 'Kliknij, aby zmienić drugi klawisz. Backspace usuwa go.' : 'Dodaj drugi klawisz lub kombinację'
     secondaryButton.classList.toggle('active', Boolean(secondary))
     secondaryButton.classList.toggle('muted', !secondary)
@@ -53,7 +54,7 @@ export function createKeybindControl({ entry, getEntries, onChange }) {
 
   function startCapture(field, button) {
     cancelActiveCapture?.()
-    button.textContent = 'Naciśnij klawisz…'
+    button.textContent = '…'
     button.classList.add('capturing')
     document.body.dataset.capturingKey = 'true'
 

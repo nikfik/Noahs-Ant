@@ -24,9 +24,9 @@ export async function init(containerId = 'trial-panel', options = {}) {
   let dialogMode = null
 
   host.innerHTML = `
-    <section class="module-card trial-card">
-      <header class="module-head"><h3>Próba</h3></header>
-      <div class="trial-row">
+    <section class="side-panel trial-card">
+      <header class="side-panel-header"><div><span class="side-panel-eyebrow">Nagranie</span><h3>Próba</h3></div></header>
+      <div class="side-panel-body trial-row">
         <select class="trial-select" aria-label="Aktywna próba"></select>
         <button type="button" class="trial-icon-action" data-action="add-trial" title="Dodaj próbę" aria-label="Dodaj próbę">＋</button>
         <button type="button" class="trial-icon-action" data-action="rename-trial" title="Zmień nazwę próby" aria-label="Zmień nazwę próby">✎</button>

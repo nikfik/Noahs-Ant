@@ -35,11 +35,14 @@ describe('Keybind control in the settings', () => {
     ])
 
     expect([slot(0, 'primary').textContent, operator(0).textContent, slot(0, 'secondary').textContent]).toEqual(['Spacja', '/', 'Enter'])
-    expect(operator(0).hidden).toBe(false)
+    expect(operator(0).classList.contains('placeholder')).toBe(false)
 
+    // without a second key the operator and the second slot stay as empty placeholders
     expect(slot(1, 'primary').textContent).toBe('→')
-    expect(operator(1).hidden).toBe(true)
-    expect(slot(1, 'secondary').textContent).toBe('＋ drugi klawisz')
+    expect(operator(1).textContent).toBe('')
+    expect(operator(1).classList.contains('placeholder')).toBe(true)
+    expect(slot(1, 'secondary').textContent).toBe('')
+    expect(slot(1, 'secondary').classList.contains('muted')).toBe(true)
   })
 
   test('the operator button steps + to / and then removes the second key', () => {
@@ -51,8 +54,9 @@ describe('Keybind control in the settings', () => {
 
     operator(0).click()
     expect(entries[0].value).toEqual({ primary: 'Shift', secondary: '', operator: '/' })
-    expect(operator(0).hidden).toBe(true)
-    expect(slot(0, 'secondary').textContent).toBe('＋ drugi klawisz')
+    expect(operator(0).classList.contains('placeholder')).toBe(true)
+    expect(operator(0).textContent).toBe('')
+    expect(slot(0, 'secondary').textContent).toBe('')
     expect(onChange).toHaveBeenCalledTimes(2)
   })
 
@@ -62,6 +66,7 @@ describe('Keybind control in the settings', () => {
     slot(0, 'secondary').click()
     expect(document.body.dataset.capturingKey).toBe('true')
     expect(slot(0, 'secondary').classList.contains('capturing')).toBe(true)
+    expect(slot(0, 'secondary').textContent).toBe('…')
 
     press({ key: 'ArrowRight' })
     expect(entries[0].value).toEqual({ primary: 'Alt', secondary: 'ArrowRight', operator: '+' })

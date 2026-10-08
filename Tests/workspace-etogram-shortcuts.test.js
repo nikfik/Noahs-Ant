@@ -82,11 +82,12 @@ describe('Etogram editor shortcuts', () => {
 
     operatorButton(modal, 0).click()
     expect(operatorButton(modal, 0).textContent).toBe('/')
-    expect(operatorButton(modal, 0).hidden).toBe(false)
+    expect(operatorButton(modal, 0).classList.contains('placeholder')).toBe(false)
 
     operatorButton(modal, 0).click()
-    expect(operatorButton(modal, 0).hidden).toBe(true)
-    expect(slot(modal, 0, 'secondary').textContent).toBe('+')
+    expect(operatorButton(modal, 0).classList.contains('placeholder')).toBe(true)
+    expect(operatorButton(modal, 0).textContent).toBe('')
+    expect(slot(modal, 0, 'secondary').textContent).toBe('')
     expect(slot(modal, 0, 'primary').textContent).toBe('Q')
   })
 
@@ -100,8 +101,9 @@ describe('Etogram editor shortcuts', () => {
     expect(document.body.dataset.capturingKey).toBeUndefined()
 
     slot(modal, 0, 'secondary').click()
+    expect(slot(modal, 0, 'secondary').textContent).toBe('…')
     press({ key: 'Escape' })
-    expect(operatorButton(modal, 0).hidden).toBe(true)
+    expect(operatorButton(modal, 0).classList.contains('placeholder')).toBe(true)
 
     slot(modal, 0, 'secondary').click()
     press({ key: 'x' })
@@ -111,7 +113,7 @@ describe('Etogram editor shortcuts', () => {
     slot(modal, 0, 'primary').click()
     press({ key: 'Backspace' })
     expect(slot(modal, 0, 'primary').textContent).toBe('X')
-    expect(slot(modal, 0, 'secondary').textContent).toBe('+')
+    expect(slot(modal, 0, 'secondary').textContent).toBe('')
   })
 
   test('shows live warnings while editing, using the program shortcuts of the manager', async () => {

@@ -64,8 +64,8 @@ export function renderEditorTable(rows, conflicts = []) {
       <td>
         <div class="etogram-shortcut-editor">
           <button class="option-keybind etogram-keybind" type="button" data-action="capture-key" data-field="primary" data-index="${index}" aria-label="Ustaw główny skrót" title="Kliknij i naciśnij klawisz. Backspace czyści, Esc anuluje.">${escapeHtml(shortcut.primary ? keyLabel(shortcut.primary) : '—')}</button>
-          <button class="combo-operator active" type="button" data-action="toggle-operator" data-index="${index}" ${shortcut.secondary ? '' : 'hidden'} aria-label="Zmień sposób łączenia klawiszy" title="${OPERATOR_HINT}">${escapeHtml(shortcut.operator)}</button>
-          <button class="option-keybind combo-slot ${shortcut.secondary ? 'active' : 'muted'}" type="button" data-action="capture-key" data-field="secondary" data-index="${index}" aria-label="Ustaw dodatkowy skrót" title="${shortcut.secondary ? 'Kliknij, aby zmienić drugi klawisz. Backspace go usuwa.' : 'Dodaj drugi klawisz lub kombinację'}">${escapeHtml(shortcut.secondary ? keyLabel(shortcut.secondary) : '+')}</button>
+          <button class="combo-operator ${shortcut.secondary ? 'active' : 'placeholder'}" type="button" data-action="toggle-operator" data-index="${index}" aria-label="Zmień sposób łączenia klawiszy" title="${OPERATOR_HINT}">${shortcut.secondary ? escapeHtml(shortcut.operator) : ''}</button>
+          <button class="option-keybind combo-slot ${shortcut.secondary ? 'active' : 'muted'}" type="button" data-action="capture-key" data-field="secondary" data-index="${index}" aria-label="Ustaw dodatkowy skrót" title="${shortcut.secondary ? 'Kliknij, aby zmienić drugi klawisz. Backspace go usuwa.' : 'Dodaj drugi klawisz lub kombinację'}">${escapeHtml(shortcut.secondary ? keyLabel(shortcut.secondary) : '')}</button>
         </div>
         ${conflicts[index] ? `<div class="etogram-shortcut-warning" role="status">${escapeHtml(conflicts[index])}</div>` : ''}
       </td>
@@ -146,11 +146,12 @@ async function init(containerId = 'etogram-module', options = {}) {
   const pressedKeys = new Set()
 
   host.innerHTML = `
-    <div class="module-card etogram-card">
-      <div class="module-head">
-        <h3>Etogram / Skróty</h3>
-      </div>
-      <div class="table-wrap">
+    <section class="side-panel etogram-card">
+      <header class="side-panel-header">
+        <div><span class="side-panel-eyebrow">Czynności i skróty</span><h3>Etogram</h3></div>
+        <button id="open-etogram-editor" class="side-panel-action" type="button">Edytuj</button>
+      </header>
+      <div class="side-panel-body table-wrap">
         <table class="shortcut-table compact-table">
           <thead>
             <tr>
@@ -163,12 +164,7 @@ async function init(containerId = 'etogram-module', options = {}) {
           </tbody>
         </table>
       </div>
-      <div class="module-actions">
-        <button class="module-action disabled" type="button" disabled>Dodaj</button>
-        <button class="module-action disabled" type="button" disabled>Usuń</button>
-        <button id="open-etogram-editor" class="module-action" type="button">Edytuj</button>
-      </div>
-    </div>
+    </section>
     <div id="etogram-modal" class="modal hidden">
       <section class="etogram-dialog" role="dialog" aria-modal="true" aria-labelledby="etogram-title">
         <header class="etogram-dialog-header">

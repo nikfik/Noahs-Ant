@@ -41,7 +41,7 @@ export async function init(containerId = 'animal-panel', options = {}) {
 
   const projectId = options.projectId || ''
   if (!projectId || !window.electronAPI?.getProjectAnimals) {
-    host.innerHTML = '<section class="animal-catalog-card"><header><h3>Zwierzęta</h3></header><p class="animal-catalog-empty">Otwórz projekt, aby zarządzać zwierzętami.</p></section>'
+    host.innerHTML = '<section class="side-panel"><header class="side-panel-header"><div><span class="side-panel-eyebrow">Katalog projektu</span><h3>Zwierzęta</h3></div></header><p class="animal-catalog-empty">Otwórz projekt, aby zarządzać zwierzętami.</p></section>'
     return null
   }
 
@@ -53,10 +53,10 @@ export async function init(containerId = 'animal-panel', options = {}) {
   let dialogAction = null
 
   host.innerHTML = `
-    <section class="animal-catalog-card">
-      <header class="animal-catalog-header">
-        <div><span class="animal-catalog-eyebrow">Katalog projektu</span><h3>Zwierzęta</h3></div>
-        <button class="animal-add-group" type="button" data-action="add-group" title="Dodaj grupę">＋ Grupa</button>
+    <section class="side-panel animal-catalog-card">
+      <header class="side-panel-header">
+        <div><span class="side-panel-eyebrow">Katalog projektu</span><h3>Zwierzęta</h3></div>
+        <button class="side-panel-action" type="button" data-action="add-group" title="Dodaj grupę">＋ Grupa</button>
       </header>
       <div class="animal-catalog-tree">${renderCatalog(data)}</div>
     </section>

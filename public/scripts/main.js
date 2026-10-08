@@ -7,12 +7,15 @@ import { createProjectStore } from './main/project-store.js'
 import { createAnimalsStore } from './main/animals-store.js'
 import { createObservationsStore } from './main/observations-store.js'
 import { createTrialsStore } from './main/trials-store.js'
+import ffmpegPath from 'ffmpeg-static'
 import { writeWorkbook } from './main/workbook-export.js'
+import { createVideoConverter } from './main/video-converter.js'
 import { createMainWindow, createSettingsWindow } from './main/windows.js'
 import { registerThemeHandlers as registerThemeHandlersModule } from './main/handlers/theme-handlers.js'
 import { registerSettingsHandlers as registerSettingsHandlersModule } from './main/handlers/settings-handlers.js'
 import { registerProjectHandlers as registerProjectHandlersModule } from './main/handlers/project-handlers.js'
 import { registerFileHandlers as registerFileHandlersModule } from './main/handlers/file-handlers.js'
+import { registerVideoHandlers as registerVideoHandlersModule } from './main/handlers/video-handlers.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -50,6 +53,13 @@ function registerProjectHandlers() {
   registerProjectHandlersModule({ ipcMain, projectStore, animalsStore, observationsStore, trialsStore })
 }
 
+// A packaged app keeps binaries outside the asar archive, where they can be executed.
+const videoConverter = createVideoConverter({ ffmpegPath: ffmpegPath?.replace('app.asar', 'app.asar.unpacked') })
+
+function registerVideoHandlers() {
+  registerVideoHandlersModule({ ipcMain, converter: videoConverter, projectsDirectory: PROJECTS_DIR })
+}
+
 function registerFileHandlers() {
   registerFileHandlersModule({ ipcMain, dialog, writeWorkbook, getDefaultDirectory: () => app.getPath('documents') })
 }
@@ -64,6 +74,7 @@ app.whenReady().then(() => {
   registerSettingsHandlers()
   registerProjectHandlers()
   registerFileHandlers()
+  registerVideoHandlers()
   createWindow()
 }).catch((error) => {
   console.error('[main] Startup failed:', error)

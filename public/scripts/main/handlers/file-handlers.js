@@ -1,11 +1,17 @@
 import path from 'node:path'
 import { normalizeSheets, sanitizeFileName } from '../workbook-export.js'
 
+// Camera and editing formats as well; the ones the player cannot open are converted after they are picked.
+const VIDEO_EXTENSIONS = ['mp4', 'm4v', 'mov', 'mkv', 'webm', 'avi', 'mts', 'm2ts', 'ts', 'mpg', 'mpeg', 'wmv', 'flv', '3gp', 'mxf']
+
 export function registerFileHandlers({ ipcMain, dialog, writeWorkbook, getDefaultDirectory = () => '' }) {
   ipcMain.handle('select-video-file', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
-      filters: [{ name: 'Video files', extensions: ['mp4', 'mov', 'avi', 'mkv', 'webm'] }]
+      filters: [
+        { name: 'Pliki wideo', extensions: VIDEO_EXTENSIONS },
+        { name: 'Wszystkie pliki', extensions: ['*'] }
+      ]
     })
 
     return result.canceled || !result.filePaths.length ? null : result.filePaths[0]

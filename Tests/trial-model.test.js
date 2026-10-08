@@ -19,10 +19,22 @@ describe('Trial model', () => {
     })
 
     expect(data.trials).toEqual([
-      { id: 'a', name: 'Bez nazwy', videoPath: '', duration: null, windowStart: null, windowEnd: null },
-      { id: 'b', name: 'B', videoPath: 'b.mp4', duration: null, windowStart: null, windowEnd: null }
+      { id: 'a', name: 'Bez nazwy', videoPath: '', sourcePath: '', frameRate: null, duration: null, windowStart: null, windowEnd: null },
+      { id: 'b', name: 'B', videoPath: 'b.mp4', sourcePath: '', frameRate: null, duration: null, windowStart: null, windowEnd: null }
     ])
     expect(data.activeTrialId).toBe('a')
+  })
+
+  test('keeps the original file and the frame rate of a converted video, and drops invalid values', () => {
+    const [good, bad] = normalizeTrialData({
+      trials: [
+        { id: 'g', videoPath: 'C:/Projects/Study/videos/00027.mp4', sourcePath: 'C:/Videos/00027.MTS', frameRate: 50 },
+        { id: 'b', sourcePath: 42, frameRate: -25 }
+      ]
+    }).trials
+
+    expect(good).toMatchObject({ sourcePath: 'C:/Videos/00027.MTS', frameRate: 50 })
+    expect(bad).toMatchObject({ sourcePath: '', frameRate: null })
   })
 
   test('keeps a valid analysis window and video duration, and drops invalid ones', () => {

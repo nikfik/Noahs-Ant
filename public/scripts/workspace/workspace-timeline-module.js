@@ -133,6 +133,11 @@ export function createTimelineModule() {
     return animalCatalog?.getData?.().animals || []
   }
 
+  // One picture of the video, in seconds: events snap to it and cannot be shorter than it.
+  function frameStep() {
+    return 1 / (trialCatalog?.getActiveTrial?.()?.frameRate || 30)
+  }
+
   function activeTrialId() {
     return trialCatalog?.getActiveTrial?.()?.id ?? null
   }
@@ -378,8 +383,8 @@ export function createTimelineModule() {
     const closest = magnets.reduce((best, magnet) => Math.abs(magnet - time) < Math.abs(best - time) ? magnet : best)
     if (Math.abs(closest - time) <= snapThresholdPx / effectiveScale) return closest
 
-    const frameStep = 1 / 30
-    return Math.round(time / frameStep) * frameStep
+    const step = frameStep()
+    return Math.round(time / step) * step
   }
 
   function timeFromClientX(clientX) {
@@ -460,9 +465,9 @@ export function createTimelineModule() {
       if (drag.initial.end !== null) changes.end = Math.max(nextStart, drag.initial.end + (nextStart - drag.initial.start))
     } else if (drag.mode === 'start') {
       const nextStart = snapTime(Math.max(0, drag.initial.start + deltaX), event, drag.initial)
-      changes.start = Math.min(nextStart, drag.initial.end === null ? duration : drag.initial.end - 1 / 30)
+      changes.start = Math.min(nextStart, drag.initial.end === null ? duration : drag.initial.end - frameStep())
     } else if (drag.mode === 'end') {
-      const nextEnd = snapTime(Math.max(drag.initial.start + 1 / 30, drag.initial.end + deltaX), event, drag.initial)
+      const nextEnd = snapTime(Math.max(drag.initial.start + frameStep(), drag.initial.end + deltaX), event, drag.initial)
       changes.end = Math.min(duration, nextEnd)
     }
     changes.lane = Math.max(0, Math.round(drag.initialLane + deltaY / LANE_HEIGHT))

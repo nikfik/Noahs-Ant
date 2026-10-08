@@ -16,6 +16,12 @@ export class VideoPlayerUI {
               <p>Ta próba nie ma jeszcze filmu</p>
               <button id="pick-video-empty-btn" class="video-pick-cta" type="button">${icon('folder', 20)}Wybierz plik wideo</button>
             </div>
+            <div class="video-busy" hidden role="status">
+              <p class="video-busy-text"></p>
+              <progress class="video-busy-progress" max="100" value="0"></progress>
+              <button id="video-cancel-conversion-btn" class="video-pick-cta" type="button">Anuluj</button>
+              <button id="video-close-notice-btn" class="video-pick-cta" type="button" hidden>Zamknij</button>
+            </div>
             <div class="video-zoom-controls" role="group" aria-label="Powiększenie obrazu">
               <button id="zoom-out-btn" class="vp-btn vp-btn-bare" type="button" title="Pomniejsz (kółko myszy)" aria-label="Pomniejsz">${icon('minus', 16)}</button>
               <input id="zoom-level-input" class="video-zoom-input" value="100%" aria-label="Powiększenie w procentach" title="Powiększenie – wpisz wartość i naciśnij Enter" />
@@ -72,6 +78,13 @@ export class VideoPlayerUI {
     return {
       pickButtons: Array.from(this.host.querySelectorAll('#pick-video-btn, #pick-video-empty-btn')),
       emptyState: this.host.querySelector('.video-empty'),
+      busy: {
+        root: this.host.querySelector('.video-busy'),
+        text: this.host.querySelector('.video-busy-text'),
+        progress: this.host.querySelector('.video-busy-progress'),
+        cancel: this.host.querySelector('#video-cancel-conversion-btn'),
+        close: this.host.querySelector('#video-close-notice-btn')
+      },
       video: this.host.querySelector('#video-player'),
       playPauseBtn: this.host.querySelector('#play-pause-video-btn'),
       muteBtn: this.host.querySelector('#mute-video-btn'),

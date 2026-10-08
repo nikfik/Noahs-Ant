@@ -1,4 +1,5 @@
-const DEFAULT_FRAME_STEP = 1 / 30
+const DEFAULT_FRAME_RATE = 30
+const DEFAULT_FRAME_STEP = 1 / DEFAULT_FRAME_RATE
 // 1 = the picture fits the window; zooming out further would only shrink it into black.
 const ZOOM_MIN = 1
 const ZOOM_MAX = 8
@@ -24,6 +25,7 @@ function toFileUrl(videoPath) {
 }
 
 export const VideoPlayerUtils = {
+  DEFAULT_FRAME_RATE,
   DEFAULT_FRAME_STEP,
   ZOOM_MIN,
   ZOOM_MAX,
