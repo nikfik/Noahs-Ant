@@ -48,7 +48,7 @@ export const initWorkspace = async () => {
   await initModule('etogram module', () => WorkspaceEtogramModule.init('etogram-module', { projectFile, animalCatalog }))
   await initModule('timeline module', () => WorkspaceTimelineModule.init('events-module', { animalCatalog, trialCatalog, observationStore }))
   await initModule('data events module', () => DataEventsModule.init('data-module', { observationStore, animalCatalog, trialCatalog }))
-  await initModule('data metrics module', () => DataMetricsModule.init('data-metrics-module', { observationStore, animalCatalog, trialCatalog }))
+  await initModule('data metrics module', () => DataMetricsModule.init('data-metrics-module', { observationStore, animalCatalog, trialCatalog, projectName: projectFile }))
   initDataTabs()
 
   if (projectFile) {

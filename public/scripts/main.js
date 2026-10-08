@@ -7,6 +7,7 @@ import { createProjectStore } from './main/project-store.js'
 import { createAnimalsStore } from './main/animals-store.js'
 import { createObservationsStore } from './main/observations-store.js'
 import { createTrialsStore } from './main/trials-store.js'
+import { writeWorkbook } from './main/workbook-export.js'
 import { createMainWindow, createSettingsWindow } from './main/windows.js'
 import { registerThemeHandlers as registerThemeHandlersModule } from './main/handlers/theme-handlers.js'
 import { registerSettingsHandlers as registerSettingsHandlersModule } from './main/handlers/settings-handlers.js'
@@ -50,7 +51,7 @@ function registerProjectHandlers() {
 }
 
 function registerFileHandlers() {
-  registerFileHandlersModule({ ipcMain, dialog })
+  registerFileHandlersModule({ ipcMain, dialog, writeWorkbook, getDefaultDirectory: () => app.getPath('documents') })
 }
 
 function createWindow() {

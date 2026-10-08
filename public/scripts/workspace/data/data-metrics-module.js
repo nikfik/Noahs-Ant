@@ -2,6 +2,7 @@ import { escapeHtml } from '../../shared/escape-html.js'
 import { formatSeconds, parseTimeInput } from './event-table-model.js'
 import { buildMetricRows, hasCategoryGroups, summarizeTrialWindow } from './metrics-model.js'
 import { ariaSort, nextSort, sortMark, sortRows } from './sort-utils.js'
+import { buildExportSheets, suggestExportName } from './export-model.js'
 
 const PREFERENCES_KEY = 'noahs-ant.metrics'
 const SECONDS = (value) => value === null ? '—' : formatSeconds(value)
@@ -24,6 +25,7 @@ const TIPS = {
   categories: 'Dodaje wiersze „Σ” sumujące czynności z tej samej kategorii (kategorie ustawia się w edytorze etogramu; potrzebne co najmniej dwie czynności zwierzęcia w jednej kategorii).',
   merge: 'Dotyczy wierszy „Σ”. Włączone: czynności nakładające się na siebie liczą się raz — czas to suma scalonych odcinków, a liczba to liczba oddzielnych epizodów. Wyłączone: zwykła suma wszystkich czynności, nakładający się czas liczy się podwójnie (jak w arkuszu).',
   colors: 'Koloruje komórki „tak” i „nie” w kolumnie „Wystąpiła”.',
+  export: 'Zapisuje plik Excela (.xlsx) z metrykami wszystkich prób i zwierząt (niezależnie od filtrów), z bieżącymi ustawieniami sum kategorii i czasu scalonego. Arkusze: Metryki (jeden wiersz na próbę), Metryki w długim formacie, Zdarzenia, Okna prób i Informacje.',
   window: 'Wybierz fragment nagrania, dla którego liczone są metryki, np. tylko pierwsze 5 minut godzinnego filmu. Zdarzenia poza oknem są pomijane, a procenty liczone względem długości okna. Puste pole = początek / koniec wideo.',
   windowStart: 'Początek analizowanego fragmentu w sekundach (lub m:ss). Puste = początek wideo.',
   windowEnd: 'Koniec analizowanego fragmentu w sekundach (lub m:ss). Puste = koniec wideo.',
@@ -57,6 +59,7 @@ export function createDataMetricsModule() {
   let preferences = loadPreferences()
   let sort = null
   let message = ''
+  let projectName = ''
 
   const trials = () => trialCatalog?.getData?.().trials || []
   const animals = () => animalCatalog?.getData?.().animals || []
@@ -128,6 +131,7 @@ export function createDataMetricsModule() {
             <label title="${escapeHtml(hasCategories ? TIPS.categories : `${TIPS.categories} Teraz żadne zwierzę nie ma takich kategorii.`)}"><input type="checkbox" data-toggle="categories" ${preferences.includeCategories ? 'checked' : ''} ${hasCategories ? '' : 'disabled'} /> Sumy kategorii (Σ)</label>
             <label title="${escapeHtml(TIPS.merge)}"><input type="checkbox" data-toggle="merge" ${preferences.mergeCategories ? 'checked' : ''} ${categoriesOn ? '' : 'disabled'} /> Czas scalony</label>
             <label title="${escapeHtml(TIPS.colors)}"><input type="checkbox" data-toggle="colors" ${preferences.colorize ? 'checked' : ''} /> Kolory tak/nie</label>
+            <button type="button" class="data-export" data-action="export-xlsx" title="${escapeHtml(TIPS.export)}" ${window.electronAPI?.exportWorkbook ? '' : 'disabled'}>Eksportuj do Excela</button>
           </div>
         </header>
         <div class="data-table-wrap">
@@ -181,6 +185,31 @@ export function createDataMetricsModule() {
     render()
   }
 
+  function showMessage(text) {
+    message = text
+    const node = host.querySelector('[data-data-message]')
+    if (node) node.textContent = text
+  }
+
+  async function exportWorkbook() {
+    showMessage('Eksportowanie…')
+    try {
+      const sheets = buildExportSheets({
+        observations: store.getAll(),
+        trials: trials(),
+        animals: animals(),
+        presets: presets(),
+        includeCategories: preferences.includeCategories,
+        mergeCategories: preferences.mergeCategories
+      })
+      const result = await window.electronAPI.exportWorkbook({ suggestedName: suggestExportName(projectName), sheets })
+      showMessage(result?.saved ? `Zapisano: ${result.filePath}` : 'Eksport anulowany.')
+    } catch (error) {
+      console.error('Workbook export failed:', error)
+      showMessage('Nie udało się zapisać pliku Excela.')
+    }
+  }
+
   function bindEvents() {
     host.addEventListener('change', (event) => {
       const target = event.target
@@ -203,7 +232,11 @@ export function createDataMetricsModule() {
       if (header) {
         sort = nextSort(sort, header.dataset.sort)
         render()
+        return
       }
+
+      const action = event.target.closest('[data-action]')
+      if (action?.dataset.action === 'export-xlsx' && !action.disabled) exportWorkbook()
     })
 
     host.addEventListener('keydown', (event) => {
@@ -216,6 +249,7 @@ export function createDataMetricsModule() {
     store = dependencies.observationStore || null
     animalCatalog = dependencies.animalCatalog || null
     trialCatalog = dependencies.trialCatalog || null
+    projectName = dependencies.projectName || ''
     if (!host || !store) return null
 
     preferences = loadPreferences()

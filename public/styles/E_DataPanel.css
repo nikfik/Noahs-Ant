@@ -252,3 +252,12 @@
 .data-controls label:has(input:disabled) {
   opacity: 0.5;
 }
+.data-controls .data-export {
+  border-color: color-mix(in srgb, var(--primary-color, #ff4f1a) 45%, transparent);
+  background: color-mix(in srgb, var(--primary-color, #ff4f1a) 14%, transparent);
+  color: var(--text-color);
+  font-weight: 600;
+}
+.data-controls .data-export:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary-color, #ff4f1a) 26%, transparent);
+}

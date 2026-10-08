@@ -28,7 +28,7 @@ describe('Data metrics module', () => {
   let trialData
   let trialCatalog
 
-  async function setup() {
+  async function setup(projectName = '') {
     localStorage.clear()
     document.body.innerHTML = '<div id="view-data"><div id="data-metrics-module"></div></div>'
     trialData = { trials: [
@@ -53,7 +53,8 @@ describe('Data metrics module', () => {
     createDataMetricsModule().init('data-metrics-module', {
       observationStore: store,
       animalCatalog: { getData: () => ({ animals }), getPresets: () => presets },
-      trialCatalog
+      trialCatalog,
+      projectName
     })
     return store
   }
@@ -177,6 +178,42 @@ describe('Data metrics module', () => {
     expect(document.querySelector('[data-trial-id="t1"] .data-window-trimmed')).not.toBeNull()
     expect(metricRow('Próba 1', 'Ciągnięcie').slice(3, 6)).toEqual(['nie', '—', '0'])
     expect(metricRow('Próba 1', 'Kopanie')[7]).toBe('40.0')
+  })
+
+  test('exports the workbook through the main process and reports the result', async () => {
+    window.electronAPI = { exportWorkbook: jest.fn().mockResolvedValue({ saved: true, filePath: 'C:/out/Study_metryki.xlsx' }) }
+    await setup('Study')
+    const button = document.querySelector('[data-action="export-xlsx"]')
+    expect(button.disabled).toBe(false)
+    expect(button.title).toMatch(/niezależnie od filtrów/)
+
+    change(document.querySelector('[data-filter="trialId"]'), 't2')
+    document.querySelector('[data-action="export-xlsx"]').click()
+    await flush()
+
+    const request = window.electronAPI.exportWorkbook.mock.calls[0][0]
+    expect(request.suggestedName).toMatch(/^Study_metryki_\d{4}-\d{2}-\d{2}\.xlsx$/)
+    expect(request.sheets.map((sheet) => sheet.name)).toEqual(['Metryki', 'Metryki (długi format)', 'Zdarzenia', 'Okna prób', 'Informacje'])
+    expect(request.sheets[0].rows).toHaveLength(2)
+    expect(document.querySelector('[data-data-message]').textContent).toBe('Zapisano: C:/out/Study_metryki.xlsx')
+
+    window.electronAPI.exportWorkbook.mockResolvedValue({ saved: false })
+    document.querySelector('[data-action="export-xlsx"]').click()
+    await flush()
+    expect(document.querySelector('[data-data-message]').textContent).toBe('Eksport anulowany.')
+
+    const errors = jest.spyOn(console, 'error').mockImplementation(() => {})
+    window.electronAPI.exportWorkbook.mockRejectedValue(new Error('disk full'))
+    document.querySelector('[data-action="export-xlsx"]').click()
+    await flush()
+    expect(document.querySelector('[data-data-message]').textContent).toMatch(/Nie udało się zapisać/)
+    errors.mockRestore()
+  })
+
+  test('disables the export button when the app cannot save files', async () => {
+    delete window.electronAPI
+    await setup()
+    expect(document.querySelector('[data-action="export-xlsx"]').disabled).toBe(true)
   })
 
   test('saves an analysis window and rejects impossible ones', async () => {
