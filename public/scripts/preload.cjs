@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   prepareVideo: (request) => ipcRenderer.invoke('prepare-video', request),
   cancelVideoConversion: () => ipcRenderer.invoke('cancel-video-conversion'),
   probeVideo: (filePath) => ipcRenderer.invoke('probe-video', filePath),
+  inspectVideo: (filePath) => ipcRenderer.invoke('inspect-video', filePath),
   onVideoConvertProgress: (callback) => {
     const subscription = (_event, progress) => callback(progress)
     ipcRenderer.on('video-convert-progress', subscription)

@@ -222,6 +222,24 @@ describe('Video converter with a fake ffmpeg', () => {
     await expect(converter(fakeSpawn({ report: 'No such file or directory' })).probe(inputPath)).rejects.toThrow('Nie rozpoznano wideo')
   })
 
+  test('keeps one video in several qualities side by side and describes a file for the dialog', async () => {
+    const spawn = fakeSpawn()
+    const light = { maxHeight: 720, maxFrameRate: 25, quality: 'medium' }
+    const first = await converter(spawn).prepare({ inputPath, outputDir, settings: light })
+    expect(path.basename(first.videoPath)).toBe('00027-720p-25fps-crf23.mp4')
+    const args = spawn.mock.calls.find(([, a]) => a.includes('-y'))[1]
+    expect(args[args.indexOf('-vf') + 1]).toBe('yadif=mode=0,scale=-2:720')
+    expect(args[args.indexOf('-crf') + 1]).toBe('23')
+
+    const plain = await converter(spawn).prepare({ inputPath, outputDir })
+    expect(path.basename(plain.videoPath)).toBe('00027.mp4')
+    const again = await converter(spawn).prepare({ inputPath, outputDir, settings: light })
+    expect(again.videoPath).toBe(first.videoPath)
+    expect(again.reused).toBe(true)
+
+    expect(await converter(spawn).describe(inputPath)).toMatchObject({ fileName: '00027.MTS', extension: '.MTS', size: 12, probe: { video: { height: 1080 } } })
+  })
+
   test('probe gives the frame rate and the length', async () => {
     const info = await converter(fakeSpawn()).probe(inputPath)
     expect(info.video.fps).toBe(25)

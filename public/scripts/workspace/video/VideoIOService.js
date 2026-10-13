@@ -5,15 +5,24 @@ export class VideoIOService {
   }
 
   // Checks the picked video and converts it when the player cannot open it as it is (camera MTS files, AVI, ...).
-  static async prepareVideo(projectId, filePath, onProgress) {
+  static async prepareVideo(projectId, filePath, settings, onProgress) {
     const api = window.electronAPI
     if (!api?.prepareVideo) return { status: 'ready', videoPath: filePath, converted: false }
 
     const stopListening = api.onVideoConvertProgress?.((progress) => onProgress?.(progress.percent))
     try {
-      return await api.prepareVideo({ projectId, filePath })
+      return await api.prepareVideo({ projectId, filePath, settings })
     } finally {
       stopListening?.()
+    }
+  }
+
+  // File name, size and stream details for the quality dialog; null when they cannot be read.
+  static async inspectVideo(filePath) {
+    try {
+      return (await window.electronAPI?.inspectVideo?.(filePath)) ?? null
+    } catch (_error) {
+      return null
     }
   }
 

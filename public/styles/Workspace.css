@@ -1127,3 +1127,23 @@ button, input, select, textarea { font-family: inherit; }
   height: 8px;
   accent-color: var(--primary-color, #ff4f1a);
 }
+
+/* Video quality dialog */
+.video-quality-dialog { display: grid; gap: 12px; width: min(620px, calc(100vw - 40px)); max-height: calc(100vh - 40px); overflow-y: auto; box-sizing: border-box; }
+.video-quality-dialog h3 { margin: 0; color: var(--text-color); }
+.video-quality-dialog p { margin: 0; color: var(--muted-text, #888); font-size: 13px; line-height: 1.5; }
+.video-quality-source strong { color: var(--text-color); }
+.video-quality-presets { display: grid; gap: 8px; }
+.video-quality-preset { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; cursor: pointer; }
+.video-quality-preset:has(input:checked) { border-color: var(--primary-color, #ff4f1a); background: rgba(255,255,255,0.04); }
+.video-quality-preset input { margin-top: 3px; accent-color: var(--primary-color, #ff4f1a); }
+.video-quality-preset-body { display: grid; gap: 2px; }
+.video-quality-preset-title { color: var(--text-color); font-weight: 600; }
+.video-quality-preset-text, .video-quality-preset-estimate { color: var(--muted-text, #888); font-size: 12px; line-height: 1.4; }
+.video-quality-advanced summary { cursor: pointer; color: var(--text-color); font-size: 13px; }
+.video-quality-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.video-quality-fields label { display: grid; gap: 4px; color: var(--muted-text, #888); font-size: 12px; }
+.video-quality-fields select { padding: 7px 8px; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgba(255,255,255,0.04); color: var(--text-color); font: inherit; }
+.video-quality-dialog .video-quality-estimate { color: var(--text-color); }
+.video-quality-remember { display: flex; gap: 8px; align-items: flex-start; color: var(--muted-text, #888); font-size: 12px; }
+.video-quality-dialog .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }

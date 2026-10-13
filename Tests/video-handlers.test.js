@@ -30,6 +30,17 @@ describe('Video IPC handlers', () => {
     expect(sender.send).toHaveBeenCalledWith('video-convert-progress', { percent: 40 })
   })
 
+  test('passes the chosen quality on and describes a file for the quality dialog', async () => {
+    const converter = { prepare: jest.fn(async () => ({ status: 'ready' })), describe: jest.fn(async () => ({ fileName: 'a.MTS' })) }
+    const { handlers, event } = setup(converter)
+    const settings = { maxHeight: 720 }
+
+    await handlers['prepare-video'](event, { projectId: 'Study', filePath: 'a.mts', settings })
+    expect(converter.prepare).toHaveBeenCalledWith(expect.objectContaining({ settings }))
+    expect(await handlers['inspect-video'](event, 'a.mts')).toEqual({ fileName: 'a.MTS' })
+    expect(() => handlers['inspect-video'](event, '')).toThrow('Nie wybrano pliku')
+  })
+
   test('refuses bad requests before doing anything', async () => {
     const converter = { prepare: jest.fn() }
     const { handlers, event } = setup(converter)

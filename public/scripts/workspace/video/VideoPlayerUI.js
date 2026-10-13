@@ -53,6 +53,7 @@ export class VideoPlayerUI {
 
             <span class="video-controls-spacer"></span>
 
+            <button id="video-quality-btn" class="vp-btn vp-btn-labeled" type="button" title="Skonwertuj ponownie z oryginalnego pliku w innej jakości" ${videoPath ? '' : 'disabled'}>${icon('fit')}<span>Jakość</span></button>
             <button id="pick-video-btn" class="vp-btn vp-btn-labeled" type="button" title="Wybierz inny plik wideo dla tej próby">${icon('folder')}<span>Zmień film</span></button>
           </div>
         </div>
@@ -77,6 +78,7 @@ export class VideoPlayerUI {
 
     return {
       pickButtons: Array.from(this.host.querySelectorAll('#pick-video-btn, #pick-video-empty-btn')),
+      qualityBtn: this.host.querySelector('#video-quality-btn'),
       emptyState: this.host.querySelector('.video-empty'),
       busy: {
         root: this.host.querySelector('.video-busy'),

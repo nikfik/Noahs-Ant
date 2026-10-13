@@ -134,7 +134,7 @@ function renderOptions(tabId) {
     if (option.type === 'select') {
       const select = document.createElement('select')
       const settingsState = appSettings[option.storage || 'graphics']
-      const settingKey = option.storage === 'timeline' && option.id === 'snap-threshold-px' ? 'snapThresholdPx' : option.id
+      const settingKey = option.key || option.id
       const selectedValue = settingsState[settingKey] ?? option.defaultValue
       option.values.forEach((value) => {
         const optionElement = document.createElement('option')
@@ -154,7 +154,7 @@ function renderOptions(tabId) {
 
     if (option.type === 'toggle') {
       const settingsState = appSettings[option.storage || 'graphics']
-      const settingKey = option.storage === 'timeline' && option.id === 'snap-enabled' ? 'snapEnabled' : option.id
+      const settingKey = option.key || option.id
       const isEnabled = settingsState[settingKey] ?? option.defaultValue
       const toggle = document.createElement('button')
       toggle.type = 'button'

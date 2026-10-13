@@ -1,3 +1,4 @@
+import { normalizeQualitySettings } from '../shared/video-quality.js'
 import { createDefaultAppSettings, defaultTheme, settingsCatalog } from './settings-config.js'
 import { normalizeShortcutEntry } from './shortcut-utils.js'
 
@@ -9,6 +10,7 @@ export function normalizeAppSettings(saved = {}) {
   const themeSource = source.theme && typeof source.theme === 'object' ? source.theme : {}
   const graphicsSource = source.graphics && typeof source.graphics === 'object' ? source.graphics : {}
   const timelineSource = source.timeline && typeof source.timeline === 'object' ? source.timeline : {}
+  const videoSource = source.video && typeof source.video === 'object' ? source.video : {}
   const savedShortcuts = Array.isArray(source.programShortcuts) ? source.programShortcuts : []
   const savedShortcutById = new Map(savedShortcuts.map((entry) => [entry?.id, entry]))
 
@@ -33,6 +35,11 @@ export function normalizeAppSettings(saved = {}) {
       : defaults.timeline.snapThresholdPx
   }
 
+  const video = {
+    askQuality: typeof videoSource.askQuality === 'boolean' ? videoSource.askQuality : defaults.video.askQuality,
+    quality: normalizeQualitySettings(videoSource.quality)
+  }
+
   const programShortcuts = defaults.programShortcuts.map((defaultEntry) => {
     const savedEntry = savedShortcutById.get(defaultEntry.id)
     return {
@@ -46,6 +53,7 @@ export function normalizeAppSettings(saved = {}) {
     theme,
     graphics,
     timeline,
+    video,
     programShortcuts,
     projectShortcuts: Array.isArray(source.projectShortcuts) ? source.projectShortcuts : []
   }

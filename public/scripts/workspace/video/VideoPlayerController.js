@@ -4,6 +4,8 @@ import { VideoIOService } from './VideoIOService.js'
 import { VideoPlayerUI } from './VideoPlayerUI.js'
 import { VideoPlaybackControls } from './VideoPlaybackControls.js'
 import { VideoZoomControls } from './VideoZoomControls.js'
+import { askVideoQuality } from './video-quality-dialog.js'
+import { normalizeQualitySettings } from '../../shared/video-quality.js'
 
 // Buttons whose tooltip shows the keyboard shortcut: [element property, shortcut action, tooltip without the keys].
 const SHORTCUT_BUTTONS = [
@@ -25,6 +27,7 @@ export class VideoPlayerController {
     this.video = null
     this.videoPath = ''
     this.pickButtons = []
+    this.qualityBtn = null
     this.emptyState = null
     this.playPauseBtn = null
     this.muteBtn = null
@@ -56,6 +59,7 @@ export class VideoPlayerController {
     if (!src) return
 
     this.videoPath = videoPath
+    if (this.qualityBtn) this.qualityBtn.disabled = false
     this.video.src = src
     this.video.load()
     if (this.emptyState) this.emptyState.hidden = true
@@ -69,6 +73,7 @@ export class VideoPlayerController {
     this.video.removeAttribute('src')
     this.video.load()
     this.videoPath = ''
+    if (this.qualityBtn) this.qualityBtn.disabled = true
     if (this.emptyState) this.emptyState.hidden = false
     this.zoomControls?.fitToContainer()
     this.playbackControls?.syncPlaybackButton(this.playPauseBtn)
@@ -121,14 +126,49 @@ export class VideoPlayerController {
     if (this.busy?.root) this.busy.root.hidden = true
   }
 
+  async readVideoPreferences() {
+    const saved = await window.electronAPI?.getAppSettings?.()
+    return { saved: saved || {}, askQuality: saved?.video?.askQuality ?? true, quality: normalizeQualitySettings(saved?.video?.quality) }
+  }
+
+  // Remembers the last chosen quality, and stops asking when the user ticked "remember my choice".
+  async saveVideoPreferences(preferences, quality, remember) {
+    if (!window.electronAPI?.saveAppSettings) return
+    await window.electronAPI.saveAppSettings({
+      ...preferences.saved,
+      video: { askQuality: remember ? false : preferences.askQuality, quality }
+    })
+  }
+
   async chooseVideo() {
     const selected = await VideoIOService.selectVideoFile()
-    if (!selected) return
+    if (selected) await this.importVideo(selected)
+  }
 
+  // Converts the original file of this trial's video again, e.g. in a lighter quality.
+  async changeQuality() {
+    const trial = this.currentTrial()
+    const original = trial?.sourcePath || trial?.videoPath || this.videoPath
+    if (original) await this.importVideo(original, { forceAsk: true })
+  }
+
+  async importVideo(filePath, { forceAsk = false } = {}) {
     const trialId = this.trialId
     this.showBusy('Sprawdzanie filmu…')
     try {
-      const result = await VideoIOService.prepareVideo(this.projectId, selected, (percent) => {
+      const preferences = await this.readVideoPreferences()
+      let quality = preferences.quality
+      const info = await VideoIOService.inspectVideo(filePath)
+      if (info && (forceAsk || preferences.askQuality)) {
+        this.hideBusy()
+        const answer = await askVideoQuality(info, quality)
+        if (!answer) return
+        quality = answer.settings
+        this.showBusy('Sprawdzanie filmu…')
+        await this.saveVideoPreferences(preferences, quality, answer.remember)
+      }
+
+      const result = await VideoIOService.prepareVideo(this.projectId, filePath, quality, (percent) => {
         this.showBusy(`Konwertowanie filmu… ${Math.round(percent)}%`, percent)
       })
       this.hideBusy()
@@ -258,6 +298,7 @@ export class VideoPlayerController {
     })
 
     this.pickButtons.forEach((button) => button.addEventListener('click', () => this.chooseVideo()))
+    this.qualityBtn?.addEventListener('click', () => this.changeQuality())
     this.busy?.cancel?.addEventListener('click', () => VideoIOService.cancelConversion())
     this.busy?.close?.addEventListener('click', () => this.hideBusy())
   }
@@ -272,6 +313,7 @@ export class VideoPlayerController {
     const ui = new VideoPlayerUI(this.host, existingVideoPath)
     const elements = ui.render()
     this.pickButtons = elements.pickButtons
+    this.qualityBtn = elements.qualityBtn
     this.emptyState = elements.emptyState
     this.busy = elements.busy
     this.video = elements.video

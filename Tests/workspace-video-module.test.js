@@ -41,7 +41,7 @@ describe('WorkspaceVideoModule', () => {
     expect(markup).not.toContain('open-video-placeholder')
     expect(markup).not.toContain('video-time')
     expect(markup).not.toContain('Odtwórz</button>')
-    expect(document.querySelectorAll('.video-controls button')).toHaveLength(7)
+    expect(document.querySelectorAll('.video-controls button')).toHaveLength(8)
     expect(document.querySelectorAll('.video-controls svg').length).toBeGreaterThanOrEqual(7)
 
     const zoomControls = document.querySelector('.video-zoom-controls')
@@ -160,7 +160,11 @@ describe('WorkspaceVideoModule', () => {
       await flush()
       expect(busy().hidden).toBe(false)
       expect(text()).toBe('Sprawdzanie filmu…')
-      expect(window.electronAPI.prepareVideo).toHaveBeenCalledWith({ projectId: 'Study', filePath: 'C:/Videos/00027.MTS' })
+      expect(window.electronAPI.prepareVideo).toHaveBeenCalledWith({
+        projectId: 'Study',
+        filePath: 'C:/Videos/00027.MTS',
+        settings: { preset: 'original', maxHeight: null, maxFrameRate: null, quality: 'original' }
+      })
 
       progressListener({ percent: 41.6 })
       expect(text()).toBe('Konwertowanie filmu… 42%')
@@ -219,6 +223,87 @@ describe('WorkspaceVideoModule', () => {
       await flush()
       expect(text()).toBe('Ten format wymaga konwersji, ale nie znaleziono programu ffmpeg.')
       errors.mockRestore()
+    })
+
+    describe('quality dialog', () => {
+      const probe = { duration: 60, video: { codec: 'mpeg2video', width: 1920, height: 1080, fps: 25, interlaced: true }, audio: { codec: 'ac3' } }
+      const dialog = () => document.querySelector('.video-quality-modal')
+
+      beforeEach(() => {
+        Object.assign(window.electronAPI, {
+          inspectVideo: jest.fn().mockResolvedValue({ fileName: '00027.MTS', extension: '.MTS', size: 100e6, probe }),
+          getAppSettings: jest.fn().mockResolvedValue({ theme: {}, video: { askQuality: true, quality: {} } }),
+          saveAppSettings: jest.fn().mockResolvedValue(undefined)
+        })
+      })
+
+      test('asks for the quality before converting and passes the chosen preset on', async () => {
+        await WorkspaceVideoModule.init('video-module', { projectFile: 'Study', trialCatalog })
+        document.getElementById('pick-video-btn').click()
+        await flush()
+
+        expect(dialog()).not.toBeNull()
+        expect(window.electronAPI.prepareVideo).not.toHaveBeenCalled()
+        dialog().querySelector('input[value="light"]').click()
+        dialog().querySelector('form').requestSubmit()
+        await flush()
+
+        expect(dialog()).toBeNull()
+        expect(window.electronAPI.prepareVideo).toHaveBeenCalledWith(expect.objectContaining({
+          settings: { preset: 'light', maxHeight: 720, maxFrameRate: 25, quality: 'medium' }
+        }))
+        expect(window.electronAPI.saveAppSettings).toHaveBeenCalledWith(expect.objectContaining({
+          video: { askQuality: true, quality: expect.objectContaining({ preset: 'light' }) }
+        }))
+      })
+
+      test('stops asking when the choice is remembered', async () => {
+        await WorkspaceVideoModule.init('video-module', { projectFile: 'Study', trialCatalog })
+        document.getElementById('pick-video-btn').click()
+        await flush()
+        dialog().querySelector('[data-remember]').click()
+        dialog().querySelector('form').requestSubmit()
+        await flush()
+
+        expect(window.electronAPI.saveAppSettings).toHaveBeenCalledWith(expect.objectContaining({ video: expect.objectContaining({ askQuality: false }) }))
+      })
+
+      test('does not ask when asking is turned off, and uses the saved quality', async () => {
+        window.electronAPI.getAppSettings.mockResolvedValue({ video: { askQuality: false, quality: { maxHeight: 480, maxFrameRate: 25, quality: 'low' } } })
+        await WorkspaceVideoModule.init('video-module', { projectFile: 'Study', trialCatalog })
+        document.getElementById('pick-video-btn').click()
+        await flush()
+
+        expect(dialog()).toBeNull()
+        expect(window.electronAPI.prepareVideo).toHaveBeenCalledWith(expect.objectContaining({
+          settings: expect.objectContaining({ preset: 'very-light', maxHeight: 480 })
+        }))
+      })
+
+      test('cancelling the dialog leaves everything as it was', async () => {
+        await WorkspaceVideoModule.init('video-module', { projectFile: 'Study', trialCatalog })
+        document.getElementById('pick-video-btn').click()
+        await flush()
+        dialog().querySelector('[data-cancel]').click()
+        await flush()
+
+        expect(window.electronAPI.prepareVideo).not.toHaveBeenCalled()
+        expect(busy().hidden).toBe(true)
+        expect(window.electronAPI.saveAppSettings).not.toHaveBeenCalled()
+      })
+
+      test('the quality button converts the original file again, even when asking is turned off', async () => {
+        window.electronAPI.getAppSettings.mockResolvedValue({ video: { askQuality: false, quality: {} } })
+        trialCatalog.getActiveTrial = () => ({ id: 'trial-1', videoPath: 'C:/P/videos/a.mp4' })
+        trialCatalog.getData = () => ({ trials: [{ id: 'trial-1', videoPath: 'C:/P/videos/a.mp4', sourcePath: 'C:/Videos/a.MTS', frameRate: 50 }] })
+        await WorkspaceVideoModule.init('video-module', { projectFile: 'Study', trialCatalog })
+
+        document.getElementById('video-quality-btn').click()
+        await flush()
+
+        expect(window.electronAPI.inspectVideo).toHaveBeenCalledWith('C:/Videos/a.MTS')
+        expect(dialog()).not.toBeNull()
+      })
     })
 
     test('does nothing when the file dialog is closed', async () => {

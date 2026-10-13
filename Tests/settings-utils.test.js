@@ -18,6 +18,7 @@ describe('Settings model defaults and normalization', () => {
       primaryColor: '#ff4f1a'
     })
     expect(settings.timeline).toEqual({ snapEnabled: true, snapThresholdPx: 9 })
+    expect(settings.video).toEqual({ askQuality: true, quality: { preset: 'original', maxHeight: null, maxFrameRate: null, quality: 'original' } })
     expect(settings.programShortcuts.map(({ id }) => id)).toEqual([
       'play-pause', 'skip-forward', 'skip-back', 'frame-forward', 'frame-back', 'toggle-mute', 'next-animal', 'previous-animal'
     ])

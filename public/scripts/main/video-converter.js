@@ -2,12 +2,9 @@ import { spawn as nodeSpawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
-// What the player (Chromium inside Electron) can open directly.
-const NATIVE_CONTAINERS = new Set(['.mp4', '.m4v', '.mov', '.webm', '.mkv'])
-const NATIVE_VIDEO_CODECS = new Set(['h264', 'vp8', 'vp9', 'av1'])
-const NATIVE_AUDIO_CODECS = new Set(['aac', 'mp3', 'opus', 'vorbis', 'flac', 'pcm_s16le', 'pcm_s24le'])
-// Audio that can be copied into an MP4 file as it is; everything else is converted to AAC.
-const MP4_COPYABLE_AUDIO = new Set(['aac', 'mp3'])
+import { MP4_COPYABLE_AUDIO, normalizeQualitySettings, planConversion, qualitySuffix } from '../shared/video-quality.js'
+
+export { planConversion }
 
 const toSeconds = (hours, minutes, seconds) => Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds)
 
@@ -34,27 +31,17 @@ export function parseProbeOutput(text) {
   }
 }
 
-// Decides what a file needs: nothing, a quick repackaging (container or audio only), or a full re-encode.
-export function planConversion(probe, extension) {
-  const reasons = []
-  const videoPlays = NATIVE_VIDEO_CODECS.has(probe.video.codec)
-  const audioPlays = !probe.audio || NATIVE_AUDIO_CODECS.has(probe.audio.codec)
-  if (!videoPlays) reasons.push(`kodek wideo ${probe.video.codec}`)
-  if (probe.video.interlaced) reasons.push('przeplot (interlace)')
-  if (!NATIVE_CONTAINERS.has(extension.toLowerCase())) reasons.push(`kontener ${extension.toLowerCase() || 'nieznany'}`)
-  if (!audioPlays) reasons.push(`dźwięk ${probe.audio.codec}`)
-
-  const action = !videoPlays || probe.video.interlaced ? 'transcode' : reasons.length ? 'remux' : 'none'
-  // De-interlacing keeps both fields of every frame, so the picture rate doubles (25i -> 50 frames per second).
-  const frameRate = probe.video.fps && action === 'transcode' && probe.video.interlaced ? probe.video.fps * 2 : probe.video.fps
-  return { action, reasons, frameRate, interlaced: probe.video.interlaced }
-}
-
 export function buildFfmpegArgs({ inputPath, outputPath, plan, probe }) {
   const copyAudio = !probe.audio || MP4_COPYABLE_AUDIO.has(probe.audio.codec)
+  const { target } = plan
+  const filters = [
+    ...(plan.interlaced ? [`yadif=mode=${target.deinterlaceMode}`] : []),
+    ...(target.height ? [`scale=-2:${target.height}`] : []),
+    ...(target.limitFrameRate ? [`fps=${target.frameRate}`] : [])
+  ]
   const video = plan.action === 'remux'
     ? ['-c:v', 'copy']
-    : [...(plan.interlaced ? ['-vf', 'yadif=mode=1'] : []), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p']
+    : [...(filters.length ? ['-vf', filters.join(',')] : []), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', String(target.crf), '-pix_fmt', 'yuv420p']
   const audio = copyAudio ? ['-c:a', 'copy'] : ['-c:a', 'aac', '-b:a', '160k', '-ac', '2']
 
   return [
@@ -107,16 +94,17 @@ export function createVideoConverter({ ffmpegPath, spawn = nodeSpawn, fileSystem
     return result
   }
 
-  // A converted file is reused when the sidecar describes the very same source file (same path, size and modification time).
-  function chooseOutputPath(inputPath, outputDir, sourceInfo) {
-    const base = path.basename(inputPath, path.extname(inputPath))
+  // A converted file is reused when the sidecar describes the very same source file (same path, size, modification
+  // time) converted the same way, so one video can be kept in several qualities side by side.
+  function chooseOutputPath(inputPath, outputDir, sourceInfo, suffix, conversionKey) {
+    const base = `${path.basename(inputPath, path.extname(inputPath))}${suffix}`
     for (let counter = 1; ; counter += 1) {
       const outputPath = path.join(outputDir, `${base}${counter > 1 ? `-${counter}` : ''}.mp4`)
       if (!fileSystem.existsSync(outputPath)) return { outputPath, reuse: false }
 
       try {
         const sidecar = JSON.parse(fileSystem.readFileSync(`${outputPath}.json`, 'utf8'))
-        if (sidecar.sourcePath === inputPath && sidecar.size === sourceInfo.size && sidecar.mtimeMs === sourceInfo.mtimeMs) {
+        if (sidecar.sourcePath === inputPath && sidecar.size === sourceInfo.size && sidecar.mtimeMs === sourceInfo.mtimeMs && sidecar.key === conversionKey) {
           return { outputPath, reuse: true }
         }
       } catch (_error) {
@@ -125,17 +113,28 @@ export function createVideoConverter({ ffmpegPath, spawn = nodeSpawn, fileSystem
     }
   }
 
-  async function prepare({ inputPath, outputDir, onProgress, signal }) {
+  // What the dialog needs to know about a file before anything is converted.
+  async function describe(filePath) {
+    return {
+      fileName: path.basename(filePath),
+      extension: path.extname(filePath),
+      size: fileSystem.statSync(filePath).size,
+      probe: await probe(filePath)
+    }
+  }
+
+  async function prepare({ inputPath, outputDir, settings, onProgress, signal }) {
     const ffmpeg = requireFfmpeg()
     const info = await probe(inputPath)
-    const plan = planConversion(info, path.extname(inputPath))
+    const plan = planConversion(info, path.extname(inputPath), normalizeQualitySettings(settings))
     const summary = { frameRate: plan.frameRate, duration: info.duration, reasons: plan.reasons }
     if (plan.action === 'none') return { status: 'ready', videoPath: inputPath, converted: false, ...summary }
 
     fileSystem.mkdirSync(outputDir, { recursive: true })
     const stats = fileSystem.statSync(inputPath)
     const sourceInfo = { size: stats.size, mtimeMs: stats.mtimeMs }
-    const { outputPath, reuse } = chooseOutputPath(inputPath, outputDir, sourceInfo)
+    const conversionKey = `${plan.action}${qualitySuffix(plan)}`
+    const { outputPath, reuse } = chooseOutputPath(inputPath, outputDir, sourceInfo, qualitySuffix(plan), conversionKey)
     const result = { status: 'converted', videoPath: outputPath, sourcePath: inputPath, mode: plan.action, converted: true, ...summary }
     if (reuse) return { ...result, reused: true }
 
@@ -159,10 +158,10 @@ export function createVideoConverter({ ffmpegPath, spawn = nodeSpawn, fileSystem
     }
 
     fileSystem.renameSync(partialPath, outputPath)
-    fileSystem.writeFileSync(`${outputPath}.json`, JSON.stringify({ sourcePath: inputPath, ...sourceInfo, mode: plan.action }, null, 2), 'utf8')
+    fileSystem.writeFileSync(`${outputPath}.json`, JSON.stringify({ sourcePath: inputPath, ...sourceInfo, key: conversionKey, mode: plan.action }, null, 2), 'utf8')
     onProgress?.(100)
     return result
   }
 
-  return { probe, prepare }
+  return { probe, describe, prepare }
 }

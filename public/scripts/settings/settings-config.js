@@ -1,3 +1,5 @@
+import { presetSettings } from '../shared/video-quality.js'
+
 export const defaultTheme = {
   bgColor: '#1a1a1a',
   textColor: '#e0e0e0',
@@ -42,8 +44,14 @@ export const settingsCatalog = {
   timeline: {
     title: 'Oś czasu',
     options: [
-      { id: 'snap-enabled', label: 'Przyciąganie do zdarzeń i klatek', type: 'toggle', defaultValue: true, storage: 'timeline' },
-      { id: 'snap-threshold-px', label: 'Czułość przyciągania', type: 'select', defaultValue: '9', values: ['5', '9', '14', '20'], storage: 'timeline' }
+      { id: 'snap-enabled', label: 'Przyciąganie do zdarzeń i klatek', type: 'toggle', defaultValue: true, storage: 'timeline', key: 'snapEnabled' },
+      { id: 'snap-threshold-px', label: 'Czułość przyciągania', type: 'select', defaultValue: '9', values: ['5', '9', '14', '20'], storage: 'timeline', key: 'snapThresholdPx' }
+    ]
+  },
+  video: {
+    title: 'Wideo',
+    options: [
+      { id: 'ask-quality', label: 'Pytaj o jakość przy wyborze filmu', type: 'toggle', defaultValue: true, storage: 'video', key: 'askQuality' }
     ]
   }
 }
@@ -64,6 +72,7 @@ export function createDefaultAppSettings() {
     theme: { ...defaultTheme },
     graphics,
     timeline,
+    video: { askQuality: true, quality: presetSettings('original') },
     programShortcuts,
     projectShortcuts: []
   }

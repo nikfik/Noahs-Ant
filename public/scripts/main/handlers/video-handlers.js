@@ -27,6 +27,7 @@ export function registerVideoHandlers({ ipcMain, converter, projectsDirectory })
       return await converter.prepare({
         inputPath,
         outputDir,
+        settings: request?.settings,
         signal: job.signal,
         onProgress: (percent) => event.sender.send('video-convert-progress', { percent })
       })
@@ -40,6 +41,9 @@ export function registerVideoHandlers({ ipcMain, converter, projectsDirectory })
     activeJob?.abort()
     return running
   })
+
+  // What the quality dialog shows before anything is converted.
+  ipcMain.handle('inspect-video', (_event, filePath) => converter.describe(requireFilePath(filePath)))
 
   // The frame rate and length of a video that needs no conversion (used to step by real frames).
   ipcMain.handle('probe-video', async (_event, filePath) => {
