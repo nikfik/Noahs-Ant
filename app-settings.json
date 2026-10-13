@@ -6,17 +6,18 @@
   },
   "graphics": {},
   "timeline": {
-    "snapEnabled": false,
+    "snapEnabled": true,
     "snapThresholdPx": 9
   },
   "video": {
     "askQuality": true,
     "quality": {
-      "preset": "very-light",
-      "maxHeight": 480,
-      "maxFrameRate": 25,
-      "quality": "low"
-    }
+      "preset": "original",
+      "maxHeight": null,
+      "maxFrameRate": null,
+      "quality": "original"
+    },
+    "skipSeconds": 10
   },
   "programShortcuts": [
     {
@@ -30,7 +31,7 @@
     },
     {
       "id": "skip-forward",
-      "label": "Do przodu o 5 s",
+      "label": "Skok do przodu",
       "value": {
         "primary": "ArrowRight",
         "secondary": "",
@@ -39,7 +40,7 @@
     },
     {
       "id": "skip-back",
-      "label": "Cofnij o 5 s",
+      "label": "Skok do tyłu",
       "value": {
         "primary": "ArrowLeft",
         "secondary": "",

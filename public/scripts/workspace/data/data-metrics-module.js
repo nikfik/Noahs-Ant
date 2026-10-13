@@ -25,7 +25,7 @@ const TIPS = {
   categories: 'Dodaje wiersze „Σ” sumujące czynności z tej samej kategorii (kategorie ustawia się w edytorze etogramu; potrzebne co najmniej dwie czynności zwierzęcia w jednej kategorii).',
   merge: 'Dotyczy wierszy „Σ”. Włączone: czynności nakładające się na siebie liczą się raz — czas to suma scalonych odcinków, a liczba to liczba oddzielnych epizodów. Wyłączone: zwykła suma wszystkich czynności, nakładający się czas liczy się podwójnie (jak w arkuszu).',
   colors: 'Koloruje komórki „tak” i „nie” w kolumnie „Wystąpiła”.',
-  export: 'Zapisuje plik Excela (.xlsx) z metrykami wszystkich prób i zwierząt (niezależnie od filtrów), z bieżącymi ustawieniami sum kategorii i czasu scalonego. Arkusze: Metryki (jeden wiersz na próbę), Metryki w długim formacie, Zdarzenia, Okna prób i Informacje.',
+  export: 'Zapisuje metryki jako plik Excela (.xlsx) albo, po wybraniu typu pliku w oknie zapisu, jako CSV (przecinki) lub TXT (tabulatory) – wtedy każdy arkusz trafia do osobnego pliku. Dane to metryki wszystkich prób i zwierząt (niezależnie od filtrów), z bieżącymi ustawieniami sum kategorii i czasu scalonego. Arkusze: Metryki (jeden wiersz na próbę), Metryki w długim formacie, Zdarzenia, Okna prób i Informacje.',
   window: 'Wybierz fragment nagrania, dla którego liczone są metryki, np. tylko pierwsze 5 minut godzinnego filmu. Zdarzenia poza oknem są pomijane, a procenty liczone względem długości okna. Puste pole = początek / koniec wideo.',
   windowStart: 'Początek analizowanego fragmentu w sekundach (lub m:ss). Puste = początek wideo.',
   windowEnd: 'Koniec analizowanego fragmentu w sekundach (lub m:ss). Puste = koniec wideo.',
@@ -133,7 +133,7 @@ export function createDataMetricsModule() {
             <label title="${escapeHtml(hasCategories ? TIPS.categories : `${TIPS.categories} Teraz żadne zwierzę nie ma takich kategorii.`)}"><input type="checkbox" data-toggle="categories" ${preferences.includeCategories ? 'checked' : ''} ${hasCategories ? '' : 'disabled'} /> Sumy kategorii (Σ)</label>
             <label title="${escapeHtml(TIPS.merge)}"><input type="checkbox" data-toggle="merge" ${preferences.mergeCategories ? 'checked' : ''} ${categoriesOn ? '' : 'disabled'} /> Czas scalony</label>
             <label title="${escapeHtml(TIPS.colors)}"><input type="checkbox" data-toggle="colors" ${preferences.colorize ? 'checked' : ''} /> Kolory tak/nie</label>
-            <button type="button" class="data-export" data-action="export-xlsx" title="${escapeHtml(TIPS.export)}" ${window.electronAPI?.exportWorkbook ? '' : 'disabled'}>Eksportuj do Excela</button>
+            <button type="button" class="data-export" data-action="export-xlsx" title="${escapeHtml(TIPS.export)}" ${window.electronAPI?.exportWorkbook ? '' : 'disabled'}>Eksportuj dane</button>
           </div>
         </header>
         <div class="data-table-wrap">
@@ -206,7 +206,9 @@ export function createDataMetricsModule() {
         mergeCategories: preferences.mergeCategories
       })
       const result = await window.electronAPI.exportWorkbook({ suggestedName: suggestExportName(projectName), sheets })
-      showMessage(result?.saved ? `Zapisano: ${result.filePath}` : 'Eksport anulowany.')
+      showMessage(result?.saved
+        ? (result.files?.length > 1 ? `Zapisano ${result.files.length} plików, pierwszy: ${result.filePath}` : `Zapisano: ${result.filePath}`)
+        : 'Eksport anulowany.')
     } catch (error) {
       console.error('Workbook export failed:', error)
       showMessage('Nie udało się zapisać pliku Excela.')

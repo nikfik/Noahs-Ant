@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import XLSX from 'xlsx'
 
 const MAX_SHEETS = 12
@@ -21,7 +23,7 @@ export function sanitizeSheetName(name, usedNames = new Set()) {
 
 export function sanitizeFileName(name) {
   const cleaned = String(name || '').replace(INVALID_FILE_CHARS, '_').trim().replace(/\.+$/, '')
-  const withExtension = /\.xlsx$/i.test(cleaned) ? cleaned : `${cleaned || 'eksport'}.xlsx`
+  const withExtension = /\.(xlsx|csv|txt)$/i.test(cleaned) ? cleaned : `${cleaned || 'eksport'}.xlsx`
   return withExtension.slice(-120)
 }
 
@@ -83,6 +85,49 @@ export function buildWorkbook(sheets) {
   })
 
   return workbook
+}
+
+const TEXT_FORMATS = {
+  '.csv': { delimiter: ',', bom: true },
+  '.txt': { delimiter: '\t', bom: false }
+}
+
+export const isTextExport = (filePath) => Object.hasOwn(TEXT_FORMATS, path.extname(filePath).toLowerCase())
+
+// A number keeps the precision its Excel format would show (0.000 -> three decimals).
+const formatNumber = (value, format) => {
+  const decimals = /\.(0+)$/.exec(format || '')?.[1].length
+  return decimals === undefined ? String(value) : value.toFixed(decimals)
+}
+
+function textField(value, delimiter) {
+  const text = String(value)
+  return text.includes(delimiter) || /["\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+}
+
+// One text per sheet: the header row, then the data rows. Empty cells stay empty.
+export function sheetsToText(sheets, delimiter) {
+  return normalizeSheets(sheets).map(({ name, headers, rows, formats }) => ({
+    name,
+    text: [headers, ...rows.map((row) => row.map((value, column) => typeof value === 'number' ? formatNumber(value, formats[column]) : value))]
+      .map((row) => row.map((value) => value === null || value === undefined ? '' : textField(value, delimiter)).join(delimiter))
+      .join('\r\n') + '\r\n'
+  }))
+}
+
+// Text files hold one table each, so a workbook becomes several files: "<name> - <sheet>.csv".
+export function writeTextFiles(filePath, sheets) {
+  const extension = path.extname(filePath).toLowerCase()
+  const { delimiter, bom } = TEXT_FORMATS[extension]
+  const stem = filePath.slice(0, -extension.length)
+  const used = new Set()
+
+  return sheetsToText(sheets, delimiter).map(({ name, text }) => {
+    const sheetName = sanitizeSheetName(name, used).replace(INVALID_FILE_CHARS, '_')
+    const target = `${stem} - ${sheetName}${extension}`
+    fs.writeFileSync(target, `${bom ? '\ufeff' : ''}${text}`, 'utf8')
+    return target
+  })
 }
 
 export function writeWorkbook(filePath, sheets) {

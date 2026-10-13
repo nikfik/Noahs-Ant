@@ -168,6 +168,28 @@ function renderOptions(tabId) {
       controlWrap.appendChild(toggle)
     }
 
+    if (option.type === 'number') {
+      const settingsState = appSettings[option.storage || 'graphics']
+      const settingKey = option.key || option.id
+      const input = document.createElement('input')
+      input.type = 'number'
+      input.min = String(option.min)
+      input.max = String(option.max)
+      input.step = String(option.step)
+      input.value = String(settingsState[settingKey] ?? option.defaultValue)
+      input.setAttribute('aria-label', option.label)
+      input.addEventListener('change', () => {
+        const value = Number(input.value.replace(',', '.'))
+        // Out-of-range or empty input falls back to the last valid value.
+        if (input.value.trim() !== '' && Number.isFinite(value) && value >= option.min && value <= option.max) {
+          settingsState[settingKey] = value
+          hasUnsavedChanges = true
+        }
+        input.value = String(settingsState[settingKey] ?? option.defaultValue)
+      })
+      controlWrap.appendChild(input)
+    }
+
     if (option.type === 'keybind') {
       const entry = appSettings.programShortcuts.find((item) => item.id === option.id)
       if (entry) {

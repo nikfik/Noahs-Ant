@@ -37,7 +37,10 @@ export function normalizeAppSettings(saved = {}) {
 
   const video = {
     askQuality: typeof videoSource.askQuality === 'boolean' ? videoSource.askQuality : defaults.video.askQuality,
-    quality: normalizeQualitySettings(videoSource.quality)
+    quality: normalizeQualitySettings(videoSource.quality),
+    skipSeconds: Number.isFinite(videoSource.skipSeconds) && videoSource.skipSeconds >= 0.5 && videoSource.skipSeconds <= 600
+      ? videoSource.skipSeconds
+      : defaults.video.skipSeconds
   }
 
   const programShortcuts = defaults.programShortcuts.map((defaultEntry) => {

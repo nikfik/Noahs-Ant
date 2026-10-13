@@ -7,14 +7,18 @@ import { VideoZoomControls } from './VideoZoomControls.js'
 import { askVideoQuality } from './video-quality-dialog.js'
 import { normalizeQualitySettings } from '../../shared/video-quality.js'
 import { skipAt } from '../trials/skip-model.js'
+import { icon } from './video-icons.js'
 import { isSkipping } from '../trials/skip-playback.js'
+
+const DEFAULT_SKIP_SECONDS = 5
+const formatSkip = (seconds) => String(seconds).replace('.', ',')
 
 // Buttons whose tooltip shows the keyboard shortcut: [element property, shortcut action, tooltip without the keys].
 const SHORTCUT_BUTTONS = [
-  ['skipBackBtn', 'skip-back', 'Cofnij o 5 s'],
-  ['stepBackBtn', 'frame-back', 'Cofnij o 1 klatkę'],
-  ['stepForwardBtn', 'frame-forward', 'Do przodu o 1 klatkę'],
-  ['skipForwardBtn', 'skip-forward', 'Do przodu o 5 s']
+  ['skipBackBtn', 'skip-back', (skip) => `Cofnij o ${skip} s`],
+  ['stepBackBtn', 'frame-back', () => 'Cofnij o 1 klatkę'],
+  ['stepForwardBtn', 'frame-forward', () => 'Do przodu o 1 klatkę'],
+  ['skipForwardBtn', 'skip-forward', (skip) => `Do przodu o ${skip} s`]
 ]
 
 export class VideoPlayerController {
@@ -30,6 +34,7 @@ export class VideoPlayerController {
     this.videoPath = ''
     this.pickButtons = []
     this.qualityBtn = null
+    this.skipSeconds = DEFAULT_SKIP_SECONDS
     this.emptyState = null
     this.playPauseBtn = null
     this.muteBtn = null
@@ -157,7 +162,7 @@ export class VideoPlayerController {
     if (!window.electronAPI?.saveAppSettings) return
     await window.electronAPI.saveAppSettings({
       ...preferences.saved,
-      video: { askQuality: remember ? false : preferences.askQuality, quality }
+      video: { ...preferences.saved.video, askQuality: remember ? false : preferences.askQuality, quality }
     })
   }
 
@@ -213,11 +218,35 @@ export class VideoPlayerController {
   }
 
   refreshShortcutHints() {
-    SHORTCUT_BUTTONS.forEach(([property, actionId, title]) => {
-      if (this[property]) this[property].title = `${title}${this.shortcutHint(actionId)}`
+    const skip = formatSkip(this.skipSeconds)
+    SHORTCUT_BUTTONS.forEach(([property, actionId, makeTitle]) => {
+      if (this[property]) this[property].title = `${makeTitle(skip)}${this.shortcutHint(actionId)}`
     })
+    if (this.skipBackBtn) {
+      this.skipBackBtn.innerHTML = icon('skipBack', 20, { label: skip })
+      this.skipBackBtn.setAttribute('aria-label', `Cofnij o ${skip} s`)
+    }
+    if (this.skipForwardBtn) {
+      this.skipForwardBtn.innerHTML = icon('skipForward', 20, { label: skip })
+      this.skipForwardBtn.setAttribute('aria-label', `Do przodu o ${skip} s`)
+    }
     this.playbackControls?.syncPlaybackButton(this.playPauseBtn)
     this.playbackControls?.syncMuteButton(this.muteBtn)
+  }
+
+  // How far the jump buttons and shortcuts go is a setting; it is read once and kept up to date when it changes.
+  setSkipSeconds(value) {
+    const seconds = Number(value)
+    this.skipSeconds = Number.isFinite(seconds) && seconds > 0 ? seconds : DEFAULT_SKIP_SECONDS
+    this.refreshShortcutHints()
+  }
+
+  watchSkipSeconds() {
+    const api = window.electronAPI
+    api?.getAppSettings?.()
+      ?.then((settings) => this.setSkipSeconds(settings?.video?.skipSeconds))
+      .catch((error) => console.error('Could not read the jump length:', error))
+    api?.onSettingsChange?.((settings) => this.setSkipSeconds(settings?.video?.skipSeconds))
   }
 
   registerShortcuts() {
@@ -353,6 +382,7 @@ export class VideoPlayerController {
     this.playbackControls = new VideoPlaybackControls(this.video, {
       getHint: (actionId) => this.shortcutHint(actionId),
       getFrameStep: () => this.frameStep(),
+      getSkipSeconds: () => this.skipSeconds,
       onSyncState: () => {
         this.playbackControls.syncPlaybackButton(this.playPauseBtn)
         this.playbackControls.syncMuteButton(this.muteBtn)
@@ -370,6 +400,7 @@ export class VideoPlayerController {
     this.bindEvents()
     this.registerShortcuts()
     this.refreshShortcutHints()
+    this.watchSkipSeconds()
 
     if (this.video && existingVideoPath) {
       this.setVideoSource(existingVideoPath)

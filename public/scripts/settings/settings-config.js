@@ -11,8 +11,8 @@ const single = (primary) => ({ primary, secondary: '', operator: '/' })
 // Keyboard shortcuts of the program itself (the shortcuts of behaviors live in each project's etogram).
 export const shortcutActions = [
   { id: 'play-pause', label: 'Odtwórz / zatrzymaj', group: 'Wideo', defaultValue: { primary: 'Space', secondary: 'Enter', operator: '/' } },
-  { id: 'skip-forward', label: 'Do przodu o 5 s', group: 'Wideo', defaultValue: single('ArrowRight') },
-  { id: 'skip-back', label: 'Cofnij o 5 s', group: 'Wideo', defaultValue: single('ArrowLeft') },
+  { id: 'skip-forward', label: 'Skok do przodu', group: 'Wideo', defaultValue: single('ArrowRight') },
+  { id: 'skip-back', label: 'Skok do tyłu', group: 'Wideo', defaultValue: single('ArrowLeft') },
   { id: 'frame-forward', label: 'Jedna klatka do przodu', group: 'Wideo', defaultValue: single('.') },
   { id: 'frame-back', label: 'Jedna klatka do tyłu', group: 'Wideo', defaultValue: single(',') },
   { id: 'toggle-mute', label: 'Wycisz / włącz dźwięk', group: 'Wideo', defaultValue: { primary: 'Shift', secondary: 'M', operator: '+' } },
@@ -51,7 +51,8 @@ export const settingsCatalog = {
   video: {
     title: 'Wideo',
     options: [
-      { id: 'ask-quality', label: 'Pytaj o jakość przy wyborze filmu', type: 'toggle', defaultValue: true, storage: 'video', key: 'askQuality' }
+      { id: 'ask-quality', label: 'Pytaj o jakość przy wyborze filmu', type: 'toggle', defaultValue: true, storage: 'video', key: 'askQuality' },
+      { id: 'skip-seconds', label: 'Długość skoku (przyciski i skróty), w sekundach', type: 'number', defaultValue: 5, min: 0.5, max: 600, step: 0.5, storage: 'video', key: 'skipSeconds' }
     ]
   }
 }
@@ -72,7 +73,7 @@ export function createDefaultAppSettings() {
     theme: { ...defaultTheme },
     graphics,
     timeline,
-    video: { askQuality: true, quality: presetSettings('original') },
+    video: { askQuality: true, quality: presetSettings('original'), skipSeconds: 5 },
     programShortcuts,
     projectShortcuts: []
   }

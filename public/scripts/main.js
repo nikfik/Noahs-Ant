@@ -8,7 +8,7 @@ import { createAnimalsStore } from './main/animals-store.js'
 import { createObservationsStore } from './main/observations-store.js'
 import { createTrialsStore } from './main/trials-store.js'
 import ffmpegPath from 'ffmpeg-static'
-import { writeWorkbook } from './main/workbook-export.js'
+import { writeTextFiles, writeWorkbook } from './main/workbook-export.js'
 import { createVideoConverter } from './main/video-converter.js'
 import { createMainWindow, createSettingsWindow } from './main/windows.js'
 import { registerThemeHandlers as registerThemeHandlersModule } from './main/handlers/theme-handlers.js'
@@ -61,7 +61,7 @@ function registerVideoHandlers() {
 }
 
 function registerFileHandlers() {
-  registerFileHandlersModule({ ipcMain, dialog, writeWorkbook, getDefaultDirectory: () => app.getPath('documents') })
+  registerFileHandlersModule({ ipcMain, dialog, writeWorkbook, writeTextFiles, getDefaultDirectory: () => app.getPath('documents') })
 }
 
 function createWindow() {

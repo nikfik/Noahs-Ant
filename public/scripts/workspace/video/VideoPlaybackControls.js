@@ -2,8 +2,9 @@ import { VideoPlayerUtils } from './VideoPlayerUtils.js'
 import { icon } from './video-icons.js'
 
 export class VideoPlaybackControls {
-  constructor(video, { onSyncState, getHint, getFrameStep } = {}) {
+  constructor(video, { onSyncState, getHint, getFrameStep, getSkipSeconds } = {}) {
     this.video = video
+    this.getSkipSeconds = getSkipSeconds || (() => 5)
     this.getFrameStep = getFrameStep || (() => VideoPlayerUtils.DEFAULT_FRAME_STEP)
     this.onSyncState = onSyncState || (() => {})
     this.getHint = getHint || (() => '')
@@ -78,11 +79,11 @@ export class VideoPlaybackControls {
 
   skipBackward() {
     if (!this.video) return
-    this.video.currentTime = Math.max(0, this.video.currentTime - 5)
+    this.video.currentTime = Math.max(0, this.video.currentTime - this.getSkipSeconds())
   }
 
   skipForward() {
     if (!this.video) return
-    this.video.currentTime = Math.min(this.video.duration || 0, this.video.currentTime + 5)
+    this.video.currentTime = Math.min(this.video.duration || 0, this.video.currentTime + this.getSkipSeconds())
   }
 }

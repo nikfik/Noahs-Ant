@@ -88,3 +88,34 @@ describe('skip dialog', () => {
     await expect(editing).resolves.toEqual({ type: 'delete' })
   })
 })
+
+describe('jump length', () => {
+  test('the jump buttons, their labels and the shortcuts follow the setting', async () => {
+    document.body.innerHTML = '<div id="video-module"></div>'
+    let listener
+    window.electronAPI = {
+      getAppSettings: jest.fn().mockResolvedValue({ video: { skipSeconds: 10 } }),
+      onSettingsChange: jest.fn((callback) => { listener = callback })
+    }
+    window.HTMLMediaElement.prototype.load = jest.fn()
+    await WorkspaceVideoModule.init('video-module', { projectFile: 'Study' })
+    await flush()
+
+    const forward = document.getElementById('skip-forward-video-btn')
+    expect(forward.title).toBe('Do przodu o 10 s')
+    expect(forward.querySelector('text').textContent).toBe('10')
+
+    const video = document.getElementById('video-player')
+    Object.defineProperty(video, 'duration', { value: 100, configurable: true })
+    video.currentTime = 20
+    forward.click()
+    expect(video.currentTime).toBe(30)
+    document.getElementById('skip-back-video-btn').click()
+    expect(video.currentTime).toBe(20)
+
+    listener({ video: { skipSeconds: 2.5 } })
+    expect(forward.title).toBe('Do przodu o 2,5 s')
+    forward.click()
+    expect(video.currentTime).toBe(22.5)
+  })
+})

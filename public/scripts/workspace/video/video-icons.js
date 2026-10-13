@@ -14,6 +14,12 @@ const ICONS = {
   fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'
 }
 
-export function icon(name, size = 18) {
-  return `<svg class="vp-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`
+// The jump icons show how many seconds they jump; `label` replaces the default "5".
+export function icon(name, size = 18, { label } = {}) {
+  let shape = ICONS[name] || ''
+  if (label !== undefined) {
+    const text = String(label)
+    shape = shape.replace('font-size="8.5"', `font-size="${text.length > 2 ? 6.5 : 8.5}"`).replace('>5</text>', `>${text}</text>`)
+  }
+  return `<svg class="vp-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${shape}</svg>`
 }
