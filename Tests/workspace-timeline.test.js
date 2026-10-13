@@ -183,6 +183,79 @@ describe('Workspace timeline UI integration', () => {
     expect(await dragMovingEvent(true)).toBeCloseTo(7.02)
   })
 
+  describe('time skips', () => {
+    const open = async (skips = []) => {
+      let trial = { id: 'trial-1', skips }
+      const trialCatalog = {
+        getActiveTrial: () => trial,
+        updateTrial: jest.fn(async (_id, changes) => { trial = { ...trial, ...changes } })
+      }
+      const animal = { id: 'animal-1', name: 'Mrówka', color: '#42a56b' }
+      const animalCatalog = { getData: () => ({ animals: [animal], activeAnimalId: animal.id }) }
+      await createTimelineModule().init('events-module', { projectId: 'Study', animalCatalog, trialCatalog })
+      window.dispatchEvent(new CustomEvent('video-timeline-state', { detail: { currentTime: 2, duration: 100, paused: true } }))
+      return trialCatalog
+    }
+    const flushAll = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+    test('shows skips as bars and as shading, counted ones looking different', async () => {
+      await open([{ id: 'a', start: 10, end: 20, countTime: false }, { id: 'b', start: 30, end: 40, countTime: true }])
+      expect(document.querySelectorAll('.timeline-skip')).toHaveLength(2)
+      expect(document.querySelectorAll('.timeline-skip.counted')).toHaveLength(1)
+      expect(document.querySelectorAll('.timeline-track .timeline-skip-shade')).toHaveLength(2)
+    })
+
+    test('adds a skip from the dialog, starting at the playhead and not counting the time', async () => {
+      const catalog = await open()
+      document.querySelector('[data-timeline-action="add-skip"]').click()
+      await flushAll()
+      const form = document.querySelector('.skip-modal form')
+      expect(form.querySelector('[data-skip="start"]').value).toBe('2.000')
+      form.requestSubmit()
+      await flushAll()
+
+      expect(catalog.updateTrial).toHaveBeenCalledWith('trial-1', { skips: [expect.objectContaining({ start: 2, end: 12, countTime: false })] })
+    })
+
+    test('a double press on a skip opens it for editing, and it can be deleted', async () => {
+      const catalog = await open([{ id: 'a', start: 10, end: 20, countTime: false }])
+      const press = () => {
+        const bar = document.querySelector('.timeline-skip')
+        bar.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }))
+        return flushAll().then(() => window.dispatchEvent(new MouseEvent('pointerup')))
+      }
+      await press()
+      await flushAll()
+      await press()
+      await flushAll()
+
+      document.querySelector('[data-skip-delete]').click()
+      await flushAll()
+      expect(catalog.updateTrial).toHaveBeenCalledWith('trial-1', { skips: [] })
+    })
+
+    test('a selected skip is deleted with the Delete key', async () => {
+      const catalog = await open([{ id: 'a', start: 10, end: 20, countTime: false }])
+      document.querySelector('.timeline-skip').dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }))
+      window.dispatchEvent(new MouseEvent('pointerup'))
+      await flushAll()
+      expect(document.querySelector('.timeline-skip').classList.contains('selected')).toBe(true)
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
+      await flushAll()
+      expect(catalog.updateTrial).toHaveBeenCalledWith('trial-1', { skips: [] })
+    })
+
+    test('the playback switch changes the button', async () => {
+      await open()
+      const button = document.querySelector('[data-timeline-action="skip-playback"]')
+      expect(button.textContent).toBe('Pomijanie: wł.')
+      button.click()
+      expect(document.querySelector('[data-timeline-action="skip-playback"]').textContent).toBe('Pomijanie: wył.')
+      document.querySelector('[data-timeline-action="skip-playback"]').click()
+    })
+  })
+
   describe('zoom and layout', () => {
     async function setupTimeline(duration) {
       window.electronAPI.getProjectObservations.mockResolvedValue({ observations: [] })

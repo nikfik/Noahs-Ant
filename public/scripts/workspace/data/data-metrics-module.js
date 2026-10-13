@@ -31,6 +31,7 @@ const TIPS = {
   windowEnd: 'Koniec analizowanego fragmentu w sekundach (lub m:ss). Puste = koniec wideo.',
   duration: 'Długość wideo tej próby. Zapisuje się automatycznie po otwarciu filmu w widoku Wideo.',
   used: 'Fragment, dla którego faktycznie liczone są metryki tej próby.',
+  skipped: 'Czas pominięć (dodawanych na osi czasu w widoku Wideo), który nie jest wliczany do analizy. Jest odejmowany od długości okna, od czasów trwania czynności i od latencji.',
   inside: 'Ile zdarzeń tej próby mieści się (choćby częściowo) w oknie analizy. Pozostałe są pomijane.'
 }
 
@@ -102,6 +103,7 @@ export function createDataMetricsModule() {
         <td><input data-window="windowStart" value="${trial.windowStart === null ? '' : formatSeconds(trial.windowStart)}" placeholder="0" inputmode="decimal" aria-label="Okno od (s)" title="${escapeHtml(TIPS.windowStart)}" /></td>
         <td><input data-window="windowEnd" value="${trial.windowEnd === null ? '' : formatSeconds(trial.windowEnd)}" placeholder="${trial.duration ? formatSeconds(trial.duration) : 'koniec wideo'}" inputmode="decimal" aria-label="Okno do (s)" title="${escapeHtml(TIPS.windowEnd)}" /></td>
         <td class="num">${formatSeconds(window.start)} – ${formatSeconds(window.end)}</td>
+        <td class="num">${window.skipped > 0 ? `− ${formatSeconds(window.skipped)}` : '—'}</td>
         <td class="num ${inside < total ? 'data-window-trimmed' : ''}">${inside} / ${total}</td>
         <td class="data-window-note">${fromEvents ? 'brak długości wideo — okno z ostatniego zdarzenia (otwórz film tej próby)' : ''}</td>
       </tr>`
@@ -151,6 +153,7 @@ export function createDataMetricsModule() {
                 <th title="${escapeHtml(TIPS.windowStart)}">Okno od (s)</th>
                 <th title="${escapeHtml(TIPS.windowEnd)}">Okno do (s)</th>
                 <th title="${escapeHtml(TIPS.used)}">Użyte okno (s)</th>
+                <th title="${escapeHtml(TIPS.skipped)}">Pominięty czas (s)</th>
                 <th title="${escapeHtml(TIPS.inside)}">Zdarzenia w oknie</th>
                 <th></th>
               </tr></thead>

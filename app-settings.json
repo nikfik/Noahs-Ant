@@ -6,8 +6,17 @@
   },
   "graphics": {},
   "timeline": {
-    "snapEnabled": true,
+    "snapEnabled": false,
     "snapThresholdPx": 9
+  },
+  "video": {
+    "askQuality": true,
+    "quality": {
+      "preset": "very-light",
+      "maxHeight": 480,
+      "maxFrameRate": 25,
+      "quality": "low"
+    }
   },
   "programShortcuts": [
     {

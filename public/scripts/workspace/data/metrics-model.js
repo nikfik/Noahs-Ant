@@ -1,8 +1,10 @@
 import { getAnimalActivities } from './event-table-model.js'
+import { excludedRanges, overlapWith } from '../trials/skip-model.js'
 
 const UNCATEGORIZED = 'Bez kategorii'
 
 // The analysis window of a trial: the part of the video the metrics are calculated for.
+// Time skips that are not counted are cut out of it: `length` is the time that is left, `excluded` the ranges removed.
 // Falls back to the latest event time when the video length is not known yet (source: 'events').
 export function resolveWindow(trial, trialEvents = []) {
   const start = trial?.windowStart ?? 0
@@ -14,8 +16,16 @@ export function resolveWindow(trial, trialEvents = []) {
     source = 'events'
   }
 
-  return { start, end: Math.max(end, start), length: Math.max(end - start, 0), source }
+  end = Math.max(end, start)
+  const excluded = excludedRanges(trial?.skips, start, end)
+  const skipped = excluded.reduce((total, [from, to]) => total + to - from, 0)
+  return { start, end, length: Math.max(end - start - skipped, 0), skipped, excluded, source }
 }
+
+// Time that does not count inside [from, to].
+const skippedWithin = (window, from, to) => overlapWith(window.excluded || [], from, to)
+// Seconds from the start of the window to `time`, without the skipped time in between.
+const effectiveOffset = (window, time) => time - window.start - skippedWithin(window, window.start, time)
 
 function emptyMetrics(window) {
   return { present: false, count: 0, duration: 0, latency: null, percentOfWindow: window.length > 0 ? 0 : null, percentAfterLatency: null, window }
@@ -59,12 +69,12 @@ export function computeBehaviorMetrics(events, window) {
     if (!clipped) return
 
     count += 1
-    if (!clipped.isPoint) duration += Math.max(0, clipped.end - clipped.start)
+    if (!clipped.isPoint) duration += Math.max(0, clipped.end - clipped.start - skippedWithin(window, clipped.start, clipped.end))
     firstStart = firstStart === null ? clipped.start : Math.min(firstStart, clipped.start)
   })
 
   if (!count) return emptyMetrics(window)
-  return withPercentages({ count, duration, latency: firstStart - window.start }, window)
+  return withPercentages({ count, duration, latency: effectiveOffset(window, firstStart) }, window)
 }
 
 // Overlapping or touching intervals count once: the time is the union of the intervals and the count is the number of
@@ -92,16 +102,16 @@ export function computeMergedMetrics(events, window) {
       episodeEnd = Math.max(episodeEnd, end)
       return
     }
-    if (episodeEnd !== null) duration += episodeEnd - episodeStart
+    if (episodeEnd !== null) duration += episodeEnd - episodeStart - skippedWithin(window, episodeStart, episodeEnd)
     episodes += 1
     episodeStart = start
     episodeEnd = end
   })
-  if (episodeEnd !== null) duration += episodeEnd - episodeStart
+  if (episodeEnd !== null) duration += episodeEnd - episodeStart - skippedWithin(window, episodeStart, episodeEnd)
 
   const count = episodes + points
   if (!count) return emptyMetrics(window)
-  return withPercentages({ count, duration, latency: firstStart - window.start }, window)
+  return withPercentages({ count, duration, latency: effectiveOffset(window, firstStart) }, window)
 }
 
 export function hasCategoryGroups(animals = [], presets = []) {

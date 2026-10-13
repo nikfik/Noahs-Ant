@@ -17,10 +17,10 @@ const window300 = { start: 0, end: 300, length: 300, source: 'video' }
 
 describe('Analysis window', () => {
   test('prefers a custom window, then the video length, then the latest event', () => {
-    expect(resolveWindow({ duration: 300, windowStart: 10, windowEnd: 100 })).toEqual({ start: 10, end: 100, length: 90, source: 'custom' })
-    expect(resolveWindow({ duration: 300 })).toEqual({ start: 0, end: 300, length: 300, source: 'video' })
+    expect(resolveWindow({ duration: 300, windowStart: 10, windowEnd: 100 })).toMatchObject({ start: 10, end: 100, length: 90, source: 'custom' })
+    expect(resolveWindow({ duration: 300 })).toMatchObject({ start: 0, end: 300, length: 300, source: 'video' })
     expect(resolveWindow({ duration: 300, windowStart: 60 })).toMatchObject({ start: 60, end: 300, length: 240 })
-    expect(resolveWindow({}, [interval('a', 5, 40), point('b', 50), interval('c', 70, null)])).toEqual({ start: 0, end: 70, length: 70, source: 'events' })
+    expect(resolveWindow({}, [interval('a', 5, 40), point('b', 50), interval('c', 70, null)])).toMatchObject({ start: 0, end: 70, length: 70, source: 'events' })
     expect(resolveWindow({}, [])).toMatchObject({ length: 0 })
   })
 })
@@ -188,5 +188,32 @@ describe('Metric rows', () => {
     expect(new Set(buildMetricRows(observations, { trials, animals, presets, trialFilter: 't2' }).map((row) => row.trialId))).toEqual(new Set(['t2']))
     expect(new Set(buildMetricRows(observations, { trials, animals, presets, animalFilter: 'victim' }).map((row) => row.animalId))).toEqual(new Set(['victim']))
     expect(buildMetricRows(observations, { trials, animals, presets, includeCategories: false }).some((row) => row.kind === 'category')).toBe(false)
+  })
+})
+
+describe('Time skips', () => {
+  const skip = (start, end, countTime = false) => ({ id: `s${start}`, start, end, countTime })
+
+  test('uncounted skips are cut out of the window; counted ones change nothing', () => {
+    expect(resolveWindow({ duration: 300, skips: [skip(100, 160), skip(150, 200)] })).toMatchObject({ length: 200, skipped: 100, excluded: [[100, 200]] })
+    expect(resolveWindow({ duration: 300, skips: [skip(100, 160, true)] })).toMatchObject({ length: 300, skipped: 0, excluded: [] })
+    expect(resolveWindow({ duration: 300, windowStart: 120, windowEnd: 250, skips: [skip(100, 160)] })).toMatchObject({ length: 90, skipped: 40 })
+  })
+
+  test('durations and latency do not include the skipped time', () => {
+    const window = resolveWindow({ duration: 300, skips: [skip(100, 160)] })
+    // starts before the skip and ends after it: 20 s + 40 s of real time
+    const metrics = computeBehaviorMetrics([interval('a', 80, 200)], window)
+    expect(metrics.duration).toBe(60)
+    expect(metrics.percentOfWindow).toBeCloseTo(60 / 240 * 100)
+    // first occurrence after the skip: latency loses the 60 skipped seconds
+    expect(computeBehaviorMetrics([interval('b', 200, 210)], window).latency).toBe(140)
+    // the same event with a counted skip is measured in full
+    expect(computeBehaviorMetrics([interval('a', 80, 200)], resolveWindow({ duration: 300, skips: [skip(100, 160, true)] })).duration).toBe(120)
+  })
+
+  test('merged time also skips the uncounted part', () => {
+    const window = resolveWindow({ duration: 300, skips: [skip(100, 160)] })
+    expect(computeMergedMetrics([interval('a', 90, 120), interval('b', 110, 170)], window)).toMatchObject({ count: 1, duration: 20 })
   })
 })

@@ -3,6 +3,9 @@ import { escapeHtml } from '../shared/escape-html.js'
 import { isVideoViewActive } from '../shared/workspace-view.js'
 import { getObservationDisplayEnd } from './observations/observation-model.js'
 import { createObservationStore } from './observations/observation-store.js'
+import { createSkip } from './trials/skip-model.js'
+import { askSkip } from './trials/skip-dialog.js'
+import { isSkipping, setSkipping } from './trials/skip-playback.js'
 
 // Where time 0 starts, measured from the left edge of the timeline: the 150 px label column plus an 8 px gap (see Workspace.css).
 const LABEL_WIDTH = 158
@@ -124,6 +127,10 @@ export function createTimelineModule() {
   let snapThresholdPx = 9
   let selectedId = null
   let drag = null
+  let skipDrag = null
+  let selectedSkipId = null
+  let skipPreview = null
+  let lastSkipClick = { id: null, at: 0 }
   let scrubbing = false
   let host = null
   let scroller = null
@@ -144,6 +151,39 @@ export function createTimelineModule() {
 
   function trialObservations() {
     return store.getForTrial(activeTrialId())
+  }
+
+  // The skips of the active trial, with the one being dragged shown where it is dragged to.
+  function trialSkips() {
+    const skips = trialCatalog?.getActiveTrial?.()?.skips || []
+    return skipPreview ? skips.map((skip) => skip.id === skipPreview.id ? { ...skip, ...skipPreview } : skip) : skips
+  }
+
+  async function saveSkips(skips) {
+    const trialId = activeTrialId()
+    if (!trialId || !trialCatalog?.updateTrial) return
+    await trialCatalog.updateTrial(trialId, { skips })
+  }
+
+  async function editSkip(skip = null) {
+    if (!(duration > 0)) {
+      announce('Wczytaj film przed dodaniem pominięcia.')
+      return
+    }
+    const start = skip ? skip.start : currentTime
+    const answer = await askSkip({
+      start,
+      end: skip ? skip.end : Math.min(duration, start + 10),
+      countTime: skip?.countTime ?? false,
+      editing: Boolean(skip),
+      duration
+    })
+    if (!answer) return
+
+    const skips = trialCatalog?.getActiveTrial?.()?.skips || []
+    if (answer.type === 'delete') await saveSkips(skips.filter((item) => item.id !== skip.id))
+    else if (skip) await saveSkips(skips.map((item) => item.id === skip.id ? { ...item, start: answer.start, end: answer.end, countTime: answer.countTime } : item))
+    else await saveSkips([...skips, createSkip(answer.start, answer.end, answer.countTime)])
   }
 
   function animalMap() {
@@ -247,6 +287,13 @@ export function createTimelineModule() {
     }).join('')
   }
 
+  function renderSkip(skip, width) {
+    const left = Math.max(0, Math.min(width, (skip.start / duration) * width))
+    const right = Math.max(left, Math.min(width, (skip.end / duration) * width))
+    const kind = skip.countTime ? 'wliczony' : 'niewliczony'
+    return `<div class="timeline-skip${skip.countTime ? ' counted' : ''}${selectedSkipId === skip.id ? ' selected' : ''}" data-skip-id="${escapeHtml(skip.id)}" title="Pominięcie ${formatTime(skip.start)}–${formatTime(skip.end)} (czas ${kind}). Dwuklik edytuje, Delete usuwa zaznaczone." style="left:${left}px;width:${Math.max(MIN_LANE_WIDTH, right - left)}px"><span class="timeline-skip-text">${skip.countTime ? 'pominięcie · wliczone' : 'pominięcie'}</span><span class="timeline-resize-handle start" data-resize="start"></span><span class="timeline-resize-handle end" data-resize="end"></span></div>`
+  }
+
   function render() {
     if (!host) return
     const animals = currentAnimals()
@@ -264,6 +311,8 @@ export function createTimelineModule() {
             <div class="timeline-actions">
               <button type="button" data-timeline-action="undo" title="Cofnij (Ctrl+Z)" aria-label="Cofnij">↶</button>
               <button type="button" data-timeline-action="redo" title="Ponów (Ctrl+Y)" aria-label="Ponów">↷</button>
+              <button type="button" data-timeline-action="add-skip" title="Dodaj pominięcie – fragment filmu, który odtwarzacz przeskakuje">＋ Pominięcie</button>
+              <button type="button" data-timeline-action="skip-playback" title="Czy odtwarzacz przeskakuje pominięcia (wliczone i niewliczone) podczas odtwarzania" aria-pressed="true">Pomijanie: wł.</button>
               <button type="button" data-timeline-action="snap" title="Przyciąganie (Alt chwilowo wyłącza)" aria-pressed="true">Snap: wł.</button>
               <label class="timeline-snap-label" title="Odległość przyciągania">Czułość <select data-timeline-snap-threshold><option value="5">Niska</option><option value="9">Średnia</option><option value="14">Wysoka</option><option value="20">Bardzo wysoka</option></select></label>
               <label class="timeline-zoom-label" title="Powiększenie osi czasu: 1× pokazuje całe wideo, dalej da się zbliżać tylko do sensownej granicy">Zoom <input type="range" min="0" max="100" step="1" value="0" data-timeline-zoom><output data-timeline-zoom-value>1×</output></label>
@@ -280,6 +329,8 @@ export function createTimelineModule() {
         button.addEventListener('click', () => {
           if (button.dataset.timelineAction === 'undo') store.undo()
           if (button.dataset.timelineAction === 'redo') store.redo()
+          if (button.dataset.timelineAction === 'add-skip') editSkip().catch((error) => console.error('Could not add the skip:', error))
+          if (button.dataset.timelineAction === 'skip-playback') setSkipping(!isSkipping())
           if (button.dataset.timelineAction === 'snap') {
             snapEnabled = !snapEnabled
             button.textContent = `Snap: ${snapEnabled ? 'wł.' : 'wył.'}`
@@ -305,10 +356,18 @@ export function createTimelineModule() {
     effectiveScale = duration > 0 ? width / duration : 1
     const laneLayout = allocateAnimalLanes(trialObservations(), animals, currentTime, duration)
     const animalLookup = animalMap()
+    const skips = duration > 0 ? trialSkips() : []
+    const shade = skips.map((skip) => `<div class="timeline-skip-shade${skip.countTime ? ' counted' : ''}" style="left:${(skip.start / duration) * width}px;width:${((skip.end - skip.start) / duration) * width}px"></div>`).join('')
+    const skipRowHtml = duration > 0 ? `
+      <div class="timeline-skip-row">
+        <div class="timeline-skip-label" title="Fragmenty filmu, które odtwarzacz przeskakuje. Przeciągnij, aby przesunąć lub zmienić długość; dwuklik edytuje.">Pominięcia</div>
+        <div class="timeline-skip-track" style="width:${width}px">${skips.map((skip) => renderSkip(skip, width)).join('')}<div class="timeline-playhead" style="left:${(currentTime / duration) * width}px"></div></div>
+      </div>` : ''
     const rowsHtml = animals.map((animal) => {
       const count = laneLayout.laneCounts.get(animal.id) || 1
       const laneRows = Array.from({ length: count }, (_, lane) => `
         <div class="timeline-track" data-animal-id="${escapeHtml(animal.id)}" data-lane="${lane}" style="width:${width}px">
+          ${shade}
           ${renderTrackEvents(animal, lane, width, laneLayout.placements)}
           <div class="timeline-playhead" style="left:${duration > 0 ? (currentTime / duration) * width : 0}px"></div>
         </div>
@@ -325,10 +384,14 @@ export function createTimelineModule() {
 
     content.innerHTML = `
       <div class="timeline-ruler-row"><div class="timeline-ruler-label" title="${escapeHtml(videoPath)}"><span class="timeline-ruler-name">${escapeHtml(videoFileName(videoPath) || 'WIDEO')}</span></div>${renderRuler(width)}</div>
+      ${skipRowHtml}
       ${rowsHtml || '<div class="timeline-empty">Brak zwierząt</div>'}
     `
     host.querySelector('.timeline-current-time').textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`
     updateZoomControl()
+    const skipButton = host.querySelector('[data-timeline-action="skip-playback"]')
+    skipButton.textContent = `Pomijanie: ${isSkipping() ? 'wł.' : 'wył.'}`
+    skipButton.setAttribute('aria-pressed', String(isSkipping()))
     const snapButton = host.querySelector('[data-timeline-action="snap"]')
     snapButton.textContent = `Snap: ${snapEnabled ? 'wł.' : 'wył.'}`
     snapButton.setAttribute('aria-pressed', String(snapEnabled))
@@ -413,7 +476,10 @@ export function createTimelineModule() {
   function onPointerDown(event) {
     if (duration <= 0 || event.button !== 0) return
     const itemNode = event.target.closest('.timeline-event')
-    if (itemNode) {
+    const skipNode = event.target.closest('.timeline-skip')
+    if (skipNode) {
+      startSkipDrag(event, skipNode)
+    } else if (itemNode) {
       startDrag(event, itemNode)
     } else if (event.target.closest('.timeline-ruler-track')) {
       scrubbing = true
@@ -423,10 +489,67 @@ export function createTimelineModule() {
     }
   }
 
+  function startSkipDrag(event, skipNode) {
+    const skip = trialSkips().find((item) => item.id === skipNode.dataset.skipId)
+    if (!skip) return
+    selectedSkipId = skip.id
+    selectedId = null
+    skipDrag = {
+      id: skip.id,
+      mode: event.target.closest('[data-resize]')?.dataset.resize || 'move',
+      startX: event.clientX,
+      initial: { ...skip },
+      moved: false
+    }
+    scroller.setPointerCapture?.(event.pointerId)
+    render()
+    event.preventDefault()
+  }
+
+  function moveSkip(event) {
+    const deltaX = (event.clientX - skipDrag.startX) / effectiveScale
+    if (Math.abs(deltaX) < 0.025 && !skipDrag.moved) return
+    skipDrag.moved = true
+
+    const { initial } = skipDrag
+    const minLength = frameStep()
+    const length = initial.end - initial.start
+    if (skipDrag.mode === 'move') {
+      const start = Math.max(0, Math.min(duration - length, snapTime(initial.start + deltaX, event)))
+      skipPreview = { id: initial.id, start, end: start + length }
+    } else if (skipDrag.mode === 'start') {
+      skipPreview = { id: initial.id, start: Math.max(0, Math.min(snapTime(initial.start + deltaX, event), initial.end - minLength)) }
+    } else {
+      skipPreview = { id: initial.id, end: Math.min(duration, Math.max(snapTime(initial.end + deltaX, event), initial.start + minLength)) }
+    }
+    render()
+  }
+
+  async function finishSkipDrag() {
+    const completed = skipDrag
+    const preview = skipPreview
+    skipDrag = null
+    skipPreview = null
+    if (completed.moved && preview) {
+      const skips = trialCatalog?.getActiveTrial?.()?.skips || []
+      await saveSkips(skips.map((item) => item.id === completed.id ? { ...item, ...preview } : item))
+      return
+    }
+    // A second press on the same skip without moving opens its dialog (done by hand: the bars are redrawn while the video plays).
+    const now = Date.now()
+    if (lastSkipClick.id === completed.id && now - lastSkipClick.at < 450) {
+      lastSkipClick = { id: null, at: 0 }
+      await editSkip(trialSkips().find((item) => item.id === completed.id) || null)
+    } else {
+      lastSkipClick = { id: completed.id, at: now }
+    }
+  }
+
   function startDrag(event, itemNode) {
     const observation = store.getAll().find((item) => item.id === itemNode.dataset.observationId)
     if (!observation) return
     selectedId = observation.id
+    selectedSkipId = null
     const original = { ...observation }
     const resize = observation.kind === 'point' ? null : event.target.closest('[data-resize]')?.dataset.resize || null
     drag = {
@@ -449,6 +572,10 @@ export function createTimelineModule() {
   function onPointerMove(event) {
     if (scrubbing) {
       scrubTo(event.clientX)
+      return
+    }
+    if (skipDrag) {
+      moveSkip(event)
       return
     }
     if (!drag || duration <= 0) return
@@ -477,6 +604,10 @@ export function createTimelineModule() {
 
   async function onPointerUp() {
     scrubbing = false
+    if (skipDrag) {
+      await finishSkipDrag()
+      return
+    }
     if (!drag) return
     const completedDrag = drag
     drag = null
@@ -490,6 +621,12 @@ export function createTimelineModule() {
   function emitActiveStates() {
     const active = new Set(trialObservations().filter((item) => item.kind === 'interval' && item.end === null).map((item) => `${item.animalId}:${item.activityId}`))
     window.dispatchEvent(new CustomEvent('timeline-active-observations', { detail: { active } }))
+  }
+
+  async function removeSelectedSkip() {
+    const removedId = selectedSkipId
+    selectedSkipId = null
+    await saveSkips((trialCatalog?.getActiveTrial?.()?.skips || []).filter((skip) => skip.id !== removedId))
   }
 
   async function removeSelected() {
@@ -513,6 +650,11 @@ export function createTimelineModule() {
       store.redo()
       return
     }
+    if ((event.key === 'Delete' || event.key === 'Backspace') && selectedSkipId && isVideoViewActive()) {
+      event.preventDefault()
+      removeSelectedSkip().catch((error) => console.error('Could not delete the skip:', error))
+      return
+    }
     if ((event.key === 'Delete' || event.key === 'Backspace') && selectedId && isVideoViewActive()) {
       event.preventDefault()
       removeSelected()
@@ -526,7 +668,7 @@ export function createTimelineModule() {
     // While scrubbing, the video's delayed position reports must not pull the playhead back.
     if (scrubbing) return
     currentTime = Math.max(0, Number(state.currentTime) || 0)
-    if (drag) return
+    if (drag || skipDrag) return
 
     render()
     followPlayhead()
@@ -553,11 +695,13 @@ export function createTimelineModule() {
     }
 
     window.addEventListener('video-timeline-state', onVideoState)
+    window.addEventListener('skip-playback-changed', () => render())
     window.addEventListener('resize', () => render())
     window.addEventListener('etogram-activity-request', onActivityRequest)
     window.addEventListener('active-animal-changed', () => render())
     window.addEventListener('active-trial-changed', () => {
       selectedId = null
+      if (!trialSkips().some((skip) => skip.id === selectedSkipId)) selectedSkipId = null
       render()
       emitActiveStates()
     })

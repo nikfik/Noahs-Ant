@@ -6,6 +6,8 @@ import { VideoPlaybackControls } from './VideoPlaybackControls.js'
 import { VideoZoomControls } from './VideoZoomControls.js'
 import { askVideoQuality } from './video-quality-dialog.js'
 import { normalizeQualitySettings } from '../../shared/video-quality.js'
+import { skipAt } from '../trials/skip-model.js'
+import { isSkipping } from '../trials/skip-playback.js'
 
 // Buttons whose tooltip shows the keyboard shortcut: [element property, shortcut action, tooltip without the keys].
 const SHORTCUT_BUTTONS = [
@@ -93,6 +95,25 @@ export class VideoPlayerController {
 
   currentTrial() {
     return this.trialCatalog?.getData?.().trials.find((item) => item.id === this.trialId) || null
+  }
+
+  // While playing, a time skip of the trial is jumped over (unless playing skips was switched on in the timeline).
+  jumpOverSkip() {
+    if (!this.video || this.video.paused || this.video.seeking || !isSkipping()) return
+    // A seek lands on a picture, which can lie a frame before the requested time; that must not count as still being
+    // inside the skip, or the player would keep jumping and never move on.
+    const skip = skipAt(this.currentTrial()?.skips, this.video.currentTime + this.frameStep())
+    if (skip && this.video.currentTime >= skip.start) this.video.currentTime = skip.end
+  }
+
+  watchSkips() {
+    const step = () => {
+      this.skipFrame = 0
+      if (!this.video || this.video.paused) return
+      this.jumpOverSkip()
+      this.skipFrame = requestAnimationFrame(step)
+    }
+    if (!this.skipFrame) this.skipFrame = requestAnimationFrame(step)
   }
 
   // One step is one real picture of the video (1/25 s, 1/50 s, ...); 1/30 s only when the frame rate is not known.
@@ -263,6 +284,8 @@ export class VideoPlayerController {
 
     this.video?.addEventListener('play', () => {
       this.playbackControls.syncPlaybackButton(this.playPauseBtn)
+      this.jumpOverSkip()
+      this.watchSkips()
     })
 
     this.video?.addEventListener('pause', () => {
@@ -276,6 +299,7 @@ export class VideoPlayerController {
     })
 
     this.video?.addEventListener('timeupdate', this.publishTimelineState)
+    this.video?.addEventListener('timeupdate', () => this.jumpOverSkip())
 
     this.video?.addEventListener('seeked', this.publishTimelineState)
     this.video?.addEventListener('durationchange', this.publishTimelineState)

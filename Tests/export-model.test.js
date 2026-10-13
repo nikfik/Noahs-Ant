@@ -40,7 +40,7 @@ const sheets = (options = {}) => Object.fromEntries(
 describe('Workbook contents', () => {
   test('produces the five sheets in a useful order', () => {
     expect(buildExportSheets({ observations, trials, animals, presets, exportedAt }).map((sheet) => sheet.name))
-      .toEqual(['Metryki', 'Metryki (długi format)', 'Zdarzenia', 'Okna prób', 'Informacje'])
+      .toEqual(['Metryki', 'Metryki (długi format)', 'Zdarzenia', 'Okna prób', 'Pominięcia', 'Informacje'])
   })
 
   test('wide sheet has one row per trial with a group of columns for every behavior of every animal', () => {
@@ -120,8 +120,8 @@ describe('Workbook contents', () => {
     const custom = [{ ...trials[0], windowStart: 5, windowEnd: 25 }, trials[1]]
     const { 'Okna prób': windows } = sheets({ trials: custom })
 
-    expect(windows.rows[0]).toEqual(['A2M1 / Head / 1', 300, 5, 25, 5, 25, 2, 4])
-    expect(windows.rows[1]).toEqual(['A2M1 / Head / 2', null, null, null, 0, 9, 1, 1])
+    expect(windows.rows[0]).toEqual(['A2M1 / Head / 1', 300, 5, 25, 5, 25, 2, 4, 0, 20])
+    expect(windows.rows[1]).toEqual(['A2M1 / Head / 2', null, null, null, 0, 9, 1, 1, 0, 9])
   })
 
   test('info sheet records the settings and the formulas', () => {
@@ -137,7 +137,7 @@ describe('Workbook contents', () => {
 
   test('handles a project without trials or animals', () => {
     const empty = buildExportSheets({ exportedAt })
-    expect(empty).toHaveLength(5)
+    expect(empty).toHaveLength(6)
     expect(empty[0].rows).toEqual([])
     expect(empty[2].rows).toEqual([])
   })
@@ -148,7 +148,7 @@ describe('Workbook contents', () => {
     writeWorkbook(filePath, buildExportSheets({ observations, trials, animals, presets, exportedAt }))
 
     const workbook = XLSX.readFile(filePath, { cellNF: true })
-    expect(workbook.SheetNames).toEqual(['Metryki', 'Metryki (długi format)', 'Zdarzenia', 'Okna prób', 'Informacje'])
+    expect(workbook.SheetNames).toEqual(['Metryki', 'Metryki (długi format)', 'Zdarzenia', 'Okna prób', 'Pominięcia', 'Informacje'])
 
     const wide = XLSX.utils.sheet_to_json(workbook.Sheets.Metryki)
     expect(wide).toHaveLength(2)

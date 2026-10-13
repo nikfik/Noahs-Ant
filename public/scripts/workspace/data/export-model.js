@@ -94,12 +94,21 @@ function buildEventsSheet(observations, trials, animals) {
 function buildWindowsSheet(observations, trials) {
   return {
     name: 'Okna prób',
-    headers: ['Próba', 'Długość wideo (s)', 'Okno od – ustawione (s)', 'Okno do – ustawione (s)', 'Użyte okno od (s)', 'Użyte okno do (s)', 'Zdarzenia w oknie', 'Zdarzenia razem'],
+    headers: ['Próba', 'Długość wideo (s)', 'Okno od – ustawione (s)', 'Okno do – ustawione (s)', 'Użyte okno od (s)', 'Użyte okno do (s)', 'Zdarzenia w oknie', 'Zdarzenia razem', 'Pominięty czas, niewliczony (s)', 'Długość analizy po odjęciu pominięć (s)'],
     rows: trials.map((trial) => {
       const { window, total, inside } = summarizeTrialWindow(observations, trial)
-      return [trial.name, trial.duration, trial.windowStart, trial.windowEnd, window.start, window.end, inside, total]
+      return [trial.name, trial.duration, trial.windowStart, trial.windowEnd, window.start, window.end, inside, total, window.skipped, window.length]
     }),
-    formats: { 1: '0.000', 2: '0.000', 3: '0.000', 4: '0.000', 5: '0.000' }
+    formats: { 1: '0.000', 2: '0.000', 3: '0.000', 4: '0.000', 5: '0.000', 8: '0.000', 9: '0.000' }
+  }
+}
+
+function buildSkipsSheet(trials) {
+  return {
+    name: 'Pominięcia',
+    headers: ['Próba', 'Początek (s)', 'Koniec (s)', 'Czas (s)', 'Wliczony do analizy'],
+    rows: trials.flatMap((trial) => (trial.skips || []).map((skip) => [trial.name, skip.start, skip.end, skip.end - skip.start, skip.countTime ? 'tak' : 'nie'])),
+    formats: { 1: '0.000', 2: '0.000', 3: '0.000' }
   }
 }
 
@@ -112,6 +121,7 @@ function buildInfoSheet({ includeCategories, mergeCategories, hasCategories, exp
       ['Wyeksportowano', exportedAt.toLocaleString('pl-PL')],
       ['Sumy kategorii (Σ)', categoriesOn ? 'tak – wiersze „Σ” sumują czynności z jednej kategorii' : 'nie'],
       ['Czas scalony', categoriesOn && mergeCategories ? 'tak – nakładające się czynności w sumie kategorii liczone raz (czas = suma scalonych odcinków, liczba = liczba epizodów)' : 'nie – zwykła suma, nakładający się czas liczony podwójnie'],
+      ['Pominięcia', 'Fragmenty filmu przeskakiwane przez odtwarzacz. Niewliczony czas jest odejmowany od długości okna, od czasów trwania czynności i od latencji (czynność trwająca przez pominięcie traci tylko jego część). Wliczony czas zostaje w metrykach bez zmian. Lista pominięć jest w arkuszu „Pominięcia”.'],
       ['Okno analizy', 'Fragment nagrania, dla którego liczone są metryki (domyślnie całe wideo). Zdarzenia poza oknem są pomijane, a te na jego granicy – przycinane. Trwające zdarzenie kończy się wraz z oknem.'],
       ['Wystąpiła (1/0)', '1, jeśli czynność wystąpiła choć raz w oknie analizy'],
       ['Latencja (s)', 'Czas od początku okna do pierwszego wystąpienia czynności; puste, gdy czynność nie wystąpiła'],
@@ -132,6 +142,7 @@ export function buildExportSheets({ observations = [], trials = [], animals = []
     buildLongSheet(metricRows),
     buildEventsSheet(observations, trials, animals),
     buildWindowsSheet(observations, trials),
+    buildSkipsSheet(trials),
     buildInfoSheet({ includeCategories, mergeCategories, hasCategories: hasCategoryGroups(animals, presets), exportedAt })
   ]
 }

@@ -1,4 +1,5 @@
 import { createId } from '../animals/animal-model.js'
+import { normalizeSkips } from './skip-model.js'
 
 export function createEmptyTrialData() {
   return { version: 1, activeTrialId: null, trials: [] }
@@ -19,6 +20,8 @@ function normalizeTrial(trial) {
     // Pictures per second of the video; frame steps and snapping use it instead of a fixed 30.
     frameRate: positiveOrNull(trial.frameRate),
     duration: positiveOrNull(trial.duration),
+    // Stretches of the video the player jumps over (see skip-model.js).
+    skips: normalizeSkips(trial.skips),
     windowStart,
     windowEnd: windowEnd !== null && windowEnd <= (windowStart ?? 0) ? null : windowEnd
   }

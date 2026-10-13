@@ -19,8 +19,8 @@ describe('Trial model', () => {
     })
 
     expect(data.trials).toEqual([
-      { id: 'a', name: 'Bez nazwy', videoPath: '', sourcePath: '', frameRate: null, duration: null, windowStart: null, windowEnd: null },
-      { id: 'b', name: 'B', videoPath: 'b.mp4', sourcePath: '', frameRate: null, duration: null, windowStart: null, windowEnd: null }
+      { id: 'a', name: 'Bez nazwy', videoPath: '', sourcePath: '', frameRate: null, duration: null, skips: [], windowStart: null, windowEnd: null },
+      { id: 'b', name: 'B', videoPath: 'b.mp4', sourcePath: '', frameRate: null, duration: null, skips: [], windowStart: null, windowEnd: null }
     ])
     expect(data.activeTrialId).toBe('a')
   })

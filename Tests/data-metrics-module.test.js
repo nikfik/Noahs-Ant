@@ -170,11 +170,11 @@ describe('Data metrics module', () => {
   test('shows which window is used and how many events it keeps', async () => {
     await setup()
     const windowCells = (trialId) => Array.from(document.querySelectorAll(`[data-trial-id="${trialId}"] td`)).map((cell) => cell.textContent.trim())
-    expect(windowCells('t1').slice(4, 6)).toEqual(['0.000 – 300.000', '2 / 2'])
+    expect(windowCells('t1').slice(4, 7)).toEqual(['0.000 – 300.000', '—', '2 / 2'])
 
     change(document.querySelector('[data-trial-id="t1"] [data-window="windowEnd"]'), '25')
     await flush()
-    expect(windowCells('t1').slice(4, 6)).toEqual(['0.000 – 25.000', '1 / 2'])
+    expect(windowCells('t1').slice(4, 7)).toEqual(['0.000 – 25.000', '—', '1 / 2'])
     expect(document.querySelector('[data-trial-id="t1"] .data-window-trimmed')).not.toBeNull()
     expect(metricRow('Próba 1', 'Ciągnięcie').slice(3, 6)).toEqual(['nie', '—', '0'])
     expect(metricRow('Próba 1', 'Kopanie')[7]).toBe('40.0')
@@ -193,7 +193,7 @@ describe('Data metrics module', () => {
 
     const request = window.electronAPI.exportWorkbook.mock.calls[0][0]
     expect(request.suggestedName).toMatch(/^Study_metryki_\d{4}-\d{2}-\d{2}\.xlsx$/)
-    expect(request.sheets.map((sheet) => sheet.name)).toEqual(['Metryki', 'Metryki (długi format)', 'Zdarzenia', 'Okna prób', 'Informacje'])
+    expect(request.sheets.map((sheet) => sheet.name)).toEqual(['Metryki', 'Metryki (długi format)', 'Zdarzenia', 'Okna prób', 'Pominięcia', 'Informacje'])
     expect(request.sheets[0].rows).toHaveLength(2)
     expect(document.querySelector('[data-data-message]').textContent).toBe('Zapisano: C:/out/Study_metryki.xlsx')
 
