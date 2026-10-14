@@ -12,10 +12,10 @@
   "video": {
     "askQuality": true,
     "quality": {
-      "preset": "original",
-      "maxHeight": null,
-      "maxFrameRate": null,
-      "quality": "original"
+      "preset": "very-light",
+      "maxHeight": 480,
+      "maxFrameRate": 25,
+      "quality": "low"
     },
     "skipSeconds": 10
   },

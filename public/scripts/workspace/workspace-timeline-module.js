@@ -4,6 +4,7 @@ import { isVideoViewActive } from '../shared/workspace-view.js'
 import { getObservationDisplayEnd } from './observations/observation-model.js'
 import { createObservationStore } from './observations/observation-store.js'
 import { createSkip } from './trials/skip-model.js'
+import { applyRelations } from './observations/activity-relations.js'
 import { askSkip } from './trials/skip-dialog.js'
 import { isSkipping, setSkipping } from './trials/skip-playback.js'
 
@@ -429,8 +430,10 @@ export function createTimelineModule() {
       return
     }
     const current = store.getAll()
-    const next = toggleObservation(current, request, { animalId, currentTime, duration, repeat: request.repeat, trialId: activeTrialId() })
-    if (next === current) return
+    const toggled = toggleObservation(current, request, { animalId, currentTime, duration, repeat: request.repeat, trialId: activeTrialId() })
+    if (toggled === current) return
+    // Related actions start or end at the same moment; everything is one change, so one undo takes it all back.
+    const next = applyRelations(current, toggled, { animalId, trialId: activeTrialId(), time: currentTime, activities: request.activities })
     await store.commit(next)
     announce(`${request.activityName || 'Czynność'} · ${formatTime(currentTime)}`)
   }

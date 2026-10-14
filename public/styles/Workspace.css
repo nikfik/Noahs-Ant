@@ -761,17 +761,17 @@ button, input, select, textarea { font-family: inherit; }
   background: rgba(255,255,255,0.015);
 }
 .editor-table {
-  width: 1100px;
-  min-width: 1100px;
+  width: 100%;
+  min-width: 960px;
   table-layout: fixed;
 }
-.editor-table .etogram-col-remove { width: 48px; }
-.editor-table .etogram-col-category { width: 165px; }
-.editor-table .etogram-col-name { width: 180px; }
-.editor-table .etogram-col-description { width: 300px; }
-.editor-table .etogram-col-shortcut { width: 205px; }
-.editor-table .etogram-col-color { width: 92px; }
-.editor-table .etogram-col-continuous { width: 110px; }
+.editor-table .etogram-col-remove { width: 44px; }
+.editor-table .etogram-col-category { width: 150px; }
+.editor-table .etogram-col-name { width: 160px; }
+/* the description column takes whatever width is left */
+.editor-table .etogram-col-shortcut { width: 185px; }
+.editor-table .etogram-col-color { width: 100px; }
+.editor-table .etogram-col-continuous { width: 80px; }
 .editor-table th,
 .editor-table td {
   overflow: hidden;
@@ -1228,3 +1228,66 @@ button, input, select, textarea { font-family: inherit; }
 .skip-dialog-actions { display: flex; gap: 10px; align-items: center; }
 .skip-dialog-spacer { flex: 1; }
 .timeline-skip.selected { z-index: 3; filter: brightness(1.25); box-shadow: 0 0 0 2px rgba(255,255,255,.45); }
+.editor-table .etogram-col-more { width: 64px; }
+.etogram-color-cell { white-space: nowrap; }
+.etogram-color-reroll {
+  margin-left: 6px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font-size: 14px;
+  cursor: pointer;
+  opacity: .6;
+}
+.etogram-color-reroll:hover { opacity: 1; background: rgba(255,255,255,.1); }
+.etogram-more-cell { text-align: center !important; }
+.etogram-more {
+  position: relative;
+  min-width: 32px;
+  padding: 2px 8px 6px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.etogram-more:hover, .etogram-more.open { background: rgba(255,255,255,.1); border-color: var(--primary-color, #ff4f1a); }
+.etogram-more-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 14px;
+  padding: 1px 3px;
+  border-radius: 8px;
+  background: var(--primary-color, #ff4f1a);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 12px;
+}
+.etogram-relations-row > td { background: rgba(255,255,255,.025); }
+.etogram-relations { display: grid; gap: 8px; padding: 6px 4px 10px; }
+.etogram-relations p { margin: 0; color: var(--muted-text, #888); font-size: 12px; line-height: 1.45; }
+.etogram-relation { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--text-color); font-size: 12px; }
+.etogram-relation select {
+  padding: 6px 8px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px;
+  background: rgba(255,255,255,.04);
+  color: var(--text-color);
+  font: inherit;
+}
+.etogram-add-relation {
+  justify-self: start;
+  padding: 6px 10px;
+  border: 1px dashed rgba(255,255,255,.25);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 12px;
+  cursor: pointer;
+}
+.etogram-add-relation:hover { border-color: var(--primary-color, #ff4f1a); }

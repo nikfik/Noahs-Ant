@@ -11,6 +11,8 @@ import {
   shortcutsOverlap
 } from '../settings/shortcut-utils.js'
 import { eventKey, matchesShortcut } from './shortcuts/shortcut-matching.js'
+import { chooseAnimalColor } from './animals/animal-model.js'
+import { normalizeRelations, pruneRelations } from './observations/activity-relations.js'
 
 const defaultEtogramRows = []
 const OPERATOR_HINT = '„+” – oba klawisze naraz, „/” – jeden z dwóch. Kolejne kliknięcie przełącza: + → / → tylko pierwszy klawisz.'
@@ -40,6 +42,7 @@ export function normalizeRows(rows) {
     description: row.description || '',
     color: /^#[0-9a-f]{6}$/i.test(row.color) ? row.color : '#ff4f1a',
     continuous: Boolean(row.continuous),
+    relations: normalizeRelations(row.relations)
   }))
 }
 
@@ -52,9 +55,49 @@ export function renderCompactTable(rows, conflicts = []) {
   `).join('')
 }
 
-export function renderEditorTable(rows, conflicts = []) {
+const RELATION_WHEN = { start: 'się zaczyna', end: 'się kończy' }
+const RELATION_DO = { start: 'rozpocznij', end: 'zakończ' }
+
+function renderRelationRule(row, rule, ruleIndex, rows, index) {
+  const targets = rows.filter((other) => other.continuous && other.id !== row.id)
+  const whenOptions = (row.continuous ? ['start', 'end'] : ['start'])
+    .map((value) => `<option value="${value}" ${rule.when === value ? 'selected' : ''}>${row.continuous ? RELATION_WHEN[value] : 'wystąpi'}</option>`).join('')
+  const doOptions = ['start', 'end'].map((value) => `<option value="${value}" ${rule.do === value ? 'selected' : ''}>${RELATION_DO[value]}</option>`).join('')
+  const targetOptions = targets
+    .map((other) => `<option value="${escapeHtml(other.id)}" ${rule.targetId === other.id ? 'selected' : ''}>${escapeHtml(other.name || 'czynność bez nazwy')}</option>`).join('')
+  return `
+    <div class="etogram-relation" data-rule-index="${ruleIndex}">
+      <span>Gdy ta czynność</span>
+      <select data-rel="when" aria-label="Kiedy">${whenOptions}</select>
+      <span>→</span>
+      <select data-rel="do" aria-label="Co zrobić">${doOptions}</select>
+      <select data-rel="targetId" aria-label="Która czynność"><option value="">— wybierz czynność —</option>${targetOptions}</select>
+      <button class="etogram-remove-row" type="button" data-action="remove-relation" data-index="${index}" data-rule-index="${ruleIndex}" aria-label="Usuń regułę">×</button>
+    </div>`
+}
+
+function renderRelationsRow(row, rows, index) {
+  const rules = row.relations || []
+  const others = rows.filter((other) => other.continuous && other.id !== row.id)
+  return `
+    <tr class="etogram-relations-row" data-relations-for="${index}">
+      <td></td>
+      <td colspan="7">
+        <div class="etogram-relations">
+          <p>Powiązane czynności: ta czynność może w tej samej chwili rozpocząć lub zakończyć inną czynność tego zwierzęcia (np. po zakończeniu „sen” rozpocznij „czuwanie”).</p>
+          ${rules.map((rule, ruleIndex) => renderRelationRule(row, rule, ruleIndex, rows, index)).join('')}
+          ${others.length
+    ? `<button class="etogram-add-relation" type="button" data-action="add-relation" data-index="${index}">＋ Dodaj regułę</button>`
+    : '<p class="etogram-relations-empty">Dodaj do etogramu co najmniej jedną inną czynność ciągłą, aby móc ją powiązać.</p>'}
+        </div>
+      </td>
+    </tr>`
+}
+
+export function renderEditorTable(rows, conflicts = [], expanded = new Set()) {
   return rows.map((row, index) => {
     const shortcut = normalizeShortcut(row.shortcut)
+    const ruleCount = (row.relations || []).length
     return `
     <tr data-index="${index}">
       <td class="etogram-remove-cell"><button class="etogram-remove-row" type="button" data-action="remove-row" data-index="${index}" aria-label="Usuń czynność ${escapeHtml(row.name || index + 1)}">×</button></td>
@@ -69,9 +112,11 @@ export function renderEditorTable(rows, conflicts = []) {
         </div>
         ${conflicts[index] ? `<div class="etogram-shortcut-warning" role="status">${escapeHtml(conflicts[index])}</div>` : ''}
       </td>
-      <td><input data-field="color" data-index="${index}" type="color" value="${escapeHtml(row.color)}" aria-label="Kolor ${escapeHtml(row.name || 'czynności')}" /></td>
+      <td class="etogram-color-cell"><input data-field="color" data-index="${index}" type="color" value="${escapeHtml(row.color)}" aria-label="Kolor ${escapeHtml(row.name || 'czynności')}" /><button class="etogram-color-reroll" type="button" data-action="reroll-color" data-index="${index}" title="Losuj inny kolor" aria-label="Losuj inny kolor">🎲</button></td>
       <td class="etogram-continuous-cell"><input data-field="continuous" data-index="${index}" type="checkbox" ${row.continuous ? 'checked' : ''} aria-label="Czynność ciągła" /></td>
+      <td class="etogram-more-cell"><button class="etogram-more ${expanded.has(row.id) ? 'open' : ''}" type="button" data-action="toggle-relations" data-index="${index}" aria-expanded="${expanded.has(row.id)}" title="Zaawansowane: powiązane czynności${ruleCount ? ` (reguł: ${ruleCount})` : ''}" aria-label="Zaawansowane opcje czynności">…${ruleCount ? `<span class="etogram-more-count">${ruleCount}</span>` : ''}</button></td>
     </tr>
+    ${expanded.has(row.id) ? renderRelationsRow(row, rows, index) : ''}
   `
   }).join('')
 }
@@ -144,6 +189,7 @@ async function init(containerId = 'etogram-module', options = {}) {
   let rows = normalizeRows(await loadRows(projectFile, animalCatalog, activeAnimalId))
   let draftRows = normalizeRows(rows)
   const pressedKeys = new Set()
+  const expandedRows = new Set()
 
   host.innerHTML = `
     <section class="side-panel etogram-card">
@@ -183,8 +229,9 @@ async function init(containerId = 'etogram-module', options = {}) {
                   <col class="etogram-col-shortcut" />
                   <col class="etogram-col-color" />
                   <col class="etogram-col-continuous" />
+                  <col class="etogram-col-more" />
                 </colgroup>
-                <thead><tr><th></th><th>Kategoria</th><th>Czynność</th><th>Opis</th><th>Skrót</th><th>Kolor</th><th>Ciągła</th></tr></thead>
+                <thead><tr><th></th><th>Kategoria</th><th>Czynność</th><th>Opis</th><th>Skrót</th><th>Kolor</th><th>Ciągła</th><th title="Zaawansowane opcje czynności">Więcej</th></tr></thead>
                 <tbody>${renderEditorTable(rows, findShortcutConflicts(rows, programShortcuts()))}</tbody>
               </table>
             </div>
@@ -213,7 +260,7 @@ async function init(containerId = 'etogram-module', options = {}) {
   let pendingShortcut = null
 
   function renderDraft() {
-    editorBody.innerHTML = renderEditorTable(draftRows, findShortcutConflicts(draftRows, programShortcuts()))
+    editorBody.innerHTML = renderEditorTable(draftRows, findShortcutConflicts(draftRows, programShortcuts()), expandedRows)
   }
 
   function renderCompact() {
@@ -226,9 +273,18 @@ async function init(containerId = 'etogram-module', options = {}) {
   }
 
   function collectDraft() {
-    draftRows = Array.from(editorBody.querySelectorAll('tr')).map((tr, index) => {
+    draftRows = Array.from(editorBody.querySelectorAll('tr[data-index]')).map((tr, index) => {
       const get = (field) => tr.querySelector(`[data-field="${field}"]`)
       const previous = draftRows[index] || {}
+      // The rules are read from the screen only while the row's advanced section is open.
+      const relationsRow = editorBody.querySelector(`tr[data-relations-for="${index}"]`)
+      const relations = relationsRow
+        ? Array.from(relationsRow.querySelectorAll('.etogram-relation')).map((node) => ({
+          when: node.querySelector('[data-rel="when"]')?.value,
+          do: node.querySelector('[data-rel="do"]')?.value,
+          targetId: node.querySelector('[data-rel="targetId"]')?.value || ''
+        }))
+        : previous.relations || []
       return {
         id: previous.id || rows[index]?.id || `${Date.now()}-${index}`,
         category: String(get('category')?.value || '').trim(),
@@ -236,7 +292,8 @@ async function init(containerId = 'etogram-module', options = {}) {
         description: String(get('description')?.value || '').trim(),
         shortcut: normalizeShortcut(previous.shortcut),
         color: get('color')?.value || '#ff4f1a',
-        continuous: Boolean(get('continuous')?.checked)
+        continuous: Boolean(get('continuous')?.checked),
+        relations
       }
     })
     return draftRows
@@ -261,7 +318,7 @@ async function init(containerId = 'etogram-module', options = {}) {
   })
 
   saveBtn?.addEventListener('click', async () => {
-    const normalized = normalizeRows(collectDraft())
+    const normalized = pruneRelations(normalizeRows(collectDraft()))
     rows.splice(0, rows.length, ...normalized)
     renderCompact()
     await persistRows(projectFile, normalized, animalCatalog)
@@ -276,11 +333,12 @@ async function init(containerId = 'etogram-module', options = {}) {
       name: '',
       description: '',
       shortcut: { primary: '', secondary: '', operator: '/' },
-      color: '#ff4f1a',
-      continuous: false
+      color: chooseAnimalColor(draftRows, Math.random),
+      continuous: false,
+      relations: []
     })
     renderDraft()
-    editorBody.querySelector('tr:last-child [data-field="name"]')?.focus()
+    Array.from(editorBody.querySelectorAll('tr[data-index]')).at(-1)?.querySelector('[data-field="name"]')?.focus()
   })
 
   host.addEventListener('click', (event) => {
@@ -290,6 +348,20 @@ async function init(containerId = 'etogram-module', options = {}) {
     collectDraft()
     if (button.dataset.action === 'remove-row') {
       draftRows.splice(rowIndex, 1)
+      renderDraft()
+    } else if (button.dataset.action === 'reroll-color' && draftRows[rowIndex]) {
+      draftRows[rowIndex].color = chooseAnimalColor(draftRows.filter((_row, index) => index !== rowIndex), Math.random, draftRows[rowIndex].color)
+      renderDraft()
+    } else if (button.dataset.action === 'toggle-relations' && draftRows[rowIndex]) {
+      const rowId = draftRows[rowIndex].id
+      if (expandedRows.has(rowId)) expandedRows.delete(rowId)
+      else expandedRows.add(rowId)
+      renderDraft()
+    } else if (button.dataset.action === 'add-relation' && draftRows[rowIndex]) {
+      draftRows[rowIndex].relations = [...(draftRows[rowIndex].relations || []), { when: 'start', do: 'end', targetId: '' }]
+      renderDraft()
+    } else if (button.dataset.action === 'remove-relation' && draftRows[rowIndex]) {
+      draftRows[rowIndex].relations = (draftRows[rowIndex].relations || []).filter((_rule, index) => index !== Number(button.dataset.ruleIndex))
       renderDraft()
     } else if (button.dataset.action === 'toggle-operator' && draftRows[rowIndex]) {
       draftRows[rowIndex].shortcut = cycleOperator(draftRows[rowIndex].shortcut)
@@ -332,6 +404,11 @@ async function init(containerId = 'etogram-module', options = {}) {
     if (!matchingRows.length) return
     event.preventDefault()
 
+    // What the timeline needs to run the related actions of this animal's etogram.
+    const activities = Object.fromEntries(rows.map((row) => [row.id, {
+      id: row.id, name: row.name, color: row.color, continuous: row.continuous, relations: row.relations
+    }]))
+
     matchingRows.forEach((row) => {
       const rowNode = Array.from(compactBody?.querySelectorAll('[data-row-id]') || [])
         .find((node) => node.dataset.rowId === String(row.id))
@@ -343,7 +420,8 @@ async function init(containerId = 'etogram-module', options = {}) {
           activityColor: row.color,
           continuous: row.continuous,
           repeat: event.repeat,
-          animalId: activeAnimal?.id || null
+          animalId: activeAnimal?.id || null,
+          activities
         }
       }))
     })
@@ -375,7 +453,7 @@ async function init(containerId = 'etogram-module', options = {}) {
     activeAnimalId = event.detail?.activeAnimal?.id || animalCatalog?.getData?.().activeAnimalId || null
     rows = normalizeRows(await loadRows(projectFile, animalCatalog, activeAnimalId))
     renderCompact()
-    editorBody.innerHTML = renderEditorTable(rows, findShortcutConflicts(rows, programShortcuts()))
+    editorBody.innerHTML = renderEditorTable(rows, findShortcutConflicts(rows, programShortcuts()), expandedRows)
   })
 
   // Keys changed in the settings window: refresh the warnings, and keep what is being typed in an open editor.
