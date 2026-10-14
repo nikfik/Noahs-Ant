@@ -1,0 +1,50 @@
+/* The cards of the left sidebar (trial, animals, etogram) share one look: card, header with title and action, body. */
+.side-panel {
+	margin-bottom: 14px;
+	overflow: hidden;
+	border: 1px solid rgba(255,255,255,0.08);
+	border-radius: 14px;
+	background: linear-gradient(145deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015));
+	box-shadow: 0 12px 28px rgba(0,0,0,0.14);
+}
+.side-panel-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 14px 14px 12px;
+	border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.side-panel-header h3 {
+	margin: 3px 0 0;
+	color: var(--text-color);
+	font-size: 16px;
+}
+.side-panel-eyebrow {
+	color: var(--muted-text, #888);
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: .1em;
+	text-transform: uppercase;
+}
+.side-panel-body {
+	padding: 10px 14px 14px;
+}
+.side-panel-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 30px;
+	padding: 0 9px;
+	border: 1px solid rgba(255,255,255,0.1);
+	border-radius: 8px;
+	background: rgba(255,255,255,0.05);
+	color: var(--primary-color, #ff4f1a);
+	font: inherit;
+	font-size: 11px;
+	font-weight: 700;
+	cursor: pointer;
+}
+.side-panel-action:hover {
+	background: rgba(255,255,255,0.1);
+}

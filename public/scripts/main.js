@@ -1,189 +1,83 @@
-const path = require('path')
-const fs = require('fs')
-const { app, BrowserWindow, ipcMain, dialog } = require('electron')
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { createThemeState } from './main/theme-state.js'
+import { createSettingsStore } from './main/settings-store.js'
+import { createProjectStore } from './main/project-store.js'
+import { createAnimalsStore } from './main/animals-store.js'
+import { createObservationsStore } from './main/observations-store.js'
+import { createTrialsStore } from './main/trials-store.js'
+import ffmpegPath from 'ffmpeg-static'
+import { writeTextFiles, writeWorkbook } from './main/workbook-export.js'
+import { createVideoConverter } from './main/video-converter.js'
+import { createMainWindow, createSettingsWindow } from './main/windows.js'
+import { registerThemeHandlers as registerThemeHandlersModule } from './main/handlers/theme-handlers.js'
+import { registerSettingsHandlers as registerSettingsHandlersModule } from './main/handlers/settings-handlers.js'
+import { registerProjectHandlers as registerProjectHandlersModule } from './main/handlers/project-handlers.js'
+import { registerFileHandlers as registerFileHandlersModule } from './main/handlers/file-handlers.js'
+import { registerVideoHandlers as registerVideoHandlersModule } from './main/handlers/video-handlers.js'
 
-const defaultTheme = { bgColor: '#1a1a1a', textColor: '#e0e0e0', primaryColor: '#ff4f1a' }
-let currentTheme = { ...defaultTheme }
-let settingsWindow = null
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const APP_SETTINGS_PATH = path.join(__dirname, '..', '..', 'app-settings.json')
 const PROJECTS_DIR = path.join(__dirname, '..', '..', 'Projects')
 
-function ensureProjectsDirectory() {
-  if (!fs.existsSync(PROJECTS_DIR)) {
-    fs.mkdirSync(PROJECTS_DIR, { recursive: true })
-  }
+const settingsStore = createSettingsStore(APP_SETTINGS_PATH)
+const initialSettings = settingsStore.readAppSettings()
+const themeState = createThemeState(initialSettings.theme)
+const projectStore = createProjectStore(PROJECTS_DIR)
+const animalsStore = createAnimalsStore(PROJECTS_DIR)
+const trialsStore = createTrialsStore(PROJECTS_DIR)
+const observationsStore = createObservationsStore(PROJECTS_DIR, {
+  getDefaultTrialId: (projectId) => trialsStore.read(projectId).trials[0]?.id ?? null
+})
+const windowOptions = {
+  BrowserWindow,
+  preloadPath: path.join(__dirname, 'preload.cjs'),
+  viewsDirectory: path.join(__dirname, '..', 'views'),
+  getTheme: () => themeState.get()
+}
+const openSettingsWindow = createSettingsWindow(windowOptions)
+
+function registerThemeHandlers() {
+  registerThemeHandlersModule({ ipcMain, BrowserWindow, themeState })
 }
 
-function sanitizeFileName(name) {
-  return name
-    .replace(/[<>:"/\\|?*]/g, '_')
-    .replace(/\s+/g, '-').trim()
+function registerSettingsHandlers() {
+  registerSettingsHandlersModule({ ipcMain, BrowserWindow, settingsStore, openSettingsWindow })
 }
 
-function applyThemeToWindow(win) {
-  if (win && !win.isDestroyed()) {
-    win.webContents.send('theme-changed', currentTheme)
-  }
+function registerProjectHandlers() {
+  console.log('[main] registering project IPC handlers')
+  registerProjectHandlersModule({ ipcMain, projectStore, animalsStore, observationsStore, trialsStore })
+}
+
+// A packaged app keeps binaries outside the asar archive, where they can be executed.
+const videoConverter = createVideoConverter({ ffmpegPath: ffmpegPath?.replace('app.asar', 'app.asar.unpacked') })
+
+function registerVideoHandlers() {
+  registerVideoHandlersModule({ ipcMain, converter: videoConverter, projectsDirectory: PROJECTS_DIR })
+}
+
+function registerFileHandlers() {
+  registerFileHandlersModule({ ipcMain, dialog, writeWorkbook, writeTextFiles, getDefaultDirectory: () => app.getPath('documents') })
 }
 
 function createWindow() {
-  const win = new BrowserWindow({
-    width: 1600,
-    height: 900,
-    backgroundColor: currentTheme.bgColor,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false,
-      contextIsolation: true
-    }
-  })
-
-  const indexPath = path.join(__dirname, '..', 'views', 'ProjectList.html')
-  win.loadFile(indexPath)
-
-  win.webContents.once('did-finish-load', () => {
-    applyThemeToWindow(win)
-  })
-}
-
-function createSettingsWindow() {
-  if (settingsWindow && !settingsWindow.isDestroyed()) {
-    settingsWindow.show()
-    settingsWindow.focus()
-    return
-  }
-
-  settingsWindow = new BrowserWindow({
-    width: 460,
-    height: 700,
-    resizable: false,
-    title: 'Settings',
-    backgroundColor: currentTheme.bgColor,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false,
-      contextIsolation: true
-    }
-  })
-
-  const settingsPath = path.join(__dirname, '..', 'views', 'Settings.html')
-  settingsWindow.loadFile(settingsPath)
-
-  settingsWindow.webContents.once('did-finish-load', () => {
-    applyThemeToWindow(settingsWindow)
-  })
-
-  settingsWindow.on('closed', () => {
-    settingsWindow = null
-  })
-}
-
-function readProjectFile(fileName) {
-  const filePath = path.join(PROJECTS_DIR, fileName)
-  const content = fs.readFileSync(filePath, 'utf8')
-  return JSON.parse(content)
-}
-
-function listProjectFiles() {
-  ensureProjectsDirectory()
-  return fs.readdirSync(PROJECTS_DIR)
-    .filter((name) => name.toLowerCase().endsWith('.json'))
+  return createMainWindow(windowOptions)
 }
 
 app.whenReady().then(() => {
-  ipcMain.handle('get-theme', () => currentTheme)
-  ipcMain.handle('set-theme', (_event, theme) => {
-    currentTheme = { ...currentTheme, ...theme }
-    BrowserWindow.getAllWindows().forEach((win) => {
-      applyThemeToWindow(win)
-    })
-    return currentTheme
-  })
-
-  ipcMain.handle('open-settings-window', () => {
-    createSettingsWindow()
-    return true
-  })
-
-  ipcMain.handle('select-video-file', async () => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openFile'],
-      filters: [{ name: 'Video files', extensions: ['mp4', 'mov', 'avi', 'mkv', 'webm'] }]
-    })
-
-    if (result.canceled || !result.filePaths.length) {
-      return null
-    }
-
-    return result.filePaths[0]
-  })
-
-  ipcMain.handle('save-project-video', (_event, fileName, videoPath) => {
-    ensureProjectsDirectory()
-    const project = readProjectFile(fileName)
-    project.videoPath = videoPath
-    project.MostRecentOpen = new Date().toISOString()
-
-    fs.writeFileSync(path.join(PROJECTS_DIR, fileName), JSON.stringify(project, null, 2), 'utf8')
-    return { fileName, ...project }
-  })
-
-  ipcMain.handle('save-project-etogram', (_event, fileName, etogramRows) => {
-    ensureProjectsDirectory()
-    const project = readProjectFile(fileName)
-    project.etogram = Array.isArray(etogramRows) ? etogramRows : []
-    project.MostRecentOpen = new Date().toISOString()
-
-    fs.writeFileSync(path.join(PROJECTS_DIR, fileName), JSON.stringify(project, null, 2), 'utf8')
-    return { fileName, ...project }
-  })
-
-  ipcMain.handle('create-project', (_event, projectName) => {
-    ensureProjectsDirectory()
-    const safeName = sanitizeFileName(projectName || 'Untitled Project') || 'Untitled-Project'
-    let fileName = `${safeName}.json`
-    let counter = 1
-
-    while (fs.existsSync(path.join(PROJECTS_DIR, fileName))) {
-      fileName = `${safeName}-${counter}.json`
-      counter += 1
-    }
-
-    const now = new Date().toISOString()
-    const projectData = {
-      projectName: projectName || 'Untitled Project',
-      createdAt: now,
-      MostRecentOpen: now,
-      etogram: [],
-      videoPath: ''
-    }
-
-    fs.writeFileSync(path.join(PROJECTS_DIR, fileName), JSON.stringify(projectData, null, 2), 'utf8')
-    return { ...projectData, fileName }
-  })
-
-  ipcMain.handle('list-projects', () => {
-    ensureProjectsDirectory()
-    return listProjectFiles().map((fileName) => {
-      try {
-        const project = readProjectFile(fileName)
-        return { fileName, ...project }
-      } catch (_error) {
-        return null
-      }
-    }).filter(Boolean)
-  })
-
-  ipcMain.handle('open-project', (_event, fileName) => {
-    ensureProjectsDirectory()
-    const project = readProjectFile(fileName)
-    project.etogram = Array.isArray(project.etogram) ? project.etogram : []
-    project.videoPath = typeof project.videoPath === 'string' ? project.videoPath : ''
-    project.MostRecentOpen = new Date().toISOString()
-    fs.writeFileSync(path.join(PROJECTS_DIR, fileName), JSON.stringify(project, null, 2), 'utf8')
-    return { fileName, ...project }
-  })
-
+  console.log('[main] Electron ready')
+  registerThemeHandlers()
+  registerSettingsHandlers()
+  registerProjectHandlers()
+  registerFileHandlers()
+  registerVideoHandlers()
   createWindow()
+}).catch((error) => {
+  console.error('[main] Startup failed:', error)
 })
 
 app.on('window-all-closed', () => {

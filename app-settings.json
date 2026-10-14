@@ -1,0 +1,97 @@
+{
+  "theme": {
+    "bgColor": "#1a1a1a",
+    "textColor": "#e0e0e0",
+    "primaryColor": "#ff4f1a"
+  },
+  "graphics": {},
+  "timeline": {
+    "snapEnabled": true,
+    "snapThresholdPx": 9
+  },
+  "video": {
+    "askQuality": true,
+    "quality": {
+      "preset": "very-light",
+      "maxHeight": 480,
+      "maxFrameRate": 25,
+      "quality": "low"
+    },
+    "skipSeconds": 10
+  },
+  "programShortcuts": [
+    {
+      "id": "play-pause",
+      "label": "Odtwórz / zatrzymaj",
+      "value": {
+        "primary": "Space",
+        "secondary": "Enter",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "skip-forward",
+      "label": "Skok do przodu",
+      "value": {
+        "primary": "ArrowRight",
+        "secondary": "",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "skip-back",
+      "label": "Skok do tyłu",
+      "value": {
+        "primary": "ArrowLeft",
+        "secondary": "",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "frame-forward",
+      "label": "Jedna klatka do przodu",
+      "value": {
+        "primary": ".",
+        "secondary": "",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "frame-back",
+      "label": "Jedna klatka do tyłu",
+      "value": {
+        "primary": ",",
+        "secondary": "",
+        "operator": "/"
+      }
+    },
+    {
+      "id": "toggle-mute",
+      "label": "Wycisz / włącz dźwięk",
+      "value": {
+        "primary": "Shift",
+        "secondary": "M",
+        "operator": "+"
+      }
+    },
+    {
+      "id": "next-animal",
+      "label": "Następne zwierzę",
+      "value": {
+        "primary": "Alt",
+        "secondary": "ArrowRight",
+        "operator": "+"
+      }
+    },
+    {
+      "id": "previous-animal",
+      "label": "Poprzednie zwierzę",
+      "value": {
+        "primary": "Alt",
+        "secondary": "ArrowLeft",
+        "operator": "+"
+      }
+    }
+  ],
+  "projectShortcuts": []
+}

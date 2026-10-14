@@ -1,205 +1,478 @@
-(function () {
-  const defaultEtogramRows = [
-    { id: 1, category: 'Bieg', name: 'Bieganie', shortcut: 'A', description: 'Krótki, szybki ruch w przód.', continuous: true },
-    { id: 2, category: 'Sen', name: 'Spanie', shortcut: 'S', description: 'Przechodzi do stanu odpoczynku.', continuous: true },
-    { id: 3, category: 'Jedzenie', name: 'Jedzenie', shortcut: 'D', description: 'Akcja pobrania pokarmu.', continuous: false },
-    { id: 4, category: 'Socjalizacja', name: 'Socjalizacja', shortcut: 'F', description: 'Interakcja z innymi osobnikami.', continuous: false },
-  ]
+//Single responsibility principle
+import { escapeHtml } from '../shared/escape-html.js'
+import { isVideoViewActive } from '../shared/workspace-view.js'
+import { isModifierKey, keyLabel, normalizeKey } from '../shared/keys.js'
+import {
+  clearShortcutKey,
+  cycleOperator,
+  describeShortcut,
+  normalizeShortcutEntry,
+  setShortcutKey,
+  shortcutsOverlap
+} from '../settings/shortcut-utils.js'
+import { eventKey, matchesShortcut } from './shortcuts/shortcut-matching.js'
+import { chooseAnimalColor } from './animals/animal-model.js'
+import { normalizeRelations, pruneRelations } from './observations/activity-relations.js'
 
-  function normalizeRows(rows) {
-    return (Array.isArray(rows) ? rows : []).map((row, index) => ({
-      id: row.id || `${Date.now()}-${index}`,
-      category: row.category || 'Bez kategorii',
-      name: row.name || 'Bez nazwy',
-      shortcut: String(row.shortcut || '').trim().toUpperCase() || `K${index + 1}`,
-      description: row.description || '',
-      continuous: Boolean(row.continuous),
-    }))
+const defaultEtogramRows = []
+const OPERATOR_HINT = '„+” – oba klawisze naraz, „/” – jeden z dwóch. Kolejne kliknięcie przełącza: + → / → tylko pierwszy klawisz.'
+
+const normalizeShortcut = normalizeShortcutEntry
+const shortcutLabel = (value) => describeShortcut(value) || '—'
+
+// One message per behavior: the key is also used by another behavior of this etogram, or by a program shortcut.
+export function findShortcutConflicts(rows, programShortcuts = []) {
+  return rows.map((row, index) => {
+    const messages = []
+    const duplicates = rows.filter((other, otherIndex) => otherIndex !== index && shortcutsOverlap(row.shortcut, other.shortcut))
+    if (duplicates.length) messages.push(`Ten skrót ma też: ${duplicates.map((other) => other.name || 'czynność bez nazwy').join(', ')}`)
+
+    const taken = programShortcuts.filter((entry) => shortcutsOverlap(row.shortcut, entry.value))
+    if (taken.length) messages.push(`Zajęty przez program: ${taken.map((entry) => entry.label).join(', ')}`)
+    return messages.join(' · ')
+  })
+}
+
+export function normalizeRows(rows) {
+  return (Array.isArray(rows) ? rows : []).map((row, index) => ({
+    id: String(row.id || `${Date.now()}-${index}`),
+    category: row.category || 'Bez kategorii',
+    name: row.name || 'Bez nazwy',
+    shortcut: normalizeShortcut(row.shortcut),
+    description: row.description || '',
+    color: /^#[0-9a-f]{6}$/i.test(row.color) ? row.color : '#ff4f1a',
+    continuous: Boolean(row.continuous),
+    relations: normalizeRelations(row.relations)
+  }))
+}
+
+export function renderCompactTable(rows, conflicts = []) {
+  return rows.map((row, index) => `
+    <tr data-row-id="${escapeHtml(row.id)}" style="--etogram-color:${escapeHtml(row.color)}">
+      <td><span class="kbd">${escapeHtml(shortcutLabel(row.shortcut))}</span>${conflicts[index] ? `<span class="etogram-conflict" title="${escapeHtml(conflicts[index])}" aria-label="${escapeHtml(conflicts[index])}">⚠</span>` : ''}</td>
+      <td>${escapeHtml(row.name)}</td>
+    </tr>
+  `).join('')
+}
+
+const RELATION_WHEN = { start: 'się zaczyna', end: 'się kończy' }
+const RELATION_DO = { start: 'rozpocznij', end: 'zakończ' }
+
+function renderRelationRule(row, rule, ruleIndex, rows, index) {
+  const targets = rows.filter((other) => other.continuous && other.id !== row.id)
+  const whenOptions = (row.continuous ? ['start', 'end'] : ['start'])
+    .map((value) => `<option value="${value}" ${rule.when === value ? 'selected' : ''}>${row.continuous ? RELATION_WHEN[value] : 'wystąpi'}</option>`).join('')
+  const doOptions = ['start', 'end'].map((value) => `<option value="${value}" ${rule.do === value ? 'selected' : ''}>${RELATION_DO[value]}</option>`).join('')
+  const targetOptions = targets
+    .map((other) => `<option value="${escapeHtml(other.id)}" ${rule.targetId === other.id ? 'selected' : ''}>${escapeHtml(other.name || 'czynność bez nazwy')}</option>`).join('')
+  return `
+    <div class="etogram-relation" data-rule-index="${ruleIndex}">
+      <span>Gdy ta czynność</span>
+      <select data-rel="when" aria-label="Kiedy">${whenOptions}</select>
+      <span>→</span>
+      <select data-rel="do" aria-label="Co zrobić">${doOptions}</select>
+      <select data-rel="targetId" aria-label="Która czynność"><option value="">— wybierz czynność —</option>${targetOptions}</select>
+      <button class="etogram-remove-row" type="button" data-action="remove-relation" data-index="${index}" data-rule-index="${ruleIndex}" aria-label="Usuń regułę">×</button>
+    </div>`
+}
+
+function renderRelationsRow(row, rows, index) {
+  const rules = row.relations || []
+  const others = rows.filter((other) => other.continuous && other.id !== row.id)
+  return `
+    <tr class="etogram-relations-row" data-relations-for="${index}">
+      <td></td>
+      <td colspan="7">
+        <div class="etogram-relations">
+          <p>Powiązane czynności: ta czynność może w tej samej chwili rozpocząć lub zakończyć inną czynność tego zwierzęcia (np. po zakończeniu „sen” rozpocznij „czuwanie”).</p>
+          ${rules.map((rule, ruleIndex) => renderRelationRule(row, rule, ruleIndex, rows, index)).join('')}
+          ${others.length
+    ? `<button class="etogram-add-relation" type="button" data-action="add-relation" data-index="${index}">＋ Dodaj regułę</button>`
+    : '<p class="etogram-relations-empty">Dodaj do etogramu co najmniej jedną inną czynność ciągłą, aby móc ją powiązać.</p>'}
+        </div>
+      </td>
+    </tr>`
+}
+
+export function renderEditorTable(rows, conflicts = [], expanded = new Set()) {
+  return rows.map((row, index) => {
+    const shortcut = normalizeShortcut(row.shortcut)
+    const ruleCount = (row.relations || []).length
+    return `
+    <tr data-index="${index}">
+      <td class="etogram-remove-cell"><button class="etogram-remove-row" type="button" data-action="remove-row" data-index="${index}" aria-label="Usuń czynność ${escapeHtml(row.name || index + 1)}">×</button></td>
+      <td><input data-field="category" data-index="${index}" value="${escapeHtml(row.category)}" placeholder="Kategoria" /></td>
+      <td><input data-field="name" data-index="${index}" value="${escapeHtml(row.name)}" placeholder="Nazwa czynności" /></td>
+      <td><textarea data-field="description" data-index="${index}" rows="2" placeholder="Opis">${escapeHtml(row.description)}</textarea></td>
+      <td>
+        <div class="etogram-shortcut-editor">
+          <button class="option-keybind etogram-keybind" type="button" data-action="capture-key" data-field="primary" data-index="${index}" aria-label="Ustaw główny skrót" title="Kliknij i naciśnij klawisz. Backspace czyści, Esc anuluje.">${escapeHtml(shortcut.primary ? keyLabel(shortcut.primary) : '—')}</button>
+          <button class="combo-operator ${shortcut.secondary ? 'active' : 'placeholder'}" type="button" data-action="toggle-operator" data-index="${index}" aria-label="Zmień sposób łączenia klawiszy" title="${OPERATOR_HINT}">${shortcut.secondary ? escapeHtml(shortcut.operator) : ''}</button>
+          <button class="option-keybind combo-slot ${shortcut.secondary ? 'active' : 'muted'}" type="button" data-action="capture-key" data-field="secondary" data-index="${index}" aria-label="Ustaw dodatkowy skrót" title="${shortcut.secondary ? 'Kliknij, aby zmienić drugi klawisz. Backspace go usuwa.' : 'Dodaj drugi klawisz lub kombinację'}">${escapeHtml(shortcut.secondary ? keyLabel(shortcut.secondary) : '')}</button>
+        </div>
+        ${conflicts[index] ? `<div class="etogram-shortcut-warning" role="status">${escapeHtml(conflicts[index])}</div>` : ''}
+      </td>
+      <td class="etogram-color-cell"><input data-field="color" data-index="${index}" type="color" value="${escapeHtml(row.color)}" aria-label="Kolor ${escapeHtml(row.name || 'czynności')}" /><button class="etogram-color-reroll" type="button" data-action="reroll-color" data-index="${index}" title="Losuj inny kolor" aria-label="Losuj inny kolor">🎲</button></td>
+      <td class="etogram-continuous-cell"><input data-field="continuous" data-index="${index}" type="checkbox" ${row.continuous ? 'checked' : ''} aria-label="Czynność ciągła" /></td>
+      <td class="etogram-more-cell"><button class="etogram-more ${expanded.has(row.id) ? 'open' : ''}" type="button" data-action="toggle-relations" data-index="${index}" aria-expanded="${expanded.has(row.id)}" title="Zaawansowane: powiązane czynności${ruleCount ? ` (reguł: ${ruleCount})` : ''}" aria-label="Zaawansowane opcje czynności">…${ruleCount ? `<span class="etogram-more-count">${ruleCount}</span>` : ''}</button></td>
+    </tr>
+    ${expanded.has(row.id) ? renderRelationsRow(row, rows, index) : ''}
+  `
+  }).join('')
+}
+
+export async function loadRows(projectFile, animalCatalogOrData = null, animalId = null, suppliedPresets = []) {
+  if (animalCatalogOrData?.getData) {
+    const data = animalCatalogOrData.getData()
+    const selectedAnimalId = animalId || data.activeAnimalId
+    const animal = data.animals.find((item) => item.id === selectedAnimalId)
+    const preset = animalCatalogOrData.getPresets?.().find((item) => item.id === animal?.etogramPresetId)
+    return normalizeRows(preset?.activities || [])
   }
 
-  function renderCompactTable(rows) {
-    return rows.map((row) => `
-      <tr data-row-id="${row.id}" data-shortcut="${row.shortcut}">
-        <td><span class="kbd">${row.shortcut}</span></td>
-        <td>${row.name}</td>
-      </tr>
-    `).join('')
+  if (Array.isArray(animalCatalogOrData?.animals)) {
+    const data = animalCatalogOrData
+    const selectedAnimalId = animalId || data.activeAnimalId
+    const animal = data.animals.find((item) => item.id === selectedAnimalId)
+    const preset = suppliedPresets.find((item) => item.id === animal?.etogramPresetId)
+    return normalizeRows(preset?.activities || [])
   }
 
-  function renderEditorTable(rows) {
-    return rows.map((row, index) => `
-      <tr>
-        <td><input data-field="category" data-index="${index}" value="${row.category}" /></td>
-        <td><input data-field="name" data-index="${index}" value="${row.name}" /></td>
-        <td><textarea data-field="description" data-index="${index}" rows="2">${row.description}</textarea></td>
-        <td><input data-field="shortcut" data-index="${index}" value="${row.shortcut}" maxlength="2" /></td>
-        <td><input data-field="continuous" data-index="${index}" type="checkbox" ${row.continuous ? 'checked' : ''} /></td>
-      </tr>
-    `).join('')
-  }
-
-  async function loadRows(projectFile) {
-    if (!projectFile) {
-      return [...defaultEtogramRows]
-    }
-
-    try {
-      const project = await window.electronAPI.openProject(projectFile)
-      const etogram = normalizeRows(project.etogram || [])
-      if (etogram.length) {
-        return etogram
-      }
-    } catch (_error) {
-      console.warn('Nie udało się odczytać etogramu z projektu, używam wartości domyślnej.')
-    }
-
+  if (!projectFile) {
     return [...defaultEtogramRows]
   }
 
-  async function persistRows(projectFile, rows) {
-    if (!projectFile || !window.electronAPI?.saveProjectEtogram) {
-      return
-    }
-
-    await window.electronAPI.saveProjectEtogram(projectFile, rows)
+  try {
+    const project = await window.electronAPI.openProject(projectFile)
+    return normalizeRows(project.etogram || [])
+  } catch (_error) {
+    console.warn('Nie udało się odczytać etogramu z projektu, używam wartości domyślnej.')
   }
 
-  async function init(containerId = 'etogram-module', options = {}) {
-    const host = document.getElementById(containerId)
-    if (!host) return
+  return []
+}
 
-    const projectFile = options.projectFile || ''
-    const rows = normalizeRows(await loadRows(projectFile))
-
-    host.innerHTML = `
-      <div class="module-card etogram-card">
-        <div class="module-head">
-          <h3>Etogram / Skróty</h3>
-        </div>
-        <div class="table-wrap">
-          <table class="shortcut-table compact-table">
-            <thead>
-              <tr>
-                <th>Skrót</th>
-                <th>Nazwa czynności</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${renderCompactTable(rows)}
-            </tbody>
-          </table>
-        </div>
-        <div class="module-actions">
-          <button class="module-action disabled" type="button" disabled>Dodaj</button>
-          <button class="module-action disabled" type="button" disabled>Usuń</button>
-          <button id="open-etogram-editor" class="module-action" type="button">Edytuj</button>
-        </div>
-      </div>
-      <div id="etogram-modal" class="modal hidden">
-        <div class="modal-card">
-          <div class="modal-head">
-            <h4>Edytor etogramu</h4>
-            <button id="close-etogram-modal" class="modal-close" type="button">×</button>
-          </div>
-          <div class="table-wrap">
-            <table class="shortcut-table editor-table">
-              <thead>
-                <tr>
-                  <th>Kategoria</th>
-                  <th>Nazwa czynności</th>
-                  <th>Opis</th>
-                  <th>Skrót</th>
-                  <th>Ciągła</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${renderEditorTable(rows)}
-              </tbody>
-            </table>
-          </div>
-          <div class="modal-actions">
-            <button id="save-etogram" class="module-action" type="button">Zapisz</button>
-          </div>
-        </div>
-      </div>
-    `
-
-    const modal = host.querySelector('#etogram-modal')
-    const openBtn = host.querySelector('#open-etogram-editor')
-    const closeBtn = host.querySelector('#close-etogram-modal')
-    const saveBtn = host.querySelector('#save-etogram')
-    const compactBody = host.querySelector('.compact-table tbody')
-    const editorBody = host.querySelector('.editor-table tbody')
-
-    function highlightRow(rowId, active) {
-      const rowNode = compactBody?.querySelector(`[data-row-id="${rowId}"]`)
-      rowNode?.classList.toggle('active', active)
+export async function persistRows(projectFile, rows, animalCatalog = null) {
+  if (animalCatalog?.getData && animalCatalog?.saveData && animalCatalog?.getPresets && animalCatalog?.savePresets) {
+    const data = animalCatalog.getData()
+    const animal = data.animals.find((item) => item.id === data.activeAnimalId)
+    if (!animal) throw new Error('No active animal selected')
+    let presets = animalCatalog.getPresets()
+    let preset = presets.find((item) => item.id === animal.etogramPresetId)
+    if (!preset) {
+      preset = { id: `etogram-${Date.now()}`, name: `${animal.name} — etogram`, activities: [] }
+      animal.etogramPresetId = preset.id
+      presets = [...presets, preset]
+      await animalCatalog.saveData(data)
     }
+    preset.activities = rows
+    await animalCatalog.savePresets(presets)
+    return
+  }
 
-    openBtn?.addEventListener('click', () => modal?.classList.remove('hidden'))
-    closeBtn?.addEventListener('click', () => modal?.classList.add('hidden'))
-    modal?.addEventListener('click', (event) => {
-      if (event.target === modal) {
-        modal.classList.add('hidden')
+  if (!projectFile || !window.electronAPI?.saveProjectEtogram) {
+    return
+  }
+
+  await window.electronAPI.saveProjectEtogram(projectFile, rows)
+}
+
+async function init(containerId = 'etogram-module', options = {}) {
+  const host = document.getElementById(containerId)
+  if (!host) return
+
+  const projectFile = options.projectFile || ''
+  const animalCatalog = options.animalCatalog || null
+  const shortcutManager = options.shortcutManager || null
+  const programShortcuts = () => shortcutManager?.getShortcuts?.() || []
+  let activeAnimalId = animalCatalog?.getData?.().activeAnimalId || null
+  let rows = normalizeRows(await loadRows(projectFile, animalCatalog, activeAnimalId))
+  let draftRows = normalizeRows(rows)
+  const pressedKeys = new Set()
+  const expandedRows = new Set()
+
+  host.innerHTML = `
+    <section class="side-panel etogram-card">
+      <header class="side-panel-header">
+        <div><span class="side-panel-eyebrow">Czynności i skróty</span><h3>Etogram</h3></div>
+        <button id="open-etogram-editor" class="side-panel-action" type="button">Edytuj</button>
+      </header>
+      <div class="side-panel-body table-wrap">
+        <table class="shortcut-table compact-table">
+          <thead>
+            <tr>
+              <th>Skrót</th>
+              <th>Nazwa czynności</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${renderCompactTable(rows, findShortcutConflicts(rows, programShortcuts()))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <div id="etogram-modal" class="modal hidden">
+      <section class="etogram-dialog" role="dialog" aria-modal="true" aria-labelledby="etogram-title">
+        <header class="etogram-dialog-header">
+          <div><span class="etogram-eyebrow">Ustawienia projektu</span><h2 id="etogram-title">Edytor etogramu</h2><p>Zarządzaj czynnościami, kolorami oraz skrótami.</p></div>
+          <button id="close-etogram-modal" class="modal-close" type="button" aria-label="Zamknij edytor">×</button>
+        </header>
+        <div class="etogram-dialog-body">
+          <div class="etogram-editor-main">
+            <div class="etogram-table-scroll">
+              <table class="shortcut-table editor-table">
+                <colgroup>
+                  <col class="etogram-col-remove" />
+                  <col class="etogram-col-category" />
+                  <col class="etogram-col-name" />
+                  <col class="etogram-col-description" />
+                  <col class="etogram-col-shortcut" />
+                  <col class="etogram-col-color" />
+                  <col class="etogram-col-continuous" />
+                  <col class="etogram-col-more" />
+                </colgroup>
+                <thead><tr><th></th><th>Kategoria</th><th>Czynność</th><th>Opis</th><th>Skrót</th><th>Kolor</th><th>Ciągła</th><th title="Zaawansowane opcje czynności">Więcej</th></tr></thead>
+                <tbody>${renderEditorTable(rows, findShortcutConflicts(rows, programShortcuts()))}</tbody>
+              </table>
+            </div>
+          </div>
+          <aside class="etogram-editor-sidebar">
+            <h3>Opcje</h3>
+            <p>Dodaj lub usuń czynności etogramu.</p>
+            <button id="add-etogram-row" class="etogram-add-button" type="button"><span>＋</span> Dodaj czynność</button>
+            <div class="etogram-sidebar-note"><span class="etogram-note-icon">i</span><span>Ustaw skrót główny i opcjonalny dodatkowy. Kombinacja może używać operatora „+” lub „/”.</span></div>
+          </aside>
+        </div>
+        <footer class="etogram-dialog-footer">
+          <span id="etogram-save-status" role="status"></span>
+          <div><button id="cancel-etogram" class="etogram-cancel-button" type="button">Anuluj</button><button id="save-etogram" class="etogram-save-button" type="button">Zapisz zmiany</button></div>
+        </footer>
+      </section>
+    </div>
+  `
+
+  const modal = host.querySelector('#etogram-modal')
+  const openBtn = host.querySelector('#open-etogram-editor')
+  const closeBtn = host.querySelector('#close-etogram-modal')
+  const saveBtn = host.querySelector('#save-etogram')
+  const compactBody = host.querySelector('.compact-table tbody')
+  const editorBody = host.querySelector('.editor-table tbody')
+  let pendingShortcut = null
+
+  function renderDraft() {
+    editorBody.innerHTML = renderEditorTable(draftRows, findShortcutConflicts(draftRows, programShortcuts()), expandedRows)
+  }
+
+  function renderCompact() {
+    compactBody.innerHTML = renderCompactTable(rows, findShortcutConflicts(rows, programShortcuts()))
+  }
+
+  function stopCapturing() {
+    pendingShortcut = null
+    delete document.body.dataset.capturingKey
+  }
+
+  function collectDraft() {
+    draftRows = Array.from(editorBody.querySelectorAll('tr[data-index]')).map((tr, index) => {
+      const get = (field) => tr.querySelector(`[data-field="${field}"]`)
+      const previous = draftRows[index] || {}
+      // The rules are read from the screen only while the row's advanced section is open.
+      const relationsRow = editorBody.querySelector(`tr[data-relations-for="${index}"]`)
+      const relations = relationsRow
+        ? Array.from(relationsRow.querySelectorAll('.etogram-relation')).map((node) => ({
+          when: node.querySelector('[data-rel="when"]')?.value,
+          do: node.querySelector('[data-rel="do"]')?.value,
+          targetId: node.querySelector('[data-rel="targetId"]')?.value || ''
+        }))
+        : previous.relations || []
+      return {
+        id: previous.id || rows[index]?.id || `${Date.now()}-${index}`,
+        category: String(get('category')?.value || '').trim(),
+        name: String(get('name')?.value || '').trim(),
+        description: String(get('description')?.value || '').trim(),
+        shortcut: normalizeShortcut(previous.shortcut),
+        color: get('color')?.value || '#ff4f1a',
+        continuous: Boolean(get('continuous')?.checked),
+        relations
       }
     })
+    return draftRows
+  }
 
-    saveBtn?.addEventListener('click', async () => {
-      const nextRows = Array.from(editorBody.querySelectorAll('tr')).map((tr) => {
-        const cells = tr.querySelectorAll('input, textarea')
-        const row = {
-          id: rows[Number(cells[0]?.dataset.index)]?.id || `${Date.now()}-${Math.random()}`,
-          category: String(cells[0]?.value || 'Brak').trim(),
-          name: String(cells[1]?.value || 'Brak').trim(),
-          description: String(cells[2]?.value || '').trim(),
-          shortcut: String(cells[3]?.value || '').trim().toUpperCase(),
-          continuous: Boolean(cells[4]?.checked),
+  function highlightRow(rowId, active) {
+    const rowNode = compactBody?.querySelector(`[data-row-id="${rowId}"]`)
+    rowNode?.classList.toggle('active', active)
+  }
+
+  openBtn?.addEventListener('click', () => {
+    draftRows = normalizeRows(rows)
+    renderDraft()
+    modal?.classList.remove('hidden')
+  })
+  closeBtn?.addEventListener('click', () => modal?.classList.add('hidden'))
+  host.querySelector('#cancel-etogram')?.addEventListener('click', () => modal?.classList.add('hidden'))
+  modal?.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      modal.classList.add('hidden')
+    }
+  })
+
+  saveBtn?.addEventListener('click', async () => {
+    const normalized = pruneRelations(normalizeRows(collectDraft()))
+    rows.splice(0, rows.length, ...normalized)
+    renderCompact()
+    await persistRows(projectFile, normalized, animalCatalog)
+    modal?.classList.add('hidden')
+  })
+
+  host.querySelector('#add-etogram-row')?.addEventListener('click', () => {
+    collectDraft()
+    draftRows.push({
+      id: `${Date.now()}-${Math.random()}`,
+      category: '',
+      name: '',
+      description: '',
+      shortcut: { primary: '', secondary: '', operator: '/' },
+      color: chooseAnimalColor(draftRows, Math.random),
+      continuous: false,
+      relations: []
+    })
+    renderDraft()
+    Array.from(editorBody.querySelectorAll('tr[data-index]')).at(-1)?.querySelector('[data-field="name"]')?.focus()
+  })
+
+  host.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-action]')
+    if (!button) return
+    const rowIndex = Number(button.dataset.index)
+    collectDraft()
+    if (button.dataset.action === 'remove-row') {
+      draftRows.splice(rowIndex, 1)
+      renderDraft()
+    } else if (button.dataset.action === 'reroll-color' && draftRows[rowIndex]) {
+      draftRows[rowIndex].color = chooseAnimalColor(draftRows.filter((_row, index) => index !== rowIndex), Math.random, draftRows[rowIndex].color)
+      renderDraft()
+    } else if (button.dataset.action === 'toggle-relations' && draftRows[rowIndex]) {
+      const rowId = draftRows[rowIndex].id
+      if (expandedRows.has(rowId)) expandedRows.delete(rowId)
+      else expandedRows.add(rowId)
+      renderDraft()
+    } else if (button.dataset.action === 'add-relation' && draftRows[rowIndex]) {
+      draftRows[rowIndex].relations = [...(draftRows[rowIndex].relations || []), { when: 'start', do: 'end', targetId: '' }]
+      renderDraft()
+    } else if (button.dataset.action === 'remove-relation' && draftRows[rowIndex]) {
+      draftRows[rowIndex].relations = (draftRows[rowIndex].relations || []).filter((_rule, index) => index !== Number(button.dataset.ruleIndex))
+      renderDraft()
+    } else if (button.dataset.action === 'toggle-operator' && draftRows[rowIndex]) {
+      draftRows[rowIndex].shortcut = cycleOperator(draftRows[rowIndex].shortcut)
+      renderDraft()
+    } else if (button.dataset.action === 'capture-key') {
+      pendingShortcut = { rowIndex, field: button.dataset.field }
+      document.body.dataset.capturingKey = 'true'
+      button.textContent = '…'
+    }
+  })
+
+  document.addEventListener('keydown', (event) => {
+    if (pendingShortcut) {
+      event.preventDefault()
+      const key = normalizeKey(event.key)
+      if (!key || isModifierKey(key)) return
+
+      const { rowIndex, field } = pendingShortcut
+      if (draftRows[rowIndex] && key !== 'Escape') {
+        draftRows[rowIndex].shortcut = key === 'Backspace' || key === 'Delete'
+          ? clearShortcutKey(draftRows[rowIndex].shortcut, field)
+          : setShortcutKey(draftRows[rowIndex].shortcut, field, key)
+      }
+      stopCapturing()
+      renderDraft()
+      return
+    }
+    // A key the program itself uses was already handled (and its default action cancelled) before we got here.
+    if (event.defaultPrevented || event.repeat || !isVideoViewActive() || (modal && !modal.classList.contains('hidden'))) return
+    if (event.target?.matches?.('input, textarea, select, [contenteditable="true"]')) return
+    const animalData = animalCatalog?.getData?.()
+    const activeAnimal = animalData?.animals?.find((animal) => animal.id === activeAnimalId) || null
+    if (animalCatalog && !activeAnimal) return
+
+    const key = eventKey(event)
+    if (!key) return
+    pressedKeys.add(key)
+
+    const matchingRows = rows.filter((row) => matchesShortcut(row.shortcut, event, pressedKeys))
+    if (!matchingRows.length) return
+    event.preventDefault()
+
+    // What the timeline needs to run the related actions of this animal's etogram.
+    const activities = Object.fromEntries(rows.map((row) => [row.id, {
+      id: row.id, name: row.name, color: row.color, continuous: row.continuous, relations: row.relations
+    }]))
+
+    matchingRows.forEach((row) => {
+      const rowNode = Array.from(compactBody?.querySelectorAll('[data-row-id]') || [])
+        .find((node) => node.dataset.rowId === String(row.id))
+      if (!row.continuous) rowNode?.classList.add('active')
+      window.dispatchEvent(new CustomEvent('etogram-activity-request', {
+        detail: {
+          activityId: row.id,
+          activityName: row.name,
+          activityColor: row.color,
+          continuous: row.continuous,
+          repeat: event.repeat,
+          animalId: activeAnimal?.id || null,
+          activities
         }
-        return row
-      })
-
-      const normalized = normalizeRows(nextRows)
-      rows.splice(0, rows.length, ...normalized)
-      const compactMarkup = renderCompactTable(normalized)
-      compactBody.innerHTML = compactMarkup
-      await persistRows(projectFile, normalized)
-      modal?.classList.add('hidden')
+      }))
     })
+  })
 
-    document.addEventListener('keydown', (event) => {
-      const key = String(event.key || '').toUpperCase()
-      if (!key) return
-
-      const matchingRow = rows.find((row) => row.shortcut === key)
-      if (!matchingRow) return
-
-      const rowNode = compactBody?.querySelector(`[data-row-id="${matchingRow.id}"]`)
-      if (!rowNode) return
-
-      if (matchingRow.continuous) {
-        const nextActive = !rowNode.classList.contains('active')
-        rowNode.classList.toggle('active', nextActive)
-        highlightRow(matchingRow.id, nextActive)
-      } else {
-        highlightRow(matchingRow.id, true)
-      }
-    })
-
-    document.addEventListener('keyup', (event) => {
-      const key = String(event.key || '').toUpperCase()
-      if (!key) return
-
-      const matchingRow = rows.find((row) => row.shortcut === key)
-      if (!matchingRow) return
-
-      if (!matchingRow.continuous) {
-        const rowNode = compactBody?.querySelector(`[data-row-id="${matchingRow.id}"]`)
+  document.addEventListener('keyup', (event) => {
+    const key = eventKey(event)
+    pressedKeys.delete(key)
+    rows.forEach((row) => {
+      const shortcut = normalizeShortcut(row.shortcut)
+      if (!row.continuous && (shortcut.primary === key || shortcut.secondary === key)) {
+        const rowNode = Array.from(compactBody?.querySelectorAll('[data-row-id]') || [])
+          .find((node) => node.dataset.rowId === String(row.id))
         rowNode?.classList.remove('active')
       }
     })
-  }
+  })
 
-  window.WorkspaceEtogramModule = {
-    init,
-  }
-})()
+  window.addEventListener('timeline-active-observations', (event) => {
+    const active = event.detail?.active || new Set()
+    rows.forEach((row) => {
+      const rowNode = Array.from(compactBody?.querySelectorAll('[data-row-id]') || [])
+        .find((node) => node.dataset.rowId === String(row.id))
+      rowNode?.classList.toggle('active', active.has(`${activeAnimalId || ''}:${row.id}`))
+    })
+  })
+
+  window.addEventListener('active-animal-changed', async (event) => {
+    activeAnimalId = event.detail?.activeAnimal?.id || animalCatalog?.getData?.().activeAnimalId || null
+    rows = normalizeRows(await loadRows(projectFile, animalCatalog, activeAnimalId))
+    renderCompact()
+    editorBody.innerHTML = renderEditorTable(rows, findShortcutConflicts(rows, programShortcuts()), expandedRows)
+  })
+
+  // Keys changed in the settings window: refresh the warnings, and keep what is being typed in an open editor.
+  shortcutManager?.subscribe(() => {
+    renderCompact()
+    if (modal && !modal.classList.contains('hidden')) {
+      collectDraft()
+      renderDraft()
+    }
+  })
+}
+
+export const WorkspaceEtogramModule = {
+  init,
+  defaultEtogramRows,
+  normalizeRows,
+  renderCompactTable,
+  renderEditorTable,
+  findShortcutConflicts,
+  loadRows,
+  persistRows,
+}

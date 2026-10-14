@@ -1,20 +1,20 @@
-(function () {
-  function initWorkspaceToolbar() {
-    const bottomToolbar = document.getElementById('bottom-toolbar')
-    if (!bottomToolbar) return
+import { UiToolbar } from '../ui/ui-toolbar.js'
 
-    window.UiToolbar.initToolbarButtons(bottomToolbar, {
-      selector: '.tb-btn',
-      activeClass: 'active',
-      onChange: (button) => {
-        const view = button.dataset.view
-        const evt = new CustomEvent('workspace-view-change', { detail: { view } })
-        window.dispatchEvent(evt)
-      },
-    })
-  }
+export function initWorkspaceToolbar() {
+  const bottomToolbar = document.getElementById('bottom-toolbar')
+  if (!bottomToolbar) return
 
-  window.WorkspaceToolbar = {
-    initWorkspaceToolbar,
-  }
-})()
+  UiToolbar.initToolbarButtons(bottomToolbar, {
+    selector: '.tb-btn',
+    activeClass: 'active',
+    onChange: (button) => {
+      const view = button.dataset.view
+      const evt = new CustomEvent('workspace-view-change', { detail: { view } })
+      window.dispatchEvent(evt)
+    },
+  })
+}
+
+export const WorkspaceToolbar = {
+  initWorkspaceToolbar,
+}
