@@ -1292,3 +1292,27 @@ button, input, select, textarea { font-family: inherit; }
   cursor: pointer;
 }
 .etogram-add-relation:hover { border-color: var(--primary-color, #ff4f1a); }
+
+/* Video in its own window */
+.video-popout-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  height: clamp(240px, 46vh, 520px);
+  border: 1px dashed rgba(255,255,255,.18);
+  border-radius: 12px;
+  color: var(--muted-text, #888);
+}
+.video-popout-notice[hidden] { display: none; }
+.video-popout-notice p { margin: 0; font-size: 14px; }
+body.video-popout { margin: 0; overflow: hidden; }
+body.video-popout #video-popout-host,
+body.video-popout .video-card {
+  box-sizing: border-box;
+  height: 100vh;
+}
+body.video-popout .video-card { border: 0; border-radius: 0; padding: 10px; }
+body.video-popout .video-player-shell { height: 100%; }
+body.video-popout .video-stage { flex: 1; height: auto; min-height: 0; }

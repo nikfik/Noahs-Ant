@@ -24,6 +24,21 @@ export function createMainWindow({ BrowserWindow, preloadPath, viewsDirectory, g
     console.log(`[renderer] ${sourceId}:${line} ${message}`)
   })
 
+  // The only extra window a page may open is the one the video can be moved to (e.g. on a second screen).
+  win.webContents.setWindowOpenHandler(({ frameName }) => frameName === 'noahs-ant-video'
+    ? {
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        title: 'Film – Noah\'s Ant',
+        minWidth: 420,
+        minHeight: 300,
+        autoHideMenuBar: true,
+        backgroundColor: getTheme().bgColor,
+        webPreferences: webPreferences(preloadPath)
+      }
+    }
+    : { action: 'deny' })
+
   win.loadFile(path.join(viewsDirectory, 'ProjectList.html'))
   win.webContents.once('did-finish-load', () => applyThemeToWindow(win, getTheme()))
   return win

@@ -8,6 +8,7 @@ import { askVideoQuality } from './video-quality-dialog.js'
 import { normalizeQualitySettings } from '../../shared/video-quality.js'
 import { skipAt } from '../trials/skip-model.js'
 import { icon } from './video-icons.js'
+import { createVideoPopout } from './video-popout.js'
 import { isSkipping } from '../trials/skip-playback.js'
 
 const DEFAULT_SKIP_SECONDS = 5
@@ -34,6 +35,8 @@ export class VideoPlayerController {
     this.videoPath = ''
     this.pickButtons = []
     this.qualityBtn = null
+    this.popout = null
+    this.popoutBtn = null
     this.skipSeconds = DEFAULT_SKIP_SECONDS
     this.emptyState = null
     this.playPauseBtn = null
@@ -133,6 +136,14 @@ export class VideoPlayerController {
 
     const info = await VideoIOService.probeVideo(this.videoPath)
     if (info?.frameRate) await this.trialCatalog.updateTrial(trial.id, { frameRate: info.frameRate })
+  }
+
+  syncPopoutButton(open) {
+    if (!this.popoutBtn) return
+    this.popoutBtn.innerHTML = icon(open ? 'dock' : 'popout')
+    const title = open ? 'Przywróć film do głównego okna' : 'Oddziel film do osobnego okna (np. na drugi ekran)'
+    this.popoutBtn.title = title
+    this.popoutBtn.setAttribute('aria-label', title)
   }
 
   showBusy(text, percent = null, { error = false } = {}) {
@@ -352,6 +363,11 @@ export class VideoPlayerController {
 
     this.pickButtons.forEach((button) => button.addEventListener('click', () => this.chooseVideo()))
     this.qualityBtn?.addEventListener('click', () => this.changeQuality())
+    this.popoutBtn?.addEventListener('click', () => {
+      this.popout?.toggle().then((opened) => {
+        if (opened === false) this.showBusy('Nie udało się otworzyć osobnego okna z filmem.', null, { error: true })
+      }).catch((error) => console.error('Could not move the video to its own window:', error))
+    })
     this.busy?.cancel?.addEventListener('click', () => VideoIOService.cancelConversion())
     this.busy?.close?.addEventListener('click', () => this.hideBusy())
   }
@@ -367,6 +383,7 @@ export class VideoPlayerController {
     const elements = ui.render()
     this.pickButtons = elements.pickButtons
     this.qualityBtn = elements.qualityBtn
+    this.popoutBtn = elements.popoutBtn
     this.emptyState = elements.emptyState
     this.busy = elements.busy
     this.video = elements.video
@@ -396,6 +413,17 @@ export class VideoPlayerController {
       zoomInBtn: elements.zoomInBtn,
       zoomFitBtn: elements.zoomFitBtn
     })
+
+    this.popout = createVideoPopout({
+      panel: elements.panel,
+      host: this.host,
+      notice: elements.popoutNotice,
+      video: this.video,
+      url: new URL('VideoPopout.html', window.location.href).href,
+      onLayout: () => this.zoomControls?.apply(),
+      onToggle: (open) => this.syncPopoutButton(open)
+    })
+    elements.restoreBtn?.addEventListener('click', () => this.popout.close())
 
     this.bindEvents()
     this.registerShortcuts()

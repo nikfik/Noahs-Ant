@@ -41,7 +41,7 @@ describe('WorkspaceVideoModule', () => {
     expect(markup).not.toContain('open-video-placeholder')
     expect(markup).not.toContain('video-time')
     expect(markup).not.toContain('Odtwórz</button>')
-    expect(document.querySelectorAll('.video-controls button')).toHaveLength(8)
+    expect(document.querySelectorAll('.video-controls button')).toHaveLength(9)
     expect(document.querySelectorAll('.video-controls svg').length).toBeGreaterThanOrEqual(7)
 
     const zoomControls = document.querySelector('.video-zoom-controls')

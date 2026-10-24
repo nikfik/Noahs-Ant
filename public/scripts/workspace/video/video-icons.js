@@ -8,6 +8,8 @@ const ICONS = {
   skipForward: '<path d="M19 12a7 7 0 1 1-2.2-5.1"/><path d="M19.5 3.8v4.4h-4.4"/><text x="12" y="15.4" font-size="8.5" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">5</text>',
   volume: '<path d="M4 10v4h3.5l5 4V6l-5 4z" fill="currentColor"/><path d="M16 9.2a4 4 0 0 1 0 5.6"/><path d="M18.8 6.6a8 8 0 0 1 0 10.8"/>',
   muted: '<path d="M4 10v4h3.5l5 4V6l-5 4z" fill="currentColor"/><path d="M16.5 9.5l4.5 5M21 9.5l-4.5 5"/>',
+  popout: '<path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
+  dock: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 14h16"/><path d="M9 10.5l3 3 3-3"/>',
   folder: '<path d="M4 19V6.5A1.5 1.5 0 0 1 5.5 5H9l2 2.5h6.5A1.5 1.5 0 0 1 19 9v1.5"/><path d="M4 19l2.3-7.6a1.5 1.5 0 0 1 1.4-1h12.6a1 1 0 0 1 1 1.3L19 19z"/>',
   minus: '<path d="M6 12h12"/>',
   plus: '<path d="M12 6v12M6 12h12"/>',

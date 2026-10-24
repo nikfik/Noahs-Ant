@@ -53,10 +53,15 @@ export class VideoPlayerUI {
 
             <span class="video-controls-spacer"></span>
 
+            <button id="video-popout-btn" class="vp-btn" type="button" title="Oddziel film do osobnego okna (np. na drugi ekran)" aria-label="Oddziel film do osobnego okna">${icon('popout')}</button>
             <button id="video-quality-btn" class="vp-btn vp-btn-labeled" type="button" title="Skonwertuj ponownie z oryginalnego pliku w innej jakości" ${videoPath ? '' : 'disabled'}>${icon('fit')}<span>Jakość</span></button>
             <button id="pick-video-btn" class="vp-btn vp-btn-labeled" type="button" title="Wybierz inny plik wideo dla tej próby">${icon('folder')}<span>Zmień film</span></button>
           </div>
         </div>
+      </div>
+      <div class="video-popout-notice" hidden>
+        <p>Film jest wyświetlany w osobnym oknie.</p>
+        <button id="video-restore-btn" class="video-pick-cta" type="button">${icon('dock', 20)}Przywróć film tutaj</button>
       </div>
     `
   }
@@ -78,6 +83,10 @@ export class VideoPlayerUI {
 
     return {
       pickButtons: Array.from(this.host.querySelectorAll('#pick-video-btn, #pick-video-empty-btn')),
+      panel: this.host.querySelector('.video-card'),
+      popoutNotice: this.host.querySelector('.video-popout-notice'),
+      popoutBtn: this.host.querySelector('#video-popout-btn'),
+      restoreBtn: this.host.querySelector('#video-restore-btn'),
       qualityBtn: this.host.querySelector('#video-quality-btn'),
       emptyState: this.host.querySelector('.video-empty'),
       busy: {
