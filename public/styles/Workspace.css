@@ -505,7 +505,8 @@ button, input, select, textarea { font-family: inherit; }
 }
 .timeline-animal-label {
   align-self: stretch;
-  z-index: 2;
+  /* above the playhead (3), so the line slides under the names instead of over them when the timeline is scrolled */
+  z-index: 4;
   border-left: 3px solid var(--animal-color, #777);
   background: #20232a;
   box-shadow: 8px 0 0 #20232a;

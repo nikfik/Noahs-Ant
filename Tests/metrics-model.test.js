@@ -217,3 +217,21 @@ describe('Time skips', () => {
     expect(computeMergedMetrics([interval('a', 90, 120), interval('b', 110, 170)], window)).toMatchObject({ count: 1, duration: 20 })
   })
 })
+
+describe('Events in skipped time', () => {
+  const skip = (start, end, countTime = false) => ({ id: `s${start}`, start, end, countTime })
+
+  test('an event completely inside an uncounted skip is not counted; one that reaches out of it still is', () => {
+    const window = resolveWindow({ duration: 300, skips: [skip(100, 160)] })
+    const metrics = computeBehaviorMetrics([interval('in', 110, 150), point('p', 120), interval('out', 150, 170), interval('before', 20, 30)], window)
+    expect(metrics.count).toBe(2)
+    expect(metrics.duration).toBe(20)
+    expect(metrics.latency).toBe(20)
+    expect(computeMergedMetrics([interval('in', 110, 150), point('p', 120)], window).present).toBe(false)
+  })
+
+  test('counted skips never hide events', () => {
+    const window = resolveWindow({ duration: 300, skips: [skip(100, 160, true)] })
+    expect(computeBehaviorMetrics([interval('in', 110, 150), point('p', 120)], window).count).toBe(2)
+  })
+})

@@ -89,6 +89,26 @@ export function createObservationStore({ projectId = '', api = null } = {}) {
   const undo = () => restore(history, future, 'undo')
   const redo = () => restore(future, history, 'redo')
 
+  // Renamed or recolored etogram actions: the events already recorded take the new name and color. `changes` maps an action id to
+  // { name, color }; `animalIds` (a Set, or null for everyone) limits it to the animals that use that etogram.
+  async function relabelActivities(changes, animalIds = null) {
+    const apply = (list) => list.map((item) => {
+      const change = (!animalIds || animalIds.has(item.animalId)) && changes[item.activityId]
+      return change && (item.activityName !== change.name || item.activityColor !== change.color)
+        ? { ...item, activityName: change.name, activityColor: change.color }
+        : item
+    })
+    const next = apply(observations)
+    if (next.every((item, index) => item === observations[index])) return
+
+    observations = next
+    // Undo and redo must not bring the old names back.
+    history = history.map((entry) => JSON.stringify(apply(JSON.parse(entry))))
+    future = future.map((entry) => JSON.stringify(apply(JSON.parse(entry))))
+    notify('relabel')
+    await persist()
+  }
+
   async function removeTrialEvents(trialId) {
     observations = observations.filter((item) => item.trialId !== trialId)
     history = []
@@ -109,6 +129,7 @@ export function createObservationStore({ projectId = '', api = null } = {}) {
     undo,
     redo,
     removeTrialEvents,
+    relabelActivities,
     canUndo: () => history.length > 0,
     canRedo: () => future.length > 0
   }

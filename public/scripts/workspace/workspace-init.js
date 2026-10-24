@@ -50,6 +50,10 @@ export const initWorkspace = async () => {
 
   const observationStore = createObservationStore({ projectId: projectFile || '', api: window.electronAPI })
   await observationStore.load()
+  window.addEventListener('etogram-activities-changed', (event) => {
+    const { changes, animalIds } = event.detail || {}
+    observationStore.relabelActivities(changes || {}, animalIds ? new Set(animalIds) : null).catch((error) => console.error('Failed to update renamed actions:', error))
+  })
   window.addEventListener('trial-removed', (event) => {
     observationStore.removeTrialEvents(event.detail?.trialId).catch((error) => console.error('Failed to remove trial events:', error))
   })

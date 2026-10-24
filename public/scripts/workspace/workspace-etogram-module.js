@@ -319,9 +319,22 @@ async function init(containerId = 'etogram-module', options = {}) {
 
   saveBtn?.addEventListener('click', async () => {
     const normalized = pruneRelations(normalizeRows(collectDraft()))
+    const previous = new Map(rows.map((row) => [row.id, row]))
+    const changes = {}
+    normalized.forEach((row) => {
+      const old = previous.get(row.id)
+      if (old && (old.name !== row.name || old.color !== row.color)) changes[row.id] = { name: row.name, color: row.color }
+    })
     rows.splice(0, rows.length, ...normalized)
     renderCompact()
     await persistRows(projectFile, normalized, animalCatalog)
+    if (Object.keys(changes).length) {
+      // Events recorded earlier keep a copy of the name; the animals that share this etogram get the new one.
+      const data = animalCatalog?.getData?.()
+      const presetId = data?.animals?.find((animal) => animal.id === data.activeAnimalId)?.etogramPresetId
+      const animalIds = presetId ? data.animals.filter((animal) => animal.etogramPresetId === presetId).map((animal) => animal.id) : null
+      window.dispatchEvent(new CustomEvent('etogram-activities-changed', { detail: { changes, animalIds } }))
+    }
     modal?.classList.add('hidden')
   })
 

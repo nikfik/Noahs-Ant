@@ -45,6 +45,7 @@ function withPercentages({ count, duration, latency }, window) {
 }
 
 // Events outside the window are ignored, events crossing its edges are clipped, and open intervals last until the window ends.
+// An event that lies completely in skipped (uncounted) time was not observed, so it is ignored as well.
 function clipToWindow(item, window) {
   const isPoint = item.kind === 'point'
   const inside = isPoint
@@ -52,11 +53,16 @@ function clipToWindow(item, window) {
     : item.start <= window.end && (item.end ?? window.end) >= window.start
   if (!inside) return null
 
-  return {
+  const clipped = {
     isPoint,
     start: Math.max(item.start, window.start),
     end: Math.min(isPoint ? item.start : item.end ?? window.end, window.end)
   }
+  const excluded = window.excluded || []
+  const unobserved = clipped.isPoint || clipped.end <= clipped.start
+    ? excluded.some(([from, to]) => clipped.start >= from && clipped.start < to)
+    : skippedWithin(window, clipped.start, clipped.end) >= clipped.end - clipped.start - 1e-9
+  return unobserved ? null : clipped
 }
 
 export function computeBehaviorMetrics(events, window) {

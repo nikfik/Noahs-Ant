@@ -109,3 +109,20 @@ describe('etogram editor: colors and advanced options', () => {
     expect(saved[0].activities[1].relations).toEqual([])
   })
 })
+
+describe('renaming an action updates the events already recorded', () => {
+  test('the store relabels events of the chosen animals, in history too', async () => {
+    const { createObservationStore } = await import('../public/scripts/workspace/observations/observation-store.js')
+    const store = createObservationStore()
+    const base = { kind: 'interval', start: 1, end: 2, lane: null, trialId: 't1', activityName: 'Sen', activityColor: '#111111' }
+    await store.commit([{ ...base, id: 'a', animalId: 'ant', activityId: 'sleep' }, { ...base, id: 'b', animalId: 'bee', activityId: 'sleep' }])
+    await store.commit([...store.getAll(), { ...base, id: 'c', animalId: 'ant', activityId: 'other', activityName: 'Inna' }])
+
+    await store.relabelActivities({ sleep: { name: 'Drzemka', color: '#999999' } }, new Set(['ant']))
+    const names = Object.fromEntries(store.getAll().map((item) => [item.id, `${item.activityName}/${item.activityColor}`]))
+    expect(names).toEqual({ a: 'Drzemka/#999999', b: 'Sen/#111111', c: 'Inna/#111111' })
+
+    await store.undo()
+    expect(store.getAll().find((item) => item.id === 'a').activityName).toBe('Drzemka')
+  })
+})
