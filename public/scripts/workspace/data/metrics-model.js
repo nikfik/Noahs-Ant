@@ -23,9 +23,9 @@ export function resolveWindow(trial, trialEvents = []) {
 }
 
 // Time that does not count inside [from, to].
-const skippedWithin = (window, from, to) => overlapWith(window.excluded || [], from, to)
+export const skippedWithin = (window, from, to) => overlapWith(window.excluded || [], from, to)
 // Seconds from the start of the window to `time`, without the skipped time in between.
-const effectiveOffset = (window, time) => time - window.start - skippedWithin(window, window.start, time)
+export const effectiveOffset = (window, time) => time - window.start - skippedWithin(window, window.start, time)
 
 function emptyMetrics(window) {
   return { present: false, count: 0, duration: 0, latency: null, percentOfWindow: window.length > 0 ? 0 : null, percentAfterLatency: null, window }
@@ -46,7 +46,7 @@ function withPercentages({ count, duration, latency }, window) {
 
 // Events outside the window are ignored, events crossing its edges are clipped, and open intervals last until the window ends.
 // An event that lies completely in skipped (uncounted) time was not observed, so it is ignored as well.
-function clipToWindow(item, window) {
+export function clipToWindow(item, window) {
   const isPoint = item.kind === 'point'
   const inside = isPoint
     ? item.start >= window.start && item.start <= window.end

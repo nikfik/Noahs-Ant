@@ -13,6 +13,7 @@ import {
   yAxisLabel
 } from './chart-model.js'
 import { renderChartSvg } from './chart-svg.js'
+import { exportSvg } from './export-image.js'
 
 const STORAGE_PREFIX = 'noahs-ant.charts.'
 const DEFAULT_CONFIG = { valueIds: [], grouping: null, aggregate: 'mean', kind: 'bar', title: '', referenceLine: null }
@@ -183,36 +184,8 @@ export function createChartsModule() {
     render()
   }
 
-  function download(name, blob) {
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = name
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.setTimeout(() => URL.revokeObjectURL(link.href), 1000)
-  }
-
   function exportChart(format) {
-    if (!lastSvg) return
-    const base = `${projectName || 'projekt'}_wykres`
-    if (format === 'svg') {
-      download(`${base}.svg`, new Blob([lastSvg], { type: 'image/svg+xml' }))
-      return
-    }
-
-    const image = new Image()
-    image.onload = () => {
-      const scale = 2
-      const canvas = document.createElement('canvas')
-      canvas.width = image.width * scale
-      canvas.height = image.height * scale
-      const context = canvas.getContext('2d')
-      context.scale(scale, scale)
-      context.drawImage(image, 0, 0)
-      canvas.toBlob((blob) => blob && download(`${base}.png`, blob), 'image/png')
-    }
-    image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(lastSvg)}`
+    exportSvg(lastSvg, `${projectName || 'projekt'}_wykres`, format)
   }
 
   function bindEvents() {

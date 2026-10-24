@@ -9,6 +9,7 @@ import { createObservationStore } from './observations/observation-store.js'
 import { DataEventsModule } from './data/data-events-module.js'
 import { DataMetricsModule } from './data/data-metrics-module.js'
 import { ChartsModule } from './charts/charts-module.js'
+import { TransitionsModule } from './transitions/transitions-module.js'
 import { initDataTabs } from './data/data-tabs.js'
 import { initViewSwitcher } from './workspace-view-switcher.js'
 import { createShortcutManager } from './shortcuts/shortcut-manager.js'
@@ -28,7 +29,7 @@ export const initWorkspace = async () => {
   const optionsBtn = document.getElementById('options-btn')
 
   initWorkspaceToolbar()
-  initViewSwitcher(['view-video', 'view-data', 'view-analysis'])
+  initViewSwitcher(['view-video', 'view-data', 'view-analysis', 'view-transitions'])
 
   const params = new URLSearchParams(window.location.search)
   const projectFile = params.get('project')
@@ -64,6 +65,7 @@ export const initWorkspace = async () => {
   await initModule('data events module', () => DataEventsModule.init('data-module', { observationStore, animalCatalog, trialCatalog }))
   await initModule('data metrics module', () => DataMetricsModule.init('data-metrics-module', { observationStore, animalCatalog, trialCatalog, projectName: projectFile }))
   await initModule('charts module', () => ChartsModule.init('charts-module', { observationStore, animalCatalog, trialCatalog, projectName: projectFile }))
+  await initModule('transitions module', () => TransitionsModule.init('transitions-module', { observationStore, animalCatalog, trialCatalog, projectName: projectFile }))
   initDataTabs()
 
   if (projectFile) {

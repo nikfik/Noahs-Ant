@@ -110,3 +110,13 @@
 .charts-canvas.empty { background: rgba(255,255,255,.02); border-style: dashed; color: var(--muted-text, #888); }
 .charts-preview summary { cursor: pointer; font-size: 13px; padding: 4px 0; }
 .charts-table-wrap { max-height: 280px; overflow: auto; margin: 6px 0; }
+.transitions-screen .charts-sidebar { overflow-y: auto; }
+.transitions-field { display: flex; flex-direction: column; gap: 4px; color: var(--muted-text, #888); font-size: 12px; }
+.transitions-field select, .transitions-field input[type="range"] { width: 100%; box-sizing: border-box; }
+.transitions-field select { padding: 7px 10px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; background: rgba(255,255,255,.04); color: var(--text-color); font: inherit; font-size: 13px; }
+.transitions-list { display: flex; flex-direction: column; gap: 3px; max-height: 150px; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; }
+.transitions-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-color); }
+.transitions-check input { accent-color: var(--primary-color, #ff4f1a); }
+.transitions-link { margin-left: 6px; padding: 0; border: 0; background: transparent; color: var(--primary-color, #ff4f1a); font-size: 11px; text-transform: none; letter-spacing: 0; cursor: pointer; }
+.transitions-canvas svg { width: 100%; max-width: 1000px; }
+.transitions-matrix th { white-space: nowrap; }
