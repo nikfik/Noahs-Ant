@@ -11,6 +11,7 @@ export function normalizeAppSettings(saved = {}) {
   const graphicsSource = source.graphics && typeof source.graphics === 'object' ? source.graphics : {}
   const timelineSource = source.timeline && typeof source.timeline === 'object' ? source.timeline : {}
   const videoSource = source.video && typeof source.video === 'object' ? source.video : {}
+  const backupSource = source.backup && typeof source.backup === 'object' ? source.backup : {}
   const savedShortcuts = Array.isArray(source.programShortcuts) ? source.programShortcuts : []
   const savedShortcutById = new Map(savedShortcuts.map((entry) => [entry?.id, entry]))
 
@@ -43,6 +44,13 @@ export function normalizeAppSettings(saved = {}) {
       : defaults.video.skipSeconds
   }
 
+  const wholeNumber = (value, min, max, fallback) => Number.isInteger(value) && value >= min && value <= max ? value : fallback
+  const backup = {
+    enabled: typeof backupSource.enabled === 'boolean' ? backupSource.enabled : defaults.backup.enabled,
+    intervalMinutes: wholeNumber(backupSource.intervalMinutes, 1, 1440, defaults.backup.intervalMinutes),
+    maxBackups: wholeNumber(backupSource.maxBackups, 1, 200, defaults.backup.maxBackups)
+  }
+
   const programShortcuts = defaults.programShortcuts.map((defaultEntry) => {
     const savedEntry = savedShortcutById.get(defaultEntry.id)
     return {
@@ -57,6 +65,7 @@ export function normalizeAppSettings(saved = {}) {
     graphics,
     timeline,
     video,
+    backup,
     programShortcuts,
     projectShortcuts: Array.isArray(source.projectShortcuts) ? source.projectShortcuts : []
   }

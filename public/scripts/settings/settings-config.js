@@ -48,6 +48,14 @@ export const settingsCatalog = {
       { id: 'snap-threshold-px', label: 'Czułość przyciągania', type: 'select', defaultValue: '9', values: ['5', '9', '14', '20'], storage: 'timeline', key: 'snapThresholdPx' }
     ]
   },
+  backup: {
+    title: 'Kopie zapasowe',
+    options: [
+      { id: 'backup-enabled', label: 'Automatyczne kopie zapasowe', type: 'toggle', defaultValue: true, storage: 'backup', key: 'enabled' },
+      { id: 'backup-interval', label: 'Ilość minut między kopiami', type: 'number', defaultValue: 30, min: 1, max: 1440, step: 1, storage: 'backup', key: 'intervalMinutes' },
+      { id: 'backup-max', label: 'Ogranicz ilość automatycznych kopii do', type: 'number', defaultValue: 10, min: 1, max: 200, step: 1, storage: 'backup', key: 'maxBackups' }
+    ]
+  },
   video: {
     title: 'Wideo',
     options: [
@@ -74,6 +82,7 @@ export function createDefaultAppSettings() {
     graphics,
     timeline,
     video: { askQuality: true, quality: presetSettings('original'), skipSeconds: 5 },
+    backup: { enabled: true, intervalMinutes: 30, maxBackups: 10 },
     programShortcuts,
     projectShortcuts: []
   }

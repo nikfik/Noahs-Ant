@@ -10,6 +10,8 @@ import { createTrialsStore } from './main/trials-store.js'
 import ffmpegPath from 'ffmpeg-static'
 import { writeTextFiles, writeWorkbook } from './main/workbook-export.js'
 import { createVideoConverter } from './main/video-converter.js'
+import { createBackupService } from './main/backup-service.js'
+import { registerBackupHandlers as registerBackupHandlersModule, registerTransferHandlers as registerTransferHandlersModule } from './main/handlers/backup-handlers.js'
 import { createMainWindow, createSettingsWindow } from './main/windows.js'
 import { registerThemeHandlers as registerThemeHandlersModule } from './main/handlers/theme-handlers.js'
 import { registerSettingsHandlers as registerSettingsHandlersModule } from './main/handlers/settings-handlers.js'
@@ -27,6 +29,7 @@ const settingsStore = createSettingsStore(APP_SETTINGS_PATH)
 const initialSettings = settingsStore.readAppSettings()
 const themeState = createThemeState(initialSettings.theme)
 const projectStore = createProjectStore(PROJECTS_DIR)
+const backupService = createBackupService({ projectsDirectory: PROJECTS_DIR, getBackupSettings: () => settingsStore.readAppSettings().backup })
 const animalsStore = createAnimalsStore(PROJECTS_DIR)
 const trialsStore = createTrialsStore(PROJECTS_DIR)
 const observationsStore = createObservationsStore(PROJECTS_DIR, {
@@ -60,6 +63,11 @@ function registerVideoHandlers() {
   registerVideoHandlersModule({ ipcMain, converter: videoConverter, projectsDirectory: PROJECTS_DIR })
 }
 
+function registerBackupHandlers() {
+  registerBackupHandlersModule({ ipcMain, backupService })
+  registerTransferHandlersModule({ ipcMain, dialog, projectsDirectory: PROJECTS_DIR, getDefaultDirectory: () => app.getPath('documents') })
+}
+
 function registerFileHandlers() {
   registerFileHandlersModule({ ipcMain, dialog, writeWorkbook, writeTextFiles, getDefaultDirectory: () => app.getPath('documents') })
 }
@@ -73,11 +81,21 @@ app.whenReady().then(() => {
   registerThemeHandlers()
   registerSettingsHandlers()
   registerProjectHandlers()
+  registerBackupHandlers()
   registerFileHandlers()
   registerVideoHandlers()
   createWindow()
 }).catch((error) => {
   console.error('[main] Startup failed:', error)
+})
+
+// A backup that is being written when the app is closed is finished first.
+let finishingBackups = false
+app.on('before-quit', (event) => {
+  if (finishingBackups) return
+  event.preventDefault()
+  finishingBackups = true
+  backupService.stopSession().then(() => backupService.whenIdle()).catch(() => {}).finally(() => app.quit())
 })
 
 app.on('window-all-closed', () => {

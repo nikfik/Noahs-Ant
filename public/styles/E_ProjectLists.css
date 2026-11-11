@@ -251,3 +251,42 @@ button:hover {
 }
 
 
+
+.project-message {
+    min-height: 18px;
+    margin: 14px 0 0;
+    color: var(--muted-text, #888888);
+    font-size: 13px;
+}
+
+.project-message.error {
+    color: #ff8a6a;
+}
+
+.modal-card label.export-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.modal-card .export-option input {
+    width: auto;
+    margin: 0;
+}
+
+.modal-card .export-videos-info {
+    margin: 0 0 12px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.modal-card .export-warning {
+    margin: 0 0 12px;
+    color: #ffb36b;
+    font-size: 12px;
+}
+
+.modal-card .export-warning[hidden] {
+    display: none;
+}

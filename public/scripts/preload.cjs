@@ -29,6 +29,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('video-convert-progress', subscription)
     return () => ipcRenderer.removeListener('video-convert-progress', subscription)
   },
+  startBackupSession: (projectId) => ipcRenderer.invoke('backup-session-start', projectId),
+  stopBackupSession: () => ipcRenderer.send('backup-session-stop'),
+  listBackups: (projectId) => ipcRenderer.invoke('list-backups', projectId),
+  createBackup: (request) => ipcRenderer.invoke('create-backup', request),
+  deleteBackup: (request) => ipcRenderer.invoke('delete-backup', request),
+  restoreBackup: (request) => ipcRenderer.invoke('restore-backup', request),
+  estimateProjectExport: (projectId) => ipcRenderer.invoke('estimate-project-export', projectId),
+  exportProject: (request) => ipcRenderer.invoke('export-project', request),
+  importProject: () => ipcRenderer.invoke('import-project'),
   onSettingsChange: (callback) => {
     const subscription = (_event, settings) => callback(settings)
     ipcRenderer.on('app-settings-changed', subscription)

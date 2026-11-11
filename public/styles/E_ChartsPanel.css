@@ -148,3 +148,30 @@
 .export-preview-table th { position: sticky; top: 0; background: #1d1d1d; white-space: nowrap; }
 .export-preview-table td { white-space: nowrap; }
 .export-preview footer > div { display: flex; gap: 8px; }
+
+/* Backups dialog */
+.backups-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(940px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  box-sizing: border-box;
+  padding: 18px 20px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  background: #161616;
+  color: var(--text-color);
+}
+.backups-dialog header, .backups-dialog footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.backups-dialog h3 { margin: 0; }
+.backups-info, .backups-message { margin: 0; color: var(--muted-text, #888); font-size: 12px; line-height: 1.5; }
+.backups-create { display: flex; gap: 8px; }
+.backups-create input { flex: 1; padding: 8px 10px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; background: rgba(255,255,255,.04); color: var(--text-color); font: inherit; }
+.backups-table { min-height: 120px; overflow: auto; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; }
+.backups-table th { position: sticky; top: 0; background: #1d1d1d; white-space: nowrap; }
+.backups-actions { white-space: nowrap; text-align: right; }
+.backups-actions .module-action { padding: 4px 10px; font-size: 12px; }
+.backups-confirm td { background: rgba(255,255,255,.04); font-size: 13px; }
+.backups-confirm .module-action { margin-left: 8px; padding: 4px 12px; }
+.backups-empty { padding: 24px; text-align: center; color: var(--muted-text, #888); }
