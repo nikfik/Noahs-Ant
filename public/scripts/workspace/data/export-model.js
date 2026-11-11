@@ -10,6 +10,49 @@ const METRICS = [
   { label: '% po latencji', format: '0.0', get: (row) => row.continuous ? row.percentAfterLatency : null }
 ]
 
+export const ROUNDING_RULES = [
+  { id: 'round', label: 'Matematyczne (od 5 w górę)' },
+  { id: 'trunc', label: 'Obcinanie' },
+  { id: 'ceil', label: 'Zawsze w górę' }
+]
+
+// Rounds to `decimals` places by the chosen rule. A value that is only a floating-point hair away from a round number
+// (0.1 + 0.2) is treated as that number, so truncating never turns 0.3 into 0.29.
+export function roundValue(value, decimals, rule = 'round') {
+  const factor = 10 ** decimals
+  const scaled = value * factor
+  const nearest = Math.round(scaled)
+  const steps = Math.abs(scaled - nearest) < 1e-9
+    ? nearest
+    : rule === 'trunc' ? Math.trunc(scaled) : rule === 'ceil' ? Math.ceil(scaled) : Math.round(scaled)
+  return Number((steps / factor).toFixed(decimals)) + 0
+}
+
+// Applies the chosen number of decimals to every column that holds fractions (counts and 1/0 flags stay whole).
+export function applyRounding(sheets, rounding) {
+  if (!rounding || !Number.isInteger(rounding.decimals) || rounding.decimals < 0) return sheets
+  const { decimals, rule } = rounding
+  const format = decimals === 0 ? '0' : `0.${'0'.repeat(decimals)}`
+
+  return sheets.map((sheet) => {
+    const fractional = Object.entries(sheet.formats || {}).filter(([, columnFormat]) => columnFormat.includes('.')).map(([column]) => Number(column))
+    if (!fractional.length) return sheet
+    return {
+      ...sheet,
+      formats: { ...sheet.formats, ...Object.fromEntries(fractional.map((column) => [column, format])) },
+      rows: sheet.rows.map((row) => row.map((value, column) => typeof value === 'number' && fractional.includes(column) ? roundValue(value, decimals, rule) : value))
+    }
+  })
+}
+
+// How a cell looks in the preview: the number with the decimals of its column format.
+export function formatCell(value, format) {
+  if (value === null || value === undefined) return ''
+  if (typeof value !== 'number') return String(value)
+  const decimals = /\.(0+)$/.exec(format || '')?.[1].length
+  return decimals === undefined ? String(value) : value.toFixed(decimals)
+}
+
 const columnKey = (row) => `${row.animalId}|${row.kind}|${row.activityId ?? row.category}`
 
 // One row per trial, like the spreadsheet the lab used: every behavior of every animal gets its own group of columns.
@@ -112,7 +155,7 @@ function buildSkipsSheet(trials) {
   }
 }
 
-function buildInfoSheet({ includeCategories, mergeCategories, hasCategories, exportedAt }) {
+function buildInfoSheet({ includeCategories, mergeCategories, hasCategories, exportedAt, rounding }) {
   const categoriesOn = includeCategories && hasCategories
   return {
     name: 'Informacje',
@@ -121,6 +164,9 @@ function buildInfoSheet({ includeCategories, mergeCategories, hasCategories, exp
       ['Wyeksportowano', exportedAt.toLocaleString('pl-PL')],
       ['Sumy kategorii (Σ)', categoriesOn ? 'tak – wiersze „Σ” sumują czynności z jednej kategorii' : 'nie'],
       ['Czas scalony', categoriesOn && mergeCategories ? 'tak – nakładające się czynności w sumie kategorii liczone raz (czas = suma scalonych odcinków, liczba = liczba epizodów)' : 'nie – zwykła suma, nakładający się czas liczony podwójnie'],
+      ...(rounding && Number.isInteger(rounding.decimals)
+        ? [['Zaokrąglanie', `${rounding.decimals} miejsc po przecinku, ${ROUNDING_RULES.find((rule) => rule.id === rounding.rule)?.label.toLowerCase() || 'zaokrąglanie matematyczne'}; dotyczy wartości ułamkowych (czasów, procentów, latencji)`]]
+        : []),
       ['Pominięcia', 'Fragmenty filmu przeskakiwane przez odtwarzacz. Niewliczony czas jest odejmowany od długości okna, od czasów trwania czynności i od latencji (czynność trwająca przez pominięcie traci tylko jego część). Wliczony czas zostaje w metrykach bez zmian. Lista pominięć jest w arkuszu „Pominięcia”.'],
       ['Okno analizy', 'Fragment nagrania, dla którego liczone są metryki (domyślnie całe wideo). Zdarzenia poza oknem są pomijane, a te na jego granicy – przycinane. Trwające zdarzenie kończy się wraz z oknem.'],
       ['Wystąpiła (1/0)', '1, jeśli czynność wystąpiła choć raz w oknie analizy'],
@@ -134,17 +180,17 @@ function buildInfoSheet({ includeCategories, mergeCategories, hasCategories, exp
   }
 }
 
-export function buildExportSheets({ observations = [], trials = [], animals = [], presets = [], includeCategories = true, mergeCategories = false, exportedAt = new Date() } = {}) {
+export function buildExportSheets({ observations = [], trials = [], animals = [], presets = [], includeCategories = true, mergeCategories = false, exportedAt = new Date(), rounding = null } = {}) {
   const metricRows = buildMetricRows(observations, { trials, animals, presets, includeCategories, mergeCategories })
 
-  return [
+  return applyRounding([
     buildWideSheet(metricRows, trials),
     buildLongSheet(metricRows),
     buildEventsSheet(observations, trials, animals),
     buildWindowsSheet(observations, trials),
     buildSkipsSheet(trials),
-    buildInfoSheet({ includeCategories, mergeCategories, hasCategories: hasCategoryGroups(animals, presets), exportedAt })
-  ]
+    buildInfoSheet({ includeCategories, mergeCategories, hasCategories: hasCategoryGroups(animals, presets), exportedAt, rounding })
+  ], rounding)
 }
 
 export function suggestExportName(projectName, date = new Date()) {

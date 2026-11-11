@@ -3,6 +3,7 @@ import { formatSeconds, parseTimeInput } from './event-table-model.js'
 import { buildMetricRows, hasCategoryGroups, summarizeTrialWindow } from './metrics-model.js'
 import { ariaSort, nextSort, sortMark, sortRows } from './sort-utils.js'
 import { buildExportSheets, suggestExportName } from './export-model.js'
+import { openExportPreview } from './export-preview.js'
 
 const PREFERENCES_KEY = 'noahs-ant.metrics'
 const SECONDS = (value) => value === null ? '—' : formatSeconds(value)
@@ -25,7 +26,7 @@ const TIPS = {
   categories: 'Dodaje wiersze „Σ” sumujące czynności z tej samej kategorii (kategorie ustawia się w edytorze etogramu; potrzebne co najmniej dwie czynności zwierzęcia w jednej kategorii).',
   merge: 'Dotyczy wierszy „Σ”. Włączone: czynności nakładające się na siebie liczą się raz — czas to suma scalonych odcinków, a liczba to liczba oddzielnych epizodów. Wyłączone: zwykła suma wszystkich czynności, nakładający się czas liczy się podwójnie (jak w arkuszu).',
   colors: 'Koloruje komórki „tak” i „nie” w kolumnie „Wystąpiła”.',
-  export: 'Zapisuje metryki jako plik Excela (.xlsx) albo, po wybraniu typu pliku w oknie zapisu, jako CSV (przecinki) lub TXT (tabulatory) – wtedy każdy arkusz trafia do osobnego pliku. Dane to metryki wszystkich prób i zwierząt (niezależnie od filtrów), z bieżącymi ustawieniami sum kategorii i czasu scalonego. Arkusze: Metryki (jeden wiersz na próbę), Metryki w długim formacie, Zdarzenia, Okna prób i Informacje.',
+  export: 'Pokazuje podgląd tego, co trafi do pliku (z ustawieniem miejsc po przecinku i zaokrąglania), a potem zapisuje metryki jako plik Excela (.xlsx) albo, po wybraniu typu pliku w oknie zapisu, jako CSV (przecinki) lub TXT (tabulatory) – wtedy każdy arkusz trafia do osobnego pliku. Dane to metryki wszystkich prób i zwierząt (niezależnie od filtrów), z bieżącymi ustawieniami sum kategorii i czasu scalonego. Arkusze: Metryki (jeden wiersz na próbę), Metryki w długim formacie, Zdarzenia, Okna prób i Informacje.',
   window: 'Wybierz fragment nagrania, dla którego liczone są metryki, np. tylko pierwsze 5 minut godzinnego filmu. Zdarzenia poza oknem są pomijane, a procenty liczone względem długości okna. Puste pole = początek / koniec wideo.',
   windowStart: 'Początek analizowanego fragmentu w sekundach (lub m:ss). Puste = początek wideo.',
   windowEnd: 'Koniec analizowanego fragmentu w sekundach (lub m:ss). Puste = koniec wideo.',
@@ -37,9 +38,9 @@ const TIPS = {
 
 function loadPreferences() {
   try {
-    return { includeCategories: true, mergeCategories: false, colorize: true, ...JSON.parse(localStorage.getItem(PREFERENCES_KEY) || '{}') }
+    return { includeCategories: true, mergeCategories: false, colorize: true, decimals: null, rounding: 'round', ...JSON.parse(localStorage.getItem(PREFERENCES_KEY) || '{}') }
   } catch (_error) {
-    return { includeCategories: true, mergeCategories: false, colorize: true }
+    return { includeCategories: true, mergeCategories: false, colorize: true, decimals: null, rounding: 'round' }
   }
 }
 
@@ -194,17 +195,37 @@ export function createDataMetricsModule() {
     if (node) node.textContent = text
   }
 
+  const roundingSetting = () => Number.isInteger(preferences.decimals) ? { decimals: preferences.decimals, rule: preferences.rounding } : null
+
+  function exportSheets(rounding = roundingSetting()) {
+    return buildExportSheets({
+      observations: store.getAll(),
+      trials: trials(),
+      animals: animals(),
+      presets: presets(),
+      includeCategories: preferences.includeCategories,
+      mergeCategories: preferences.mergeCategories,
+      rounding
+    })
+  }
+
+  function showExportPreview() {
+    openExportPreview({
+      getSheets: exportSheets,
+      rounding: roundingSetting(),
+      canExport: Boolean(window.electronAPI?.exportWorkbook),
+      onChange: (rounding) => {
+        preferences = { ...preferences, decimals: rounding ? rounding.decimals : null, rounding: rounding?.rule || preferences.rounding }
+        savePreferences(preferences)
+      },
+      onExport: () => exportWorkbook()
+    })
+  }
+
   async function exportWorkbook() {
     showMessage('Eksportowanie…')
     try {
-      const sheets = buildExportSheets({
-        observations: store.getAll(),
-        trials: trials(),
-        animals: animals(),
-        presets: presets(),
-        includeCategories: preferences.includeCategories,
-        mergeCategories: preferences.mergeCategories
-      })
+      const sheets = exportSheets()
       const result = await window.electronAPI.exportWorkbook({ suggestedName: suggestExportName(projectName), sheets })
       showMessage(result?.saved
         ? (result.files?.length > 1 ? `Zapisano ${result.files.length} plików, pierwszy: ${result.filePath}` : `Zapisano: ${result.filePath}`)
@@ -241,7 +262,7 @@ export function createDataMetricsModule() {
       }
 
       const action = event.target.closest('[data-action]')
-      if (action?.dataset.action === 'export-xlsx' && !action.disabled) exportWorkbook()
+      if (action?.dataset.action === 'export-xlsx' && !action.disabled) showExportPreview()
     })
 
     host.addEventListener('keydown', (event) => {

@@ -120,3 +120,31 @@
 .transitions-link { margin-left: 6px; padding: 0; border: 0; background: transparent; color: var(--primary-color, #ff4f1a); font-size: 11px; text-transform: none; letter-spacing: 0; cursor: pointer; }
 .transitions-canvas svg { width: 100%; max-width: 1000px; }
 .transitions-matrix th { white-space: nowrap; }
+
+/* Export preview */
+.export-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(1100px, calc(100vw - 48px));
+  height: min(720px, calc(100vh - 48px));
+  box-sizing: border-box;
+  padding: 18px 20px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  background: #161616;
+  color: var(--text-color);
+}
+.export-preview header, .export-preview footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.export-preview h3 { margin: 0; }
+.export-preview-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.export-preview-controls label { display: inline-flex; align-items: center; gap: 8px; color: var(--muted-text, #888); font-size: 13px; }
+.export-preview-controls select { padding: 6px 10px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; background: rgba(255,255,255,.04); color: var(--text-color); font: inherit; }
+.export-preview-note { color: var(--muted-text, #888); font-size: 12px; }
+.export-preview-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.export-preview-tabs button { padding: 6px 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; background: transparent; color: var(--text-color); font: inherit; font-size: 13px; cursor: pointer; }
+.export-preview-tabs button.active { background: var(--primary-color, #ff4f1a); border-color: transparent; color: #fff; }
+.export-preview-table { flex: 1; min-height: 0; overflow: auto; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; }
+.export-preview-table th { position: sticky; top: 0; background: #1d1d1d; white-space: nowrap; }
+.export-preview-table td { white-space: nowrap; }
+.export-preview footer > div { display: flex; gap: 8px; }
