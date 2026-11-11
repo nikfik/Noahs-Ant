@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { createThemeState } from './main/theme-state.js'
 import { createSettingsStore } from './main/settings-store.js'
 import { createProjectStore } from './main/project-store.js'
@@ -11,6 +11,9 @@ import ffmpegPath from 'ffmpeg-static'
 import { writeTextFiles, writeWorkbook } from './main/workbook-export.js'
 import { createVideoConverter } from './main/video-converter.js'
 import { createBackupService } from './main/backup-service.js'
+import { createProjectLibrary } from './main/project-library.js'
+import { createThumbnailService } from './main/project-thumbnails.js'
+import { registerLibraryHandlers as registerLibraryHandlersModule } from './main/handlers/library-handlers.js'
 import { registerBackupHandlers as registerBackupHandlersModule, registerTransferHandlers as registerTransferHandlersModule } from './main/handlers/backup-handlers.js'
 import { createMainWindow, createSettingsWindow } from './main/windows.js'
 import { registerThemeHandlers as registerThemeHandlersModule } from './main/handlers/theme-handlers.js'
@@ -63,6 +66,12 @@ function registerVideoHandlers() {
   registerVideoHandlersModule({ ipcMain, converter: videoConverter, projectsDirectory: PROJECTS_DIR })
 }
 
+function registerLibraryHandlers() {
+  const library = createProjectLibrary({ projectsDirectory: PROJECTS_DIR })
+  const thumbnails = createThumbnailService({ projectsDirectory: PROJECTS_DIR, ffmpegPath: ffmpegPath?.replace('app.asar', 'app.asar.unpacked') })
+  registerLibraryHandlersModule({ ipcMain, library, thumbnails, trashItem: (target) => shell.trashItem(target) })
+}
+
 function registerBackupHandlers() {
   registerBackupHandlersModule({ ipcMain, backupService })
   registerTransferHandlersModule({ ipcMain, dialog, projectsDirectory: PROJECTS_DIR, getDefaultDirectory: () => app.getPath('documents') })
@@ -82,6 +91,7 @@ app.whenReady().then(() => {
   registerSettingsHandlers()
   registerProjectHandlers()
   registerBackupHandlers()
+  registerLibraryHandlers()
   registerFileHandlers()
   registerVideoHandlers()
   createWindow()

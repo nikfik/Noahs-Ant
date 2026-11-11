@@ -29,6 +29,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('video-convert-progress', subscription)
     return () => ipcRenderer.removeListener('video-convert-progress', subscription)
   },
+  getProjectInfo: (projectId) => ipcRenderer.invoke('get-project-info', projectId),
+  getProjectThumbnail: (projectId) => ipcRenderer.invoke('get-project-thumbnail', projectId),
+  deleteProject: (projectId) => ipcRenderer.invoke('delete-project', projectId),
+  pathsExist: (paths) => ipcRenderer.invoke('paths-exist', paths),
+  findFilesInFolder: (request) => ipcRenderer.invoke('find-files-in-folder', request),
   startBackupSession: (projectId) => ipcRenderer.invoke('backup-session-start', projectId),
   stopBackupSession: () => ipcRenderer.send('backup-session-stop'),
   listBackups: (projectId) => ipcRenderer.invoke('list-backups', projectId),

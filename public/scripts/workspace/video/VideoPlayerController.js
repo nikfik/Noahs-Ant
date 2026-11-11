@@ -12,6 +12,9 @@ import { createVideoPopout } from './video-popout.js'
 import { isSkipping } from '../trials/skip-playback.js'
 
 const DEFAULT_SKIP_SECONDS = 5
+const EMPTY_TEXT = 'Ta próba nie ma jeszcze filmu'
+const fileNameOf = (filePath) => String(filePath).split(/[\\/]/).pop()
+const folderOf = (filePath) => String(filePath).replace(/[\\/][^\\/]*$/, '')
 const formatSkip = (seconds) => String(seconds).replace('.', ',')
 
 // Buttons whose tooltip shows the keyboard shortcut: [element property, shortcut action, tooltip without the keys].
@@ -62,6 +65,23 @@ export class VideoPlayerController {
     }
   }
 
+  setEmptyMessage(text = EMPTY_TEXT, buttonLabel = 'Wybierz plik wideo') {
+    const message = this.emptyState?.querySelector('p')
+    if (message) message.textContent = text
+    const label = this.emptyState?.querySelector('button')
+    if (label) label.lastChild.textContent = buttonLabel
+  }
+
+  // The file of a trial may have been moved or deleted: the panel then says so and offers to point at the file again.
+  async checkVideoFile(trial) {
+    if (!trial?.videoPath) return
+    const [exists] = await VideoIOService.pathsExist([trial.videoPath])
+    if (exists || this.trialId !== trial.id || this.videoPath !== trial.videoPath) return
+
+    this.clearVideo()
+    this.setEmptyMessage(`Nie znaleziono pliku wideo „${fileNameOf(trial.videoPath)}”`, 'Wskaż plik wideo')
+  }
+
   setVideoSource(videoPath) {
     if (!this.video) return
 
@@ -69,6 +89,7 @@ export class VideoPlayerController {
     if (!src) return
 
     this.videoPath = videoPath
+    this.setEmptyMessage()
     if (this.qualityBtn) this.qualityBtn.disabled = false
     this.video.src = src
     this.video.load()
@@ -83,6 +104,7 @@ export class VideoPlayerController {
     this.video.removeAttribute('src')
     this.video.load()
     this.videoPath = ''
+    this.setEmptyMessage()
     if (this.qualityBtn) this.qualityBtn.disabled = true
     if (this.emptyState) this.emptyState.hidden = false
     this.zoomControls?.fitToContainer()
@@ -146,17 +168,19 @@ export class VideoPlayerController {
     this.popoutBtn.setAttribute('aria-label', title)
   }
 
-  showBusy(text, percent = null, { error = false } = {}) {
+  // An `error` or a `notice` is a message with a Close button; only an error is shown in red.
+  showBusy(text, percent = null, { error = false, notice = false } = {}) {
     const busy = this.busy
     if (!busy?.root) return
 
+    const message = error || notice
     busy.root.hidden = false
     busy.root.classList.toggle('is-error', error)
     busy.text.textContent = text
-    busy.progress.hidden = error || percent === null
+    busy.progress.hidden = message || percent === null
     if (percent !== null) busy.progress.value = percent
-    busy.cancel.hidden = error
-    busy.close.hidden = !error
+    busy.cancel.hidden = message
+    busy.close.hidden = !message
   }
 
   hideBusy() {
@@ -179,7 +203,27 @@ export class VideoPlayerController {
 
   async chooseVideo() {
     const selected = await VideoIOService.selectVideoFile()
-    if (selected) await this.importVideo(selected)
+    if (selected) await this.importVideo(selected, { relinkOthers: true })
+  }
+
+  // When the film of one trial was found again, the missing films of the other trials are looked for in the same folder.
+  async relinkOtherTrials(pickedPath, currentTrialId) {
+    const others = (this.trialCatalog?.getData?.().trials || []).filter((trial) => trial.id !== currentTrialId && trial.videoPath)
+    if (!others.length) return
+
+    const exists = await VideoIOService.pathsExist(others.map((trial) => trial.videoPath))
+    const missing = others.filter((_trial, index) => !exists[index])
+    if (!missing.length) return
+
+    const found = await VideoIOService.findFilesInFolder(folderOf(pickedPath), [...new Set(missing.map((trial) => fileNameOf(trial.videoPath)))])
+    let relinked = 0
+    for (const trial of missing) {
+      const hit = found[fileNameOf(trial.videoPath)]
+      if (!hit) continue
+      await this.trialCatalog.updateTrial(trial.id, { videoPath: hit })
+      relinked += 1
+    }
+    if (relinked) this.showBusy(`Odnaleziono też filmy innych prób: ${relinked}.`, null, { notice: true })
   }
 
   // Converts the original file of this trial's video again, e.g. in a lighter quality.
@@ -189,7 +233,7 @@ export class VideoPlayerController {
     if (original) await this.importVideo(original, { forceAsk: true })
   }
 
-  async importVideo(filePath, { forceAsk = false } = {}) {
+  async importVideo(filePath, { forceAsk = false, relinkOthers = false } = {}) {
     const trialId = this.trialId
     this.showBusy('Sprawdzanie filmu…')
     try {
@@ -217,6 +261,7 @@ export class VideoPlayerController {
         sourcePath: result.sourcePath || '',
         frameRate: result.frameRate ?? null
       })
+      if (relinkOthers) await this.relinkOtherTrials(filePath, trialId)
     } catch (error) {
       console.error('Could not prepare the video:', error)
       this.showBusy(VideoIOService.friendlyError(error), null, { error: true })
@@ -279,6 +324,7 @@ export class VideoPlayerController {
     this.trialId = trial.id
     if (trial.videoPath) {
       this.setVideoSource(trial.videoPath)
+      this.checkVideoFile(trial).catch((error) => console.error('Could not check the video file:', error))
       this.ensureFrameRate().catch((error) => console.error('Could not read the frame rate:', error))
     } else {
       this.clearVideo()
@@ -432,6 +478,7 @@ export class VideoPlayerController {
 
     if (this.video && existingVideoPath) {
       this.setVideoSource(existingVideoPath)
+      this.checkVideoFile(activeTrial).catch((error) => console.error('Could not check the video file:', error))
       this.ensureFrameRate().catch((error) => console.error('Could not read the frame rate:', error))
     }
 

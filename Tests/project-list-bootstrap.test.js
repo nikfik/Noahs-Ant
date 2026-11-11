@@ -10,10 +10,10 @@ jest.unstable_mockModule('../public/scripts/workspace/workspace-router.js', () =
 describe('ProjectList bootstrap', () => {
   beforeEach(() => {
     document.body.innerHTML = `
-      <span class="settings-tab"></span>
+      <button id="settings-btn"></button>
       <div id="project-grid"></div>
       <button id="new-project-btn"></button><button id="project-cancel-btn"></button>
-      <button id="open-project-btn"></button><input id="project-name" />
+      <input id="project-name" />
       <div id="project-name-error"></div><form id="project-modal-form"></form>
       <div id="project-modal" class="hidden"></div>
     `
@@ -42,7 +42,7 @@ describe('ProjectList bootstrap', () => {
     expect(window.electronAPI.createProject).toHaveBeenCalledWith('Demo Project')
     expect(navigateToWorkspace).toHaveBeenCalledWith({ projectName: 'Demo', fileName: 'Demo' })
 
-    document.querySelector('.settings-tab').click()
+    document.getElementById('settings-btn').click()
     expect(window.electronAPI.openSettingsWindow).toHaveBeenCalled()
   })
 })

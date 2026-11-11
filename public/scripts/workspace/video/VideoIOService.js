@@ -26,6 +26,23 @@ export class VideoIOService {
     }
   }
 
+  // Which of the files still exist (all of them when the check is not available).
+  static async pathsExist(paths) {
+    try {
+      return (await window.electronAPI?.pathsExist?.(paths)) ?? paths.map(() => true)
+    } catch (_error) {
+      return paths.map(() => true)
+    }
+  }
+
+  static async findFilesInFolder(folder, names) {
+    try {
+      return (await window.electronAPI?.findFilesInFolder?.({ folder, names })) ?? {}
+    } catch (_error) {
+      return {}
+    }
+  }
+
   static cancelConversion() {
     return window.electronAPI?.cancelVideoConversion?.()
   }
