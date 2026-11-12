@@ -1,19 +1,12 @@
-import { applyTheme } from '../theme/theme-service.js'
+import { initTheme } from '../theme/theme-service.js'
 import { initProjectList } from '../projects/project-list-controller.js'
 
 document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    const currentTheme = await window.electronAPI?.getTheme?.()
-    if (currentTheme) applyTheme(currentTheme)
-  } catch (error) {
-    console.error('Failed to get theme:', error)
-  }
+  await initTheme()
 
   try {
     await initProjectList()
   } catch (error) {
     console.error('Failed to init project list:', error)
   }
-
-  window.electronAPI?.onThemeChange?.((theme) => applyTheme(theme))
 })

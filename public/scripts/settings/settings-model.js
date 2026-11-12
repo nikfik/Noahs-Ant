@@ -1,5 +1,6 @@
 import { normalizeQualitySettings } from '../shared/video-quality.js'
-import { createDefaultAppSettings, defaultTheme, settingsCatalog } from './settings-config.js'
+import { createDefaultAppSettings, defaultTheme } from './settings-config.js'
+import { FONT_CHOICES, SCALE_CHOICES, matchThemePreset } from '../shared/appearance.js'
 import { normalizeShortcutEntry } from './shortcut-utils.js'
 
 const COLOR_PATTERN = /^#[0-9a-f]{6}$/i
@@ -15,20 +16,27 @@ export function normalizeAppSettings(saved = {}) {
   const savedShortcuts = Array.isArray(source.programShortcuts) ? source.programShortcuts : []
   const savedShortcutById = new Map(savedShortcuts.map((entry) => [entry?.id, entry]))
 
-  const theme = Object.fromEntries(Object.keys(defaultTheme).map((key) => [
+  const colors = Object.fromEntries(['bgColor', 'textColor', 'primaryColor'].map((key) => [
     key,
     typeof themeSource[key] === 'string' && COLOR_PATTERN.test(themeSource[key])
       ? themeSource[key]
       : defaults.theme[key]
   ]))
+  const customSource = themeSource.custom && typeof themeSource.custom === 'object' ? themeSource.custom : {}
+  const custom = Object.fromEntries(['bgColor', 'textColor', 'primaryColor'].map((key) => [
+    key,
+    typeof customSource[key] === 'string' && COLOR_PATTERN.test(customSource[key]) ? customSource[key] : defaults.theme.custom[key]
+  ]))
+  const theme = {
+    ...colors,
+    custom,
+    font: FONT_CHOICES.some((font) => font.value === themeSource.font) ? themeSource.font : defaultTheme.font,
+    preset: matchThemePreset(colors)
+  }
 
-  const graphics = Object.fromEntries(settingsCatalog.graphics.options.map((option) => {
-    const value = graphicsSource[option.id]
-    const isValid = option.type === 'toggle'
-      ? typeof value === 'boolean'
-      : option.values.includes(value)
-    return [option.id, isValid ? value : option.defaultValue]
-  }))
+  const graphics = {
+    scale: SCALE_CHOICES.some((choice) => choice.value === graphicsSource.scale) ? graphicsSource.scale : defaults.graphics.scale
+  }
   const timeline = {
     snapEnabled: typeof timelineSource.snapEnabled === 'boolean' ? timelineSource.snapEnabled : defaults.timeline.snapEnabled,
     snapThresholdPx: [5, 9, 14, 20].includes(Number(timelineSource.snapThresholdPx))

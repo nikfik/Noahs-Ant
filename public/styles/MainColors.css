@@ -2,15 +2,53 @@
   --primary-color: #ff4f1a;
   --bg-color: #1a1a1a;
   --text-color: #e0e0e0;
-  --surface-color: #111111;
-  --muted-text: #888888;
-  --button-bg: #2a2a2a;
-  --button-hover: #3a3a3a;
-  --button-border: #444444;
-  --button-text: #ffffff;
-  --header-bg: #111111;
-  --header-border: #333333;
-  --card-bg: #222222;
+  --sunken-amount: 35%;
+  --app-font: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+
+  /* Everything below is worked out from the three colors above (and follows them when they change). */
+  --muted-text: color-mix(in srgb, var(--text-color) 55%, var(--bg-color));
+  --sunken: color-mix(in srgb, var(--bg-color), black var(--sunken-amount));
+  --surface-1: color-mix(in srgb, var(--bg-color), var(--text-color) 4%);
+  --surface-2: color-mix(in srgb, var(--bg-color), var(--text-color) 8%);
+  --surface-3: color-mix(in srgb, var(--bg-color), var(--text-color) 14%);
+  --surface-modal: color-mix(in srgb, var(--bg-color), var(--text-color) 3%);
+
+  --surface-color: var(--sunken);
+  --header-bg: var(--sunken);
+  --header-border: color-mix(in srgb, var(--text-color) 12%, transparent);
+  --card-bg: var(--surface-1);
+  --button-bg: var(--surface-2);
+  --button-hover: var(--surface-3);
+  --button-border: color-mix(in srgb, var(--text-color) 22%, transparent);
+  --button-text: var(--text-color);
+
+  /* The text color at a given strength, for borders and light fills: --tint-80 is 8%. */
+  --tint-12: color-mix(in srgb, var(--text-color) 1.2%, transparent);
+  --tint-15: color-mix(in srgb, var(--text-color) 1.5%, transparent);
+  --tint-18: color-mix(in srgb, var(--text-color) 1.8%, transparent);
+  --tint-20: color-mix(in srgb, var(--text-color) 2%, transparent);
+  --tint-25: color-mix(in srgb, var(--text-color) 2.5%, transparent);
+  --tint-30: color-mix(in srgb, var(--text-color) 3%, transparent);
+  --tint-35: color-mix(in srgb, var(--text-color) 3.5%, transparent);
+  --tint-40: color-mix(in srgb, var(--text-color) 4%, transparent);
+  --tint-45: color-mix(in srgb, var(--text-color) 4.5%, transparent);
+  --tint-50: color-mix(in srgb, var(--text-color) 5%, transparent);
+  --tint-55: color-mix(in srgb, var(--text-color) 5.5%, transparent);
+  --tint-60: color-mix(in srgb, var(--text-color) 6%, transparent);
+  --tint-70: color-mix(in srgb, var(--text-color) 7%, transparent);
+  --tint-80: color-mix(in srgb, var(--text-color) 8%, transparent);
+  --tint-90: color-mix(in srgb, var(--text-color) 9%, transparent);
+  --tint-100: color-mix(in srgb, var(--text-color) 10%, transparent);
+  --tint-110: color-mix(in srgb, var(--text-color) 11%, transparent);
+  --tint-120: color-mix(in srgb, var(--text-color) 12%, transparent);
+  --tint-140: color-mix(in srgb, var(--text-color) 14%, transparent);
+  --tint-180: color-mix(in srgb, var(--text-color) 18%, transparent);
+  --tint-200: color-mix(in srgb, var(--text-color) 20%, transparent);
+  --tint-220: color-mix(in srgb, var(--text-color) 22%, transparent);
+  --tint-250: color-mix(in srgb, var(--text-color) 25%, transparent);
+  --tint-270: color-mix(in srgb, var(--text-color) 27%, transparent);
+  --tint-380: color-mix(in srgb, var(--text-color) 38%, transparent);
+  --tint-450: color-mix(in srgb, var(--text-color) 45%, transparent);
 }
 
 body {

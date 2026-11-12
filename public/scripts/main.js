@@ -46,12 +46,23 @@ const windowOptions = {
 }
 const openSettingsWindow = createSettingsWindow(windowOptions)
 
+// The size of the interface (a setting) is the zoom of every window, including the ones opened later.
+const interfaceScale = () => (Number(settingsStore.readAppSettings().graphics.scale) || 100) / 100
+
+function applyInterfaceScale() {
+  BrowserWindow.getAllWindows().forEach((win) => win.webContents.setZoomFactor(interfaceScale()))
+}
+
+app.on('web-contents-created', (_event, contents) => {
+  contents.on('did-finish-load', () => contents.setZoomFactor(interfaceScale()))
+})
+
 function registerThemeHandlers() {
   registerThemeHandlersModule({ ipcMain, BrowserWindow, themeState })
 }
 
 function registerSettingsHandlers() {
-  registerSettingsHandlersModule({ ipcMain, BrowserWindow, settingsStore, openSettingsWindow })
+  registerSettingsHandlersModule({ ipcMain, BrowserWindow, settingsStore, openSettingsWindow, onSaved: applyInterfaceScale })
 }
 
 function registerProjectHandlers() {

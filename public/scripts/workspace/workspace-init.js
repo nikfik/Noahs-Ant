@@ -1,4 +1,5 @@
 import { AppState } from '../services/AppState.js'
+import { initTheme } from '../theme/theme-service.js'
 import { initWorkspaceToolbar } from './workspace-toolbar.js'
 import { WorkspaceVideoModule } from './workspace-video-module.js'
 import { WorkspaceEtogramModule } from './workspace-etogram-module.js'
@@ -25,6 +26,7 @@ async function initModule(name, init) {
 }
 
 export const initWorkspace = async () => {
+  initTheme()
   const appState = AppState.getInstance()
   const backBtn = document.getElementById('back-to-projects')
   const optionsBtn = document.getElementById('options-btn')

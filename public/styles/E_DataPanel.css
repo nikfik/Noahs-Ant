@@ -58,9 +58,9 @@
 .data-panel input {
   box-sizing: border-box;
   padding: 6px 8px;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--tint-100);
   border-radius: 8px;
-  background: rgba(255,255,255,0.04);
+  background: var(--tint-40);
   color: var(--text-color);
   font: inherit;
   font-size: 13px;
@@ -78,9 +78,9 @@
   min-width: 30px;
   height: 30px;
   padding: 0 8px;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--tint-100);
   border-radius: 8px;
-  background: rgba(255,255,255,0.04);
+  background: var(--tint-40);
   color: var(--text-color);
   cursor: pointer;
 }
@@ -97,9 +97,9 @@
 .data-table-wrap {
   max-height: calc(100vh - 230px);
   overflow: auto;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--tint-80);
   border-radius: 12px;
-  background: rgba(255,255,255,0.015);
+  background: var(--tint-15);
 }
 .data-table {
   width: 100%;
@@ -110,7 +110,7 @@
   top: 0;
   z-index: 1;
   padding: 10px 8px;
-  background: #171a20;
+  background: var(--sunken);
   color: var(--muted-text, #888);
   font-size: 12px;
   text-align: left;
@@ -118,11 +118,11 @@
 }
 .data-table td {
   padding: 6px 8px;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid var(--tint-50);
   vertical-align: middle;
 }
 .data-table tbody tr:hover {
-  background: rgba(255,255,255,0.025);
+  background: var(--tint-25);
 }
 .data-table td:first-child {
   border-left: 3px solid var(--event-color, transparent);
@@ -160,7 +160,7 @@
   display: flex;
   gap: 4px;
   padding: 14px 22px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid var(--tint-80);
 }
 .data-tab {
   padding: 9px 18px;
@@ -188,7 +188,7 @@
   text-align: right;
 }
 .metric-category td {
-  background: rgba(255,255,255,0.035);
+  background: var(--tint-35);
   font-weight: 600;
 }
 .data-window summary {

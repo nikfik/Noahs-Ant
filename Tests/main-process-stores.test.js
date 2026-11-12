@@ -17,7 +17,9 @@ describe('main process stores', () => {
     expect(themeState.set({ primaryColor: '#00ff00' })).toEqual({
       bgColor: '#1a1a1a',
       textColor: '#e0e0e0',
-      primaryColor: '#00ff00'
+      primaryColor: '#00ff00',
+      font: 'system',
+      custom: { bgColor: '#1a1a1a', textColor: '#e0e0e0', primaryColor: '#ff4f1a' }
     })
   })
 

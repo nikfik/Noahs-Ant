@@ -7,7 +7,7 @@
 body {
     background-color: var(--bg-color, #1a1a1a);
     color: var(--text-color, #e0e0e0);
-    font-family: sans-serif;
+    font-family: var(--app-font, sans-serif);
     height: 100vh;
     display: flex;
     flex-direction: column;
@@ -18,6 +18,7 @@ body {
     display: flex;
     flex: 1;
     flex-direction: column;
+    min-height: 0;
 }
 
 header {
@@ -47,6 +48,8 @@ main {
     min-height: 0;
     overflow-y: auto;
     padding: 30px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--tint-250) transparent;
 }
 
 .list-heading {
@@ -93,7 +96,7 @@ h2 {
 .project-empty {
     grid-column: 1 / -1;
     padding: 18px 20px;
-    border: 1px dashed rgba(255, 255, 255, 0.18);
+    border: 1px dashed var(--tint-180);
     border-radius: 12px;
     color: var(--muted-text, #888888);
 }
@@ -104,9 +107,9 @@ h2 {
     gap: 10px;
     width: 220px;
     padding: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--tint-100);
     border-radius: 16px;
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: var(--tint-30);
     transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
     cursor: pointer;
     outline: none;
@@ -116,12 +119,12 @@ h2 {
 .project-card:focus-visible {
     transform: translateY(-2px);
     border-color: var(--primary-color, #ff4f1a);
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: var(--tint-80);
 }
 
 .project-card.selected {
     border-color: var(--primary-color, #ff4f1a);
-    background-color: rgba(255, 79, 26, 0.12);
+    background-color: color-mix(in srgb, var(--primary-color) 12%, transparent);
 }
 
 .thumbnail {
@@ -130,7 +133,7 @@ h2 {
     aspect-ratio: 16 / 9;
     overflow: hidden;
     background-color: var(--card-bg, #222222);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--tint-80);
     border-radius: 10px;
     display: flex;
     justify-content: center;
@@ -212,7 +215,7 @@ h2 {
     flex-direction: column;
     min-width: 160px;
     padding: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid var(--tint-140);
     border-radius: 12px;
     background: var(--header-bg, #111111);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
@@ -229,7 +232,7 @@ h2 {
 
 .card-menu button:hover,
 .card-menu button:focus-visible {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--tint-100);
     outline: none;
 }
 
@@ -238,6 +241,7 @@ h2 {
 }
 
 footer {
+    flex-shrink: 0;
     display: grid;
     grid-template-columns: 1fr minmax(220px, 420px) 1fr;
     align-items: center;
@@ -271,7 +275,7 @@ footer {
 .info-table th,
 .info-table td {
     padding: 6px 4px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--tint-60);
     text-align: left;
 }
 
@@ -321,7 +325,7 @@ button:hover {
 .modal-card {
     width: min(420px, calc(100% - 40px));
     background: var(--header-bg, #111111);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid var(--tint-140);
     border-radius: 20px;
     padding: 24px;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
@@ -348,7 +352,7 @@ button:hover {
     width: 100%;
     padding: 12px 14px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--tint-120);
     background: var(--bg-color, #1a1a1a);
     color: var(--text-color, #e0e0e0);
     margin-bottom: 8px;
@@ -381,9 +385,9 @@ button:hover {
     justify-content: space-between;
     align-items: center;
     padding: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--tint-80);
     border-radius: 12px;
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: var(--tint-40);
 }
 
 .project-meta {
@@ -403,7 +407,7 @@ button:hover {
 
 .project-empty {
     padding: 16px;
-    border: 1px dashed rgba(255, 255, 255, 0.25);
+    border: 1px dashed var(--tint-250);
     border-radius: 12px;
     color: var(--muted-text, #888888);
 }

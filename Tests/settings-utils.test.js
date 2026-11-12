@@ -15,8 +15,12 @@ describe('Settings model defaults and normalization', () => {
     expect(settings.theme).toEqual({
       bgColor: '#1a1a1a',
       textColor: '#e0e0e0',
-      primaryColor: '#ff4f1a'
+      primaryColor: '#ff4f1a',
+      font: 'system',
+      preset: 'dark',
+      custom: { bgColor: '#1a1a1a', textColor: '#e0e0e0', primaryColor: '#ff4f1a' }
     })
+    expect(settings.graphics).toEqual({ scale: '100' })
     expect(settings.timeline).toEqual({ snapEnabled: true, snapThresholdPx: 9 })
     expect(settings.video).toEqual({ askQuality: true, quality: { preset: 'original', maxHeight: null, maxFrameRate: null, quality: 'original' }, skipSeconds: 5 })
     expect(settings.programShortcuts.map(({ id }) => id)).toEqual([

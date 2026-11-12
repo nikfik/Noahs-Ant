@@ -2,14 +2,14 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	border: 1px solid rgba(255,255,255,0.1);
+	border: 1px solid var(--tint-100);
 	border-radius: 8px;
-	background: rgba(255,255,255,0.05);
+	background: var(--tint-50);
 	color: var(--text-color);
 	cursor: pointer;
 }
 .animal-icon-action:hover {
-	background: rgba(255,255,255,0.1);
+	background: var(--tint-100);
 }
 .animal-catalog-tree {
 	max-height: min(38vh, 330px);
@@ -36,7 +36,7 @@
 	border-radius: 8px;
 }
 .animal-group-row:hover {
-	background: rgba(255,255,255,0.04);
+	background: var(--tint-40);
 }
 .animal-group-toggle {
 	display: flex;
@@ -75,7 +75,7 @@
 	height: 19px;
 	place-items: center;
 	border-radius: 99px;
-	background: rgba(255,255,255,0.07);
+	background: var(--tint-70);
 	color: var(--muted-text, #888);
 	font-size: 10px;
 }
@@ -97,7 +97,7 @@
 .animal-group-children {
 	margin: 2px 0 5px 13px;
 	padding-left: 8px;
-	border-left: 1px solid rgba(255,255,255,0.11);
+	border-left: 1px solid var(--tint-110);
 }
 .animal-entry {
 	display: flex;
@@ -113,7 +113,7 @@
 	color: var(--muted-text, #aaa);
 }
 .animal-entry:hover {
-	background: rgba(255,255,255,0.045);
+	background: var(--tint-45);
 	color: var(--text-color);
 }
 .animal-entry.active {
@@ -174,7 +174,7 @@
 	font-size: 16px;
 }
 .animal-color-reroll:hover {
-	background: rgba(255,255,255,.1);
+	background: var(--tint-100);
 	color: var(--primary-color, #ff4f1a);
 }
 .animal-entry-remove:hover {
@@ -196,9 +196,9 @@
 .animal-name-dialog {
 	width: min(400px, 100%);
 	padding: 22px;
-	border: 1px solid rgba(255,255,255,.1);
+	border: 1px solid var(--tint-100);
 	border-radius: 16px;
-	background: #15191f;
+	background: var(--sunken);
 	box-shadow: 0 22px 60px rgba(0,0,0,.48);
 }
 .animal-name-dialog h3 {
@@ -220,10 +220,10 @@
 	width: 100%;
 	min-height: 40px;
 	padding: 0 11px;
-	border: 1px solid rgba(255,255,255,.12);
+	border: 1px solid var(--tint-120);
 	border-radius: 9px;
 	outline: none;
-	background: rgba(255,255,255,.04);
+	background: var(--tint-40);
 	color: var(--text-color);
 }
 .animal-name-dialog input:focus {
@@ -238,9 +238,9 @@
 .animal-dialog-actions button {
 	min-height: 36px;
 	padding: 0 13px;
-	border: 1px solid rgba(255,255,255,.12);
+	border: 1px solid var(--tint-120);
 	border-radius: 8px;
-	background: rgba(255,255,255,.05);
+	background: var(--tint-50);
 	color: var(--text-color);
 	cursor: pointer;
 }

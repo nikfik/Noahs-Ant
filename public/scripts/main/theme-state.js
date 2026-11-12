@@ -1,8 +1,6 @@
-export const defaultTheme = {
-  bgColor: '#1a1a1a',
-  textColor: '#e0e0e0',
-  primaryColor: '#ff4f1a'
-}
+import { defaultTheme } from '../settings/settings-config.js'
+
+export { defaultTheme }
 
 export function createThemeState(initialTheme = {}) {
   let currentTheme = { ...defaultTheme, ...initialTheme }

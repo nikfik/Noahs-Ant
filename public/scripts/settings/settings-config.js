@@ -1,9 +1,17 @@
 import { presetSettings } from '../shared/video-quality.js'
+import { FONT_CHOICES, SCALE_CHOICES, THEME_PRESETS } from '../shared/appearance.js'
 
 export const defaultTheme = {
-  bgColor: '#1a1a1a',
-  textColor: '#e0e0e0',
-  primaryColor: '#ff4f1a'
+  bgColor: THEME_PRESETS.dark.bgColor,
+  textColor: THEME_PRESETS.dark.textColor,
+  primaryColor: THEME_PRESETS.dark.primaryColor,
+  font: 'system',
+  // The colors the user mixed themselves, kept so "Własny" can bring them back after a ready scheme was tried.
+  custom: {
+    bgColor: THEME_PRESETS.dark.bgColor,
+    textColor: THEME_PRESETS.dark.textColor,
+    primaryColor: THEME_PRESETS.dark.primaryColor
+  }
 }
 
 const single = (primary) => ({ primary, secondary: '', operator: '/' })
@@ -23,18 +31,15 @@ export const shortcutActions = [
 export const defaultShortcuts = Object.fromEntries(shortcutActions.map(({ id, defaultValue }) => [id, defaultValue]))
 
 export const settingsCatalog = {
-  general: {
-    title: 'Ogólne',
-    options: [
-      { id: 'bg-color', label: 'Kolor tła', type: 'color', key: 'bgColor' },
-      { id: 'text-color', label: 'Kolor tekstu', type: 'color', key: 'textColor' },
-      { id: 'accent-color', label: 'Kolor akcentu', type: 'color', key: 'primaryColor' }
-    ]
-  },
   graphics: {
     title: 'Graficzne',
     options: [
-
+      { id: 'theme-preset', label: 'Schemat kolorów', type: 'themePresets' },
+      { id: 'bg-color', label: 'Kolor tła', type: 'color', key: 'bgColor' },
+      { id: 'text-color', label: 'Kolor tekstu', type: 'color', key: 'textColor' },
+      { id: 'accent-color', label: 'Kolor akcentu', type: 'color', key: 'primaryColor' },
+      { id: 'font', label: 'Czcionka', type: 'select', defaultValue: 'system', values: FONT_CHOICES, storage: 'theme', key: 'font' },
+      { id: 'scale', label: 'Rozmiar interfejsu', type: 'select', defaultValue: '100', values: SCALE_CHOICES, storage: 'graphics', key: 'scale' }
     ]
   },
   shortcuts: {
@@ -71,14 +76,14 @@ export function createDefaultAppSettings() {
     label,
     value: { ...(defaultShortcuts[id] ?? single('')) }
   }))
-  const graphics = Object.fromEntries(settingsCatalog.graphics.options.map((option) => [option.id, option.defaultValue]))
+  const graphics = { scale: '100' }
   const timeline = {
     snapEnabled: true,
     snapThresholdPx: 9
   }
 
   return {
-    theme: { ...defaultTheme },
+    theme: { ...defaultTheme, custom: { ...defaultTheme.custom }, preset: 'dark' },
     graphics,
     timeline,
     video: { askQuality: true, quality: presetSettings('original'), skipSeconds: 5 },

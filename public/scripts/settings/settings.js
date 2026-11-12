@@ -1,5 +1,7 @@
 import { createDefaultAppSettings, defaultTheme, settingsCatalog } from './settings-config.js'
 import { createKeybindControl } from './keybind-control.js'
+import { THEME_PRESETS, matchThemePreset } from '../shared/appearance.js'
+import { applyTheme } from '../theme/theme-service.js'
 import { loadSettings, saveSettings } from './settings-service.js'
 
 let appSettings = createDefaultAppSettings()
@@ -16,7 +18,7 @@ function getProgramShortcuts() {
 }
 
 function renderActiveTab() {
-  renderOptions(document.querySelector('.settings-tab.active')?.dataset.tab || 'general')
+  renderOptions(document.querySelector('.settings-tab.active')?.dataset.tab || Object.keys(settingsCatalog)[0])
 }
 
 async function persistAppSettings() {
@@ -31,6 +33,7 @@ async function persistAppSettings() {
 async function loadSavedAppSettings() {
   appSettings = await loadSettings(window.electronAPI)
   themeState = { ...appSettings.theme }
+  applyTheme(themeState)
 }
 
 function syncTheme(theme = {}) {
@@ -45,7 +48,16 @@ function syncTheme(theme = {}) {
   if (theme.primaryColor) {
     themeState.primaryColor = theme.primaryColor
   }
+
+  if (theme.font) {
+    themeState.font = theme.font
+  }
+
+  if (theme.custom) {
+    themeState.custom = { ...theme.custom }
+  }
   appSettings.theme = { ...themeState }
+  applyTheme(themeState)
 
   renderActiveTab()
 }
@@ -58,7 +70,7 @@ function renderTabs() {
     const tabButton = document.createElement('button')
     tabButton.type = 'button'
     tabButton.className = 'settings-tab active'
-    if (key !== 'general') {
+    if (key !== tabEntries[0][0]) {
       tabButton.classList.remove('active')
     }
     tabButton.dataset.tab = key
@@ -116,6 +128,9 @@ function renderOptions(tabId) {
 
       input.addEventListener('input', (event) => {
         themeState[option.key] = event.target.value
+        themeState.preset = matchThemePreset(themeState)
+        themeState.custom = { bgColor: themeState.bgColor, textColor: themeState.textColor, primaryColor: themeState.primaryColor }
+        applyTheme(themeState)
         hasUnsavedChanges = true
         const valueText = event.target.closest('.settings-option').querySelector('.option-value')
         if (valueText) {
@@ -133,23 +148,45 @@ function renderOptions(tabId) {
 
     if (option.type === 'select') {
       const select = document.createElement('select')
-      const settingsState = appSettings[option.storage || 'graphics']
+      const settingsState = option.storage === 'theme' ? themeState : appSettings[option.storage || 'graphics']
       const settingKey = option.key || option.id
-      const selectedValue = settingsState[settingKey] ?? option.defaultValue
-      option.values.forEach((value) => {
+      const selectedValue = String(settingsState[settingKey] ?? option.defaultValue)
+      option.values.forEach((choice) => {
+        const { value, label: text } = typeof choice === 'object' ? choice : { value: choice, label: choice }
         const optionElement = document.createElement('option')
         optionElement.value = value
-        optionElement.textContent = value
-        if (value === selectedValue) {
+        optionElement.textContent = text
+        if (String(value) === selectedValue) {
           optionElement.selected = true
         }
         select.appendChild(optionElement)
       })
       select.addEventListener('change', (event) => {
         settingsState[settingKey] = option.storage === 'timeline' ? Number(event.target.value) : event.target.value
+        if (option.storage === 'theme') applyTheme(themeState)
         hasUnsavedChanges = true
       })
       controlWrap.appendChild(select)
+    }
+
+    if (option.type === 'themePresets') {
+      const current = matchThemePreset(themeState)
+      Object.entries(THEME_PRESETS).concat([['custom', { label: 'Własny' }]]).forEach(([id, preset]) => {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = `option-preset ${current === id ? 'active' : ''}`
+        button.textContent = preset.label
+        button.addEventListener('click', () => {
+          // A ready scheme only changes the colors in use; the user's own colors stay remembered for "Własny".
+          const colors = id === 'custom' ? themeState.custom : preset
+          Object.assign(themeState, { bgColor: colors.bgColor, textColor: colors.textColor, primaryColor: colors.primaryColor })
+          themeState.preset = matchThemePreset(themeState)
+          applyTheme(themeState)
+          hasUnsavedChanges = true
+          renderActiveTab()
+        })
+        controlWrap.appendChild(button)
+      })
     }
 
     if (option.type === 'toggle') {
