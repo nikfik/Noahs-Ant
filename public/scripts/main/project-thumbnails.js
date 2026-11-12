@@ -1,5 +1,6 @@
 // The picture on a project's card: a frame of the first video of the project, made once with ffmpeg and kept in the
 // project folder. It stays on this computer (exports and backups do not contain it).
+import { t } from '../shared/i18n.js'
 import { spawn as nodeSpawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -25,7 +26,7 @@ export function createThumbnailService({ projectsDirectory, ffmpegPath, spawn = 
   }
 
   async function build(projectId) {
-    if (typeof projectId !== 'string' || !projectId || path.basename(projectId) !== projectId) throw new Error('Nieprawidłowy projekt.')
+    if (typeof projectId !== 'string' || !projectId || path.basename(projectId) !== projectId) throw new Error(t('Nieprawidłowy projekt.'))
     const folder = path.join(projectsDirectory, projectId)
     const video = (readProjectData(projectsDirectory, projectId).trials?.trials || []).map((trial) => trial.videoPath).find((file) => typeof file === 'string' && file && fs.existsSync(file))
     if (!video || !ffmpegPath) return null

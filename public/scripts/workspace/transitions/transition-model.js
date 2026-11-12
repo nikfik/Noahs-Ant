@@ -4,6 +4,7 @@
 //  - 'parallel': a state is the set of behaviors running at the same time (e.g. "Stoi + Idzie"); the state changes
 //    whenever a behavior starts or ends.
 // Everything is calculated per animal and trial; the analysis window and uncounted skips are respected like in the metrics.
+
 import { clipToWindow, effectiveOffset, resolveWindow } from '../data/metrics-model.js'
 
 export const START = 'START'

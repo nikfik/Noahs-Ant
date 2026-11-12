@@ -1,4 +1,5 @@
 // The transitions screen: how likely one behavior is to follow another, drawn as a diagram and shown as a table.
+import { plural, t } from '../../shared/i18n.js'
 import { escapeHtml } from '../../shared/escape-html.js'
 import { exportSvg } from '../charts/export-image.js'
 import { TRANSITION_MODES, buildTransitions, transitionMatrix } from './transition-model.js'
@@ -68,9 +69,9 @@ export function createTransitionsModule() {
 
   function matrixTable(result) {
     const matrix = transitionMatrix(result)
-    if (!matrix.rows.length) return '<p class="charts-muted">Brak przejść do pokazania.</p>'
+    if (!matrix.rows.length) return `<p class="charts-muted">${t('Brak przejść do pokazania.')}</p>`
     return `<div class="charts-table-wrap"><table class="data-table transitions-matrix">
-      <thead><tr><th>Z \\ do</th>${matrix.columns.map((column) => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead>
+      <thead><tr><th>${t('Z \\ do')}</th>${matrix.columns.map((column) => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead>
       <tbody>${matrix.rows.map((row) => `<tr><th>${escapeHtml(row.label)}</th>${row.cells.map((cell) => `<td class="num">${cell ? `${cell.probability.toFixed(3)} <span class="charts-muted">(${cell.count}×)</span>` : ''}</td>`).join('')}</tr>`).join('')}</tbody>
     </table></div>`
   }
@@ -85,47 +86,47 @@ export function createTransitionsModule() {
     host.innerHTML = `
       <section class="charts-screen transitions-screen">
         <aside class="charts-sidebar">
-          <h3>Przejścia między czynnościami</h3>
-          <label class="transitions-field">Sposób liczenia
-            <select data-mode>${TRANSITION_MODES.map((item) => `<option value="${item.id}" ${item.id === config.mode ? 'selected' : ''}>${item.label}</option>`).join('')}</select>
+          <h3>${t('Przejścia między czynnościami')}</h3>
+          <label class="transitions-field">${t('Sposób liczenia')}
+            <select data-mode>${TRANSITION_MODES.map((item) => `<option value="${item.id}" ${item.id === config.mode ? 'selected' : ''}>${t(item.label)}</option>`).join('')}</select>
           </label>
-          <p class="charts-muted">${escapeHtml(mode.hint)}</p>
-          <label class="transitions-field">Zwierzęta
+          <p class="charts-muted">${escapeHtml(t(mode.hint))}</p>
+          <label class="transitions-field">${t('Zwierzęta')}
             <select data-animals>
-              <option value="all" ${config.animalFilter === 'all' ? 'selected' : ''}>Wszystkie</option>
+              <option value="all" ${config.animalFilter === 'all' ? 'selected' : ''}>${t('Wszystkie')}</option>
               ${groups().map((group) => `<option value="group:${escapeHtml(group.id)}" ${config.animalFilter === `group:${group.id}` ? 'selected' : ''}>Grupa: ${escapeHtml(group.name)}</option>`).join('')}
               ${animals().map((animal) => `<option value="animal:${escapeHtml(animal.id)}" ${config.animalFilter === `animal:${animal.id}` ? 'selected' : ''}>${escapeHtml(animal.name)}</option>`).join('')}
             </select>
           </label>
-          <h4>Próby <button type="button" class="transitions-link" data-all-trials>wszystkie</button></h4>
+          <h4>${t('Próby')} <button type="button" class="transitions-link" data-all-trials>${t('wszystkie')}</button></h4>
           <div class="transitions-list">${trials().map((trial) => check('trial', trial.id, trial.name, config.excludedTrials.includes(trial.id) ? '' : 'checked')).join('')}</div>
-          <h4>Czynności <button type="button" class="transitions-link" data-all-behaviors>wszystkie</button></h4>
-          <div class="transitions-list">${behaviorNames().map((name) => check('behavior', name, name, config.excludedBehaviors.includes(name) ? '' : 'checked')).join('') || '<span class="charts-muted">Brak zdarzeń.</span>'}</div>
-          <h4>Wygląd</h4>
-          ${check('opt', 'showProbabilities', 'Prawdopodobieństwa na strzałkach', config.showProbabilities ? 'checked' : '')}
-          ${check('opt', 'showCounts', 'Liczba przejść (n×)', config.showCounts ? 'checked' : '')}
-          ${check('opt', 'includeStart', 'Węzeł START (pierwsza czynność w próbie)', config.includeStart ? 'checked' : '')}
-          ${check('opt', 'showLatency', 'Średnia latencja przy strzałkach ze START', `${config.showLatency ? 'checked' : ''} ${config.includeStart ? '' : 'disabled'}`)}
-          ${check('opt', 'includePoints', 'Zdarzenia punktowe', `${config.includePoints ? 'checked' : ''} ${config.mode === 'parallel' ? 'disabled' : ''}`)}
-          <label class="transitions-field">Ukryj rzadsze niż <output>${config.minProbability.toFixed(2)}</output>
+          <h4>${t('Czynności')} <button type="button" class="transitions-link" data-all-behaviors>${t('wszystkie')}</button></h4>
+          <div class="transitions-list">${behaviorNames().map((name) => check('behavior', name, name, config.excludedBehaviors.includes(name) ? '' : 'checked')).join('') || `<span class="charts-muted">${t('Brak zdarzeń.')}</span>`}</div>
+          <h4>${t('Wygląd')}</h4>
+          ${check('opt', 'showProbabilities', t('Prawdopodobieństwa na strzałkach'), config.showProbabilities ? 'checked' : '')}
+          ${check('opt', 'showCounts', t('Liczba przejść (n×)'), config.showCounts ? 'checked' : '')}
+          ${check('opt', 'includeStart', t('Węzeł START (pierwsza czynność w próbie)'), config.includeStart ? 'checked' : '')}
+          ${check('opt', 'showLatency', t('Średnia latencja przy strzałkach ze START'), `${config.showLatency ? 'checked' : ''} ${config.includeStart ? '' : 'disabled'}`)}
+          ${check('opt', 'includePoints', t('Zdarzenia punktowe'), `${config.includePoints ? 'checked' : ''} ${config.mode === 'parallel' ? 'disabled' : ''}`)}
+          <label class="transitions-field">${t('Ukryj rzadsze niż')} <output>${config.minProbability.toFixed(2)}</output>
             <input type="range" min="0" max="0.5" step="0.01" value="${config.minProbability}" data-min />
           </label>
         </aside>
         <div class="charts-main">
           <div class="charts-options">
-            <span>${result.units} ${result.units === 1 ? 'zwierzę w próbie' : 'zwierząt w próbach'} · ${result.totalTransitions} przejść</span>
+            <span>${result.units} ${plural(result.units, ['zwierzę w próbie', 'zwierzęta w próbach', 'zwierząt w próbach'])} · ${result.totalTransitions} ${plural(result.totalTransitions, ['przejście', 'przejścia', 'przejść'])}</span>
             <span class="charts-export">
-              <button type="button" data-export="png" ${hasEdges ? '' : 'disabled'}>Zapisz PNG</button>
-              <button type="button" data-export="svg" ${hasEdges ? '' : 'disabled'}>Zapisz SVG</button>
+              <button type="button" data-export="png" ${hasEdges ? '' : 'disabled'}>${t('Zapisz PNG')}</button>
+              <button type="button" data-export="svg" ${hasEdges ? '' : 'disabled'}>${t('Zapisz SVG')}</button>
             </span>
           </div>
           <div class="charts-canvas ${hasEdges ? '' : 'empty'} transitions-canvas">
-            ${hasEdges ? lastSvg : '<p>Brak przejść. Oznacz co najmniej dwa zdarzenia tego samego zwierzęcia w jednej próbie albo zmień filtry.</p>'}
+            ${hasEdges ? lastSvg : `<p>${t('Brak przejść. Oznacz co najmniej dwa zdarzenia tego samego zwierzęcia w jednej próbie albo zmień filtry.')}</p>`}
           </div>
           <details class="charts-preview" open>
-            <summary>Tabela przejść</summary>
+            <summary>${t('Tabela przejść')}</summary>
             ${matrixTable(result)}
-            <p class="charts-muted">Prawdopodobieństwo to liczba przejść z danego stanu do kolejnego podzielona przez wszystkie przejścia wychodzące z tego stanu (wiersze sumują się do 1). Przejścia nie łączą różnych prób ani zwierząt.</p>
+            <p class="charts-muted">${t('Prawdopodobieństwo to liczba przejść z danego stanu do kolejnego podzielona przez wszystkie przejścia wychodzące z tego stanu (wiersze sumują się do 1). Przejścia nie łączą różnych prób ani zwierząt.')}</p>
           </details>
         </div>
       </section>`

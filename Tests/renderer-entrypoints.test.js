@@ -18,14 +18,16 @@ describe('Renderer entry point wiring', () => {
     document.body.innerHTML = `
       <nav id="settings-tabs"></nav><h2 id="settings-section-title"></h2>
       <div id="settings-options"></div><button id="apply-btn"></button>
-      <button id="reset-btn"></button><button class="window-close"></button>
+      <button id="reset-btn"></button>
     `
     window.electronAPI = {
       getAppSettings: jest.fn().mockResolvedValue({}),
       saveAppSettings: jest.fn().mockResolvedValue({}),
       getTheme: jest.fn().mockResolvedValue({ bgColor: '#1a1a1a' }),
       setTheme: jest.fn().mockResolvedValue({}),
-      onThemeChange: jest.fn()
+      onThemeChange: jest.fn(),
+      onSettingsCloseRequest: jest.fn(),
+      confirmSettingsClose: jest.fn()
     }
 
     await import('../public/scripts/settings/settings.js')

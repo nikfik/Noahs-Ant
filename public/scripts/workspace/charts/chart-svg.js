@@ -1,5 +1,6 @@
 // Draws a chart as an SVG string. The chart is drawn like a figure for a paper (dark text on a white page), so what is
 // shown on the screen is also what is exported.
+
 import { escapeHtml } from '../../shared/escape-html.js'
 
 export const PALETTE = ['#e0a526', '#b83b2e', '#3b7ea1', '#5a9a4b', '#8a5aa8', '#6b6f76']

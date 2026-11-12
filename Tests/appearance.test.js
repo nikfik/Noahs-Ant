@@ -83,9 +83,8 @@ describe('appearance settings', () => {
   })
 
   test('the colors are on the Graficzne tab, together with the font and the interface size', () => {
-    expect(settingsCatalog.general).toBeUndefined()
     expect(settingsCatalog.graphics.options.map((option) => option.id)).toEqual(['theme-preset', 'bg-color', 'text-color', 'accent-color', 'font', 'scale'])
-    expect(Object.keys(settingsCatalog)[0]).toBe('graphics')
+    expect(Object.keys(settingsCatalog).slice(0, 2)).toEqual(['general', 'graphics'])
   })
 
   test('saving settings applies the interface scale to the windows', () => {

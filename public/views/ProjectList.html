@@ -3,27 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AntNest</title>
+    <title>Noah’s Ant</title>
     <link rel="stylesheet" href="../styles/MainColors.css">
     <link rel="stylesheet" href="../styles/E_ProjectLists.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="app-title">AntNest</div>
+            <div class="app-title">Noah’s Ant</div>
             <div class="top-icons">
-                <span><img src="https://cdn-icons-png.flaticon.com/512/1779/1779545.png" alt="logo" width="40"></span>
+                <span><img src="../assets/anticon-256.png" alt="logo" width="40"></span>
             </div>
         </header>
 
         <main>
             <div class="list-heading">
-                <h2>Projekty</h2>
-                <label class="list-sort">Sortuj
-                    <select id="project-sort" aria-label="Sortowanie projektów">
-                        <option value="opened">Ostatnio otwarte</option>
-                        <option value="name">Nazwa (A–Z)</option>
-                        <option value="created">Najnowsze</option>
+                <h2 data-i18n>Projekty</h2>
+                <label class="list-sort"><span data-i18n>Sortuj</span>
+                    <select id="project-sort" aria-label="Sortowanie projektów" data-i18n-aria-label="Sortowanie projektów">
+                        <option value="opened" data-i18n>Ostatnio otwarte</option>
+                        <option value="name" data-i18n>Nazwa (A–Z)</option>
+                        <option value="created" data-i18n>Najnowsze</option>
                     </select>
                 </label>
             </div>
@@ -33,27 +33,27 @@
 
         <footer>
             <div class="left-buttons">
-                <button id="new-project-btn" class="btn-outline">Nowy projekt</button>
-                <button id="import-project-btn" class="btn-outline" title="Wczytaj projekt z pliku .nsant jako nowy projekt">Import</button>
+                <button id="new-project-btn" class="btn-outline" data-i18n>Nowy projekt</button>
+                <button id="import-project-btn" class="btn-outline" title="Wczytaj projekt z pliku .nsant jako nowy projekt" data-i18n-title="Wczytaj projekt z pliku .nsant jako nowy projekt" data-i18n>Import</button>
             </div>
-            <input id="project-search" class="project-search" type="search" placeholder="Szukaj projektu…" aria-label="Szukaj projektu" autocomplete="off">
+            <input id="project-search" class="project-search" type="search" placeholder="Szukaj projektu…" aria-label="Szukaj projektu" data-i18n-placeholder="Szukaj projektu…" data-i18n-aria-label="Szukaj projektu" autocomplete="off">
             <div class="right-buttons">
-                <button id="settings-btn" class="btn-outline">Ustawienia</button>
+                <button id="settings-btn" class="btn-outline" data-i18n>Ustawienia</button>
             </div>
         </footer>
     </div>
 
     <div id="project-modal" class="modal hidden">
         <div class="modal-card">
-            <h3>Utwórz nowy projekt</h3>
-            <p>Wprowadź nazwę projektu, aby zapisać go w folderze <strong>Projects</strong>.</p>
+            <h3 data-i18n>Utwórz nowy projekt</h3>
+            <p data-i18n>Wprowadź nazwę projektu, aby zapisać go w folderze Projects.</p>
             <form id="project-modal-form">
-                <label for="project-name">Nazwa projektu</label>
-                <input id="project-name" name="project-name" type="text" placeholder="Badanie Szczurów - Lab 3" required>
+                <label for="project-name" data-i18n>Nazwa projektu</label>
+                <input id="project-name" name="project-name" type="text" placeholder="Badanie Szczurów - Lab 3" data-i18n-placeholder="Badanie Szczurów - Lab 3" required>
                 <div id="project-name-error" class="input-error"></div>
                 <div class="modal-actions">
-                    <button type="button" id="project-cancel-btn" class="btn-outline">Anuluj</button>
-                    <button type="submit" class="btn-primary">Utwórz</button>
+                    <button type="button" id="project-cancel-btn" class="btn-outline" data-i18n>Anuluj</button>
+                    <button type="submit" class="btn-primary" data-i18n>Utwórz</button>
                 </div>
             </form>
         </div>
@@ -62,12 +62,12 @@
     <div id="export-modal" class="modal hidden">
         <div class="modal-card">
             <h3 data-export-title>Eksportuj projekt</h3>
-            <label class="export-option"><input type="checkbox" data-include-videos> Dołącz filmy</label>
+            <label class="export-option"><input type="checkbox" data-include-videos> <span data-i18n>Dołącz filmy</span></label>
             <p class="export-videos-info" data-videos-info></p>
             <p class="export-warning" data-videos-warning hidden></p>
             <div class="modal-actions">
-                <button type="button" class="btn-outline" data-export-cancel>Anuluj</button>
-                <button type="button" class="btn-primary" data-export-confirm>Eksportuj…</button>
+                <button type="button" class="btn-outline" data-export-cancel data-i18n>Anuluj</button>
+                <button type="button" class="btn-primary" data-export-confirm data-i18n>Eksportuj…</button>
             </div>
         </div>
     </div>
@@ -77,18 +77,18 @@
             <h3 data-info-title>Informacje</h3>
             <table class="info-table"><tbody data-info-body></tbody></table>
             <div class="modal-actions">
-                <button type="button" class="btn-primary" data-info-close>Zamknij</button>
+                <button type="button" class="btn-primary" data-info-close data-i18n>Zamknij</button>
             </div>
         </div>
     </div>
 
     <div id="delete-modal" class="modal hidden">
         <div class="modal-card">
-            <h3>Usuń projekt</h3>
+            <h3 data-i18n>Usuń projekt</h3>
             <p data-delete-text></p>
             <div class="modal-actions">
-                <button type="button" class="btn-outline" data-delete-cancel>Anuluj</button>
-                <button type="button" class="btn-danger" data-delete-confirm>Przenieś do Kosza</button>
+                <button type="button" class="btn-outline" data-delete-cancel data-i18n>Anuluj</button>
+                <button type="button" class="btn-danger" data-delete-confirm data-i18n>Przenieś do Kosza</button>
             </div>
         </div>
     </div>

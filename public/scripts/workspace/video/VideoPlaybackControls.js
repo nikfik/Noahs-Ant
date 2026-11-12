@@ -1,5 +1,6 @@
 import { VideoPlayerUtils } from './VideoPlayerUtils.js'
 import { icon } from './video-icons.js'
+import { t } from '../../shared/i18n.js'
 
 export class VideoPlaybackControls {
   constructor(video, { onSyncState, getHint, getFrameStep, getSkipSeconds } = {}) {
@@ -15,7 +16,7 @@ export class VideoPlaybackControls {
 
     const playing = !this.video.paused
     playPauseBtn.innerHTML = icon(playing ? 'pause' : 'play', 20)
-    const name = playing ? 'Zatrzymaj' : 'Odtwórz'
+    const name = playing ? t('Zatrzymaj') : t('Odtwórz')
     playPauseBtn.title = `${name}${this.getHint('play-pause')}`
     playPauseBtn.setAttribute('aria-label', name)
   }
@@ -25,7 +26,7 @@ export class VideoPlaybackControls {
 
     const muted = this.video.muted
     muteBtn.innerHTML = icon(muted ? 'muted' : 'volume')
-    const name = muted ? 'Włącz dźwięk' : 'Wycisz'
+    const name = muted ? t('Włącz dźwięk') : t('Wycisz')
     muteBtn.title = `${name}${this.getHint('toggle-mute')}`
     muteBtn.setAttribute('aria-label', name)
   }

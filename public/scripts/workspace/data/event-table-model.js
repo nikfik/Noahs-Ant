@@ -1,3 +1,4 @@
+import { t } from '../../shared/i18n.js'
 const COLOR_PATTERN = /^#[0-9a-f]{6}$/i
 
 export function formatSeconds(value) {
@@ -53,51 +54,51 @@ function validTime(raw) {
 // Returns { observations } with the edit applied, or { error } with a message for the user. Never mutates its input.
 export function applyEventEdit(observations, id, field, rawValue, { animals = [], trials = [], getActivities = () => [] } = {}) {
   const index = observations.findIndex((item) => item.id === id)
-  if (index < 0) return { error: 'Nie znaleziono zdarzenia.' }
+  if (index < 0) return { error: t('Nie znaleziono zdarzenia.') }
   const item = observations[index]
   let changes
 
   if (field === 'start') {
     const start = validTime(rawValue)
-    if (start === undefined) return { error: 'Podaj poprawny czas startu, np. 12.5 lub 1:02.5.' }
+    if (start === undefined) return { error: t('Podaj poprawny czas startu, np. 12.5 lub 1:02.5.') }
     if (item.kind === 'point') {
       changes = { start, end: start, lane: null }
     } else if (item.end !== null && start > item.end) {
-      return { error: 'Start nie może być późniejszy niż koniec.' }
+      return { error: t('Start nie może być późniejszy niż koniec.') }
     } else {
       changes = { start, lane: null }
     }
   } else if (field === 'end') {
-    if (item.kind === 'point') return { error: 'Zdarzenie punktowe nie ma czasu końca.' }
+    if (item.kind === 'point') return { error: t('Zdarzenie punktowe nie ma czasu końca.') }
     if (parseTimeInput(rawValue) === null) {
       changes = { end: null, lane: null }
     } else {
       const end = validTime(rawValue)
-      if (end === undefined) return { error: 'Podaj poprawny czas końca, np. 12.5 lub 1:02.5.' }
-      if (end < item.start) return { error: 'Koniec nie może być wcześniejszy niż start.' }
+      if (end === undefined) return { error: t('Podaj poprawny czas końca, np. 12.5 lub 1:02.5.') }
+      if (end < item.start) return { error: t('Koniec nie może być wcześniejszy niż start.') }
       changes = { end, lane: null }
     }
   } else if (field === 'activityId') {
     const activity = getActivities(item.animalId).find((candidate) => candidate.id === rawValue)
-    if (!activity) return { error: 'To zwierzę nie ma takiej czynności.' }
+    if (!activity) return { error: t('To zwierzę nie ma takiej czynności.') }
     if (activity.continuous !== (item.kind === 'interval')) {
-      return { error: 'Można wybrać tylko czynność tego samego typu (punktowa albo ciągła).' }
+      return { error: t('Można wybrać tylko czynność tego samego typu (punktowa albo ciągła).') }
     }
     changes = { activityId: activity.id, activityName: activity.name, activityColor: activity.color }
   } else if (field === 'animalId') {
     const animal = animals.find((candidate) => candidate.id === rawValue)
-    if (!animal) return { error: 'Nie znaleziono zwierzęcia.' }
+    if (!animal) return { error: t('Nie znaleziono zwierzęcia.') }
     const current = getActivities(item.animalId).find((candidate) => candidate.id === item.activityId)
     const available = getActivities(animal.id)
     const target = available.find((candidate) => candidate.id === item.activityId)
       || available.find((candidate) => current && candidate.name === current.name && candidate.continuous === current.continuous)
-    if (!target) return { error: `${animal.name} nie ma czynności „${item.activityName}”.` }
+    if (!target) return { error: t('{animal} nie ma czynności „{activity}”.', { animal: animal.name, activity: item.activityName }) }
     changes = { animalId: animal.id, activityId: target.id, activityName: target.name, activityColor: target.color, lane: null }
   } else if (field === 'trialId') {
-    if (!trials.some((trial) => trial.id === rawValue)) return { error: 'Nie znaleziono próby.' }
+    if (!trials.some((trial) => trial.id === rawValue)) return { error: t('Nie znaleziono próby.') }
     changes = { trialId: rawValue, lane: null }
   } else {
-    return { error: 'Tego pola nie można edytować.' }
+    return { error: t('Tego pola nie można edytować.') }
   }
 
   return { observations: observations.map((candidate, position) => position === index ? { ...candidate, ...changes } : candidate) }

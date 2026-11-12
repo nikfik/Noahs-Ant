@@ -1,6 +1,7 @@
 import { normalizeQualitySettings } from '../shared/video-quality.js'
 import { createDefaultAppSettings, defaultTheme } from './settings-config.js'
 import { FONT_CHOICES, SCALE_CHOICES, matchThemePreset } from '../shared/appearance.js'
+import { isLanguage } from '../shared/i18n.js'
 import { normalizeShortcutEntry } from './shortcut-utils.js'
 
 const COLOR_PATTERN = /^#[0-9a-f]{6}$/i
@@ -69,6 +70,7 @@ export function normalizeAppSettings(saved = {}) {
   })
 
   return {
+    language: isLanguage(source.language) ? source.language : defaults.language,
     theme,
     graphics,
     timeline,

@@ -1,4 +1,5 @@
 // A look at what the export will contain, sheet by sheet, with the rounding settings next to it.
+import { t } from '../../shared/i18n.js'
 import { escapeHtml } from '../../shared/escape-html.js'
 import { ROUNDING_RULES, formatCell } from './export-model.js'
 
@@ -36,24 +37,24 @@ export function openExportPreview({ getSheets, rounding, onChange = () => {}, on
     root.innerHTML = `
       <section class="export-preview" role="dialog" aria-modal="true" aria-labelledby="export-preview-title">
         <header>
-          <h3 id="export-preview-title">Podgląd eksportu</h3>
-          <button type="button" class="modal-close" data-close aria-label="Zamknij">×</button>
+          <h3 id="export-preview-title">${t('Podgląd eksportu')}</h3>
+          <button type="button" class="modal-close" data-close aria-label="${t('Zamknij')}">×</button>
         </header>
         <div class="export-preview-controls">
-          <label>Miejsca po przecinku
+          <label>${t('Miejsca po przecinku')}
             <select data-decimals>
-              <option value="" ${current.decimals === null ? 'selected' : ''}>Domyślnie</option>
+              <option value="" ${current.decimals === null ? 'selected' : ''}>${t('Domyślnie')}</option>
               ${DECIMAL_CHOICES.map((count) => `<option value="${count}" ${current.decimals === count ? 'selected' : ''}>${count}</option>`).join('')}
             </select>
           </label>
-          <label>Zaokrąglanie
+          <label>${t('Zaokrąglanie')}
             <select data-rule ${current.decimals === null ? 'disabled' : ''}>
-              ${ROUNDING_RULES.map((rule) => `<option value="${rule.id}" ${current.rule === rule.id ? 'selected' : ''}>${escapeHtml(rule.label)}</option>`).join('')}
+              ${ROUNDING_RULES.map((rule) => `<option value="${rule.id}" ${current.rule === rule.id ? 'selected' : ''}>${escapeHtml(t(rule.label))}</option>`).join('')}
             </select>
           </label>
-          <span class="export-preview-note">Dotyczy wartości ułamkowych: czasów, latencji i procentów. Liczby całkowite zostają bez zmian.</span>
+          <span class="export-preview-note">${t('Dotyczy wartości ułamkowych: czasów, latencji i procentów. Liczby całkowite zostają bez zmian.')}</span>
         </div>
-        <nav class="export-preview-tabs" aria-label="Arkusze">
+        <nav class="export-preview-tabs" aria-label="${t('Arkusze')}">
           ${sheets.map((item, index) => `<button type="button" class="${index === activeSheet ? 'active' : ''}" data-sheet="${index}">${escapeHtml(item.name)}</button>`).join('')}
         </nav>
         <div class="export-preview-table">
@@ -64,13 +65,13 @@ export function openExportPreview({ getSheets, rounding, onChange = () => {}, on
     return `<td class="${typeof value === 'number' ? 'num' : ''}">${escapeHtml(formatCell(value, sheet.formats?.[column]))}</td>`
   }).join('')}</tr>`).join('')}</tbody>
           </table>
-          ${sheet.rows.length ? '' : '<p class="export-preview-note">Ten arkusz jest pusty.</p>'}
+          ${sheet.rows.length ? '' : `<p class="export-preview-note">${t('Ten arkusz jest pusty.')}</p>`}
         </div>
         <footer>
           <span class="export-preview-note">${sheet.rows.length > MAX_ROWS ? `Pokazano pierwsze ${MAX_ROWS} z ${sheet.rows.length} wierszy – plik zawiera wszystkie.` : `${sheet.rows.length} wierszy`}</span>
           <div>
-            <button type="button" class="module-action" data-close>Zamknij</button>
-            <button type="button" class="module-action primary" data-export ${canExport ? '' : 'disabled'}>Eksportuj…</button>
+            <button type="button" class="module-action" data-close>${t('Zamknij')}</button>
+            <button type="button" class="module-action primary" data-export ${canExport ? '' : 'disabled'}>${t('Eksportuj…')}</button>
           </div>
         </footer>
       </section>`

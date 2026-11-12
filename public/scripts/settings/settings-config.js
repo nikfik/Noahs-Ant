@@ -1,5 +1,6 @@
 import { presetSettings } from '../shared/video-quality.js'
 import { FONT_CHOICES, SCALE_CHOICES, THEME_PRESETS } from '../shared/appearance.js'
+import { DEFAULT_LANGUAGE, LANGUAGES } from '../shared/i18n.js'
 
 export const defaultTheme = {
   bgColor: THEME_PRESETS.dark.bgColor,
@@ -31,6 +32,12 @@ export const shortcutActions = [
 export const defaultShortcuts = Object.fromEntries(shortcutActions.map(({ id, defaultValue }) => [id, defaultValue]))
 
 export const settingsCatalog = {
+  general: {
+    title: 'Ogólne',
+    options: [
+      { id: 'language', label: 'Język', type: 'select', defaultValue: DEFAULT_LANGUAGE, values: LANGUAGES.map(({ value, label }) => ({ value, label })), storage: 'app', key: 'language', native: true }
+    ]
+  },
   graphics: {
     title: 'Graficzne',
     options: [
@@ -83,6 +90,7 @@ export function createDefaultAppSettings() {
   }
 
   return {
+    language: DEFAULT_LANGUAGE,
     theme: { ...defaultTheme, custom: { ...defaultTheme.custom }, preset: 'dark' },
     graphics,
     timeline,

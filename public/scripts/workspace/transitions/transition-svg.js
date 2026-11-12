@@ -1,4 +1,5 @@
 // Draws the transition diagram: a circle of states with curved arrows labeled with the probability (and the count).
+
 import { escapeHtml } from '../../shared/escape-html.js'
 
 const INK = '#1b1b1b'

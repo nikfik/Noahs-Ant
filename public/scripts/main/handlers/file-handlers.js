@@ -1,3 +1,4 @@
+import { t } from '../../shared/i18n.js'
 import path from 'node:path'
 import { isTextExport, normalizeSheets, sanitizeFileName } from '../workbook-export.js'
 
@@ -9,8 +10,8 @@ export function registerFileHandlers({ ipcMain, dialog, writeWorkbook, writeText
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [
-        { name: 'Pliki wideo', extensions: VIDEO_EXTENSIONS },
-        { name: 'Wszystkie pliki', extensions: ['*'] }
+        { name: t('Pliki wideo'), extensions: VIDEO_EXTENSIONS },
+        { name: t('Wszystkie pliki'), extensions: ['*'] }
       ]
     })
 
@@ -22,9 +23,9 @@ export function registerFileHandlers({ ipcMain, dialog, writeWorkbook, writeText
     const result = await dialog.showSaveDialog({
       defaultPath: path.join(getDefaultDirectory(), sanitizeFileName(request?.suggestedName)),
       filters: [
-        { name: 'Excel (.xlsx)', extensions: ['xlsx'] },
-        { name: 'CSV – tekst rozdzielany przecinkami (.csv, osobny plik dla każdego arkusza)', extensions: ['csv'] },
-        { name: 'Tekst rozdzielany tabulatorami (.txt, osobny plik dla każdego arkusza)', extensions: ['txt'] }
+        { name: t('Excel (.xlsx)'), extensions: ['xlsx'] },
+        { name: t('CSV – tekst rozdzielany przecinkami (.csv, osobny plik dla każdego arkusza)'), extensions: ['csv'] },
+        { name: t('Tekst rozdzielany tabulatorami (.txt, osobny plik dla każdego arkusza)'), extensions: ['txt'] }
       ]
     })
     if (result.canceled || !result.filePath) return { saved: false }

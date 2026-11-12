@@ -1,4 +1,5 @@
 import { keyLabel, normalizeKey } from '../shared/keys.js'
+import { t } from '../shared/i18n.js'
 
 export const normalizeKeyValue = normalizeKey
 
@@ -48,7 +49,7 @@ export function getShortcutConflictMessage(optionId, shortcut, shortcuts = []) {
   const conflicts = shortcuts.filter((entry) => entry.id !== optionId && shortcutsOverlap(shortcut, entry.value))
 
   return conflicts.length > 0
-    ? `Powielony skrót: ${conflicts.map((entry) => entry.label).join(', ')}`
+    ? t('Powielony skrót: {names}', { names: conflicts.map((entry) => t(entry.label)).join(', ') })
     : ''
 }
 

@@ -8,6 +8,7 @@ import { applyRelations } from './observations/activity-relations.js'
 import { askSkip } from './trials/skip-dialog.js'
 import { askEventTimes } from './observations/event-dialog.js'
 import { isSkipping, setSkipping } from './trials/skip-playback.js'
+import { t } from '../shared/i18n.js'
 
 // Where time 0 starts, measured from the left edge of the timeline: the 150 px label column plus an 8 px gap (see Workspace.css).
 const LABEL_WIDTH = 158
@@ -170,7 +171,7 @@ export function createTimelineModule() {
 
   async function editSkip(skip = null) {
     if (!(duration > 0)) {
-      announce('Wczytaj film przed dodaniem pominięcia.')
+      announce(t('Wczytaj film przed dodaniem pominięcia.'))
       return
     }
     const start = skip ? skip.start : currentTime
@@ -292,7 +293,7 @@ export function createTimelineModule() {
   }
 
   function renderRuler(width) {
-    if (duration <= 0) return '<div class="timeline-no-video">Wczytaj film, aby oznaczać czynności na osi czasu.</div>'
+    if (duration <= 0) return `<div class="timeline-no-video">${t('Wczytaj film, aby oznaczać czynności na osi czasu.')}</div>`
     const step = getTickStep()
     const ticks = []
     for (let time = 0; time <= duration; time += step) {
@@ -312,22 +313,22 @@ export function createTimelineModule() {
       const selected = selectedId === item.id ? ' selected' : ''
       const isOpen = item.kind === 'interval' && item.end === null
       const style = `left:${left}px;${isPoint ? '' : `width:${eventWidth}px;`}--event-color:${escapeHtml(item.activityColor)}`
-      return `<div class="timeline-event ${isPoint ? 'point' : 'interval'}${isOpen ? ' open' : ''}${selected}" data-observation-id="${escapeHtml(item.id)}" data-animal-id="${escapeHtml(item.animalId)}" title="${escapeHtml(item.activityName)} · ${formatTime(item.start)}${item.end === null ? ' · trwa' : `–${formatTime(item.end)}`} (Delete usuwa zaznaczone)" style="${style}" tabindex="0">${isPoint ? '' : `<span class="timeline-event-label">${escapeHtml(item.activityName)}</span>`}<span class="timeline-resize-handle start" data-resize="start"></span>${isPoint || isOpen ? '' : '<span class="timeline-resize-handle end" data-resize="end"></span>'}</div>`
+      return `<div class="timeline-event ${isPoint ? 'point' : 'interval'}${isOpen ? ' open' : ''}${selected}" data-observation-id="${escapeHtml(item.id)}" data-animal-id="${escapeHtml(item.animalId)}" title="${escapeHtml(item.activityName)} · ${formatTime(item.start)}${item.end === null ? ` · ${t('trwa')}` : `–${formatTime(item.end)}`} (${t('Delete usuwa zaznaczone')})" style="${style}" tabindex="0">${isPoint ? '' : `<span class="timeline-event-label">${escapeHtml(item.activityName)}</span>`}<span class="timeline-resize-handle start" data-resize="start"></span>${isPoint || isOpen ? '' : '<span class="timeline-resize-handle end" data-resize="end"></span>'}</div>`
     }).join('')
   }
 
   function renderSkip(skip, width) {
     const left = Math.max(0, Math.min(width, (skip.start / duration) * width))
     const right = Math.max(left, Math.min(width, (skip.end / duration) * width))
-    const kind = skip.countTime ? 'wliczony' : 'niewliczony'
-    return `<div class="timeline-skip${skip.countTime ? ' counted' : ''}${selectedSkipId === skip.id ? ' selected' : ''}" data-skip-id="${escapeHtml(skip.id)}" title="Pominięcie ${formatTime(skip.start)}–${formatTime(skip.end)} (czas ${kind}). Dwuklik edytuje, Delete usuwa zaznaczone." style="left:${left}px;width:${Math.max(MIN_LANE_WIDTH, right - left)}px"><span class="timeline-skip-text">${skip.countTime ? 'pominięcie · wliczone' : 'pominięcie'}</span><span class="timeline-resize-handle start" data-resize="start"></span><span class="timeline-resize-handle end" data-resize="end"></span></div>`
+    const kind = skip.countTime ? t('wliczony') : t('niewliczony')
+    return `<div class="timeline-skip${skip.countTime ? ' counted' : ''}${selectedSkipId === skip.id ? ' selected' : ''}" data-skip-id="${escapeHtml(skip.id)}" title="${escapeHtml(t('Pominięcie {from}–{to} (czas {kind}). Dwuklik edytuje, Delete usuwa zaznaczone.', { from: formatTime(skip.start), to: formatTime(skip.end), kind }))}" style="left:${left}px;width:${Math.max(MIN_LANE_WIDTH, right - left)}px"><span class="timeline-skip-text">${skip.countTime ? t('pominięcie · wliczone') : t('pominięcie')}</span><span class="timeline-resize-handle start" data-resize="start"></span><span class="timeline-resize-handle end" data-resize="end"></span></div>`
   }
 
   function render() {
     if (!host) return
     const animals = currentAnimals()
     if (!animals.length) {
-      host.innerHTML = `<section class="timeline-panel"><header class="timeline-header"><h3>Oś czasu</h3></header><p class="timeline-empty">Dodaj zwierzęta do projektu, aby rozpocząć oznaczanie.</p></section>`
+      host.innerHTML = `<section class="timeline-panel"><header class="timeline-header"><h3>${t('Oś czasu')}</h3></header><p class="timeline-empty">${t('Dodaj zwierzęta do projektu, aby rozpocząć oznaczanie.')}</p></section>`
       scroller = host.querySelector('.timeline-scroller')
       return
     }
@@ -336,18 +337,18 @@ export function createTimelineModule() {
       host.innerHTML = `
         <section class="timeline-panel">
           <header class="timeline-header">
-            <div class="timeline-title"><h3>Oś czasu</h3><span class="timeline-current-time">00:00.0</span></div>
+            <div class="timeline-title"><h3>${t('Oś czasu')}</h3><span class="timeline-current-time">00:00.0</span></div>
             <div class="timeline-actions">
-              <button type="button" data-timeline-action="undo" title="Cofnij (Ctrl+Z)" aria-label="Cofnij">↶</button>
-              <button type="button" data-timeline-action="redo" title="Ponów (Ctrl+Y)" aria-label="Ponów">↷</button>
-              <button type="button" data-timeline-action="add-skip" title="Dodaj pominięcie – fragment filmu, który odtwarzacz przeskakuje">＋ Pominięcie</button>
-              <button type="button" data-timeline-action="skip-playback" title="Czy odtwarzacz przeskakuje pominięcia (wliczone i niewliczone) podczas odtwarzania" aria-pressed="true">Pomijanie: wł.</button>
-              <button type="button" data-timeline-action="snap" title="Przyciąganie (Alt chwilowo wyłącza)" aria-pressed="true">Snap: wł.</button>
-              <label class="timeline-snap-label" title="Odległość przyciągania">Czułość <select data-timeline-snap-threshold><option value="5">Niska</option><option value="9">Średnia</option><option value="14">Wysoka</option><option value="20">Bardzo wysoka</option></select></label>
-              <label class="timeline-zoom-label" title="Powiększenie osi czasu: 1× pokazuje całe wideo, dalej da się zbliżać tylko do sensownej granicy">Zoom <input type="range" min="0" max="100" step="1" value="0" data-timeline-zoom><output data-timeline-zoom-value>1×</output></label>
+              <button type="button" data-timeline-action="undo" title="${t('Cofnij (Ctrl+Z)')}" aria-label="${t('Cofnij')}">↶</button>
+              <button type="button" data-timeline-action="redo" title="${t('Ponów (Ctrl+Y)')}" aria-label="${t('Ponów')}">↷</button>
+              <button type="button" data-timeline-action="add-skip" title="${t('Dodaj pominięcie – fragment filmu, który odtwarzacz przeskakuje')}">${t('＋ Pominięcie')}</button>
+              <button type="button" data-timeline-action="skip-playback" title="${t('Czy odtwarzacz przeskakuje pominięcia (wliczone i niewliczone) podczas odtwarzania')}" aria-pressed="true">${t('Pomijanie: wł.')}</button>
+              <button type="button" data-timeline-action="snap" title="${t('Przyciąganie (Alt chwilowo wyłącza)')}" aria-pressed="true">${t('Snap: wł.')}</button>
+              <label class="timeline-snap-label" title="${t('Odległość przyciągania')}">${t('Czułość')} <select data-timeline-snap-threshold><option value="5">${t('Niska')}</option><option value="9">${t('Średnia')}</option><option value="14">${t('Wysoka')}</option><option value="20">${t('Bardzo wysoka')}</option></select></label>
+              <label class="timeline-zoom-label" title="${t('Powiększenie osi czasu: 1× pokazuje całe wideo, dalej da się zbliżać tylko do sensownej granicy')}">${t('Zoom')} <input type="range" min="0" max="100" step="1" value="0" data-timeline-zoom><output data-timeline-zoom-value>1×</output></label>
             </div>
           </header>
-          <div class="timeline-scroller" tabindex="0" aria-label="Oś czasu zwierząt">
+          <div class="timeline-scroller" tabindex="0" aria-label="${t('Oś czasu zwierząt')}">
             <div class="timeline-content"></div>
           </div>
           <footer class="timeline-status" role="status" hidden><span data-timeline-message></span></footer>
@@ -362,7 +363,7 @@ export function createTimelineModule() {
           if (button.dataset.timelineAction === 'skip-playback') setSkipping(!isSkipping())
           if (button.dataset.timelineAction === 'snap') {
             snapEnabled = !snapEnabled
-            button.textContent = `Snap: ${snapEnabled ? 'wł.' : 'wył.'}`
+            button.textContent = snapEnabled ? t('Snap: wł.') : t('Snap: wył.')
             button.setAttribute('aria-pressed', String(snapEnabled))
             saveTimelineSettings()
           }
@@ -389,7 +390,7 @@ export function createTimelineModule() {
     const shade = skips.map((skip) => `<div class="timeline-skip-shade${skip.countTime ? ' counted' : ''}" style="left:${(skip.start / duration) * width}px;width:${((skip.end - skip.start) / duration) * width}px"></div>`).join('')
     const skipRowHtml = duration > 0 ? `
       <div class="timeline-skip-row">
-        <div class="timeline-skip-label" title="Fragmenty filmu, które odtwarzacz przeskakuje. Przeciągnij, aby przesunąć lub zmienić długość; dwuklik edytuje.">Pominięcia</div>
+        <div class="timeline-skip-label" title="${t('Fragmenty filmu, które odtwarzacz przeskakuje. Przeciągnij, aby przesunąć lub zmienić długość; dwuklik edytuje.')}">${t('Pominięcia')}</div>
         <div class="timeline-skip-track" style="width:${width}px">${skips.map((skip) => renderSkip(skip, width)).join('')}<div class="timeline-playhead" style="left:${(currentTime / duration) * width}px"></div></div>
       </div>` : ''
     const rowsHtml = animals.map((animal) => {
@@ -412,17 +413,17 @@ export function createTimelineModule() {
     }).join('')
 
     content.innerHTML = `
-      <div class="timeline-ruler-row"><div class="timeline-ruler-label" title="${escapeHtml(videoPath)}"><span class="timeline-ruler-name">${escapeHtml(videoFileName(videoPath) || 'WIDEO')}</span></div>${renderRuler(width)}</div>
+      <div class="timeline-ruler-row"><div class="timeline-ruler-label" title="${escapeHtml(videoPath)}"><span class="timeline-ruler-name">${escapeHtml(videoFileName(videoPath) || t('WIDEO'))}</span></div>${renderRuler(width)}</div>
       ${skipRowHtml}
-      ${rowsHtml || '<div class="timeline-empty">Brak zwierząt</div>'}
+      ${rowsHtml || `<div class="timeline-empty">${t('Brak zwierząt')}</div>`}
     `
     host.querySelector('.timeline-current-time').textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`
     updateZoomControl()
     const skipButton = host.querySelector('[data-timeline-action="skip-playback"]')
-    skipButton.textContent = `Pomijanie: ${isSkipping() ? 'wł.' : 'wył.'}`
+    skipButton.textContent = isSkipping() ? t('Pomijanie: wł.') : t('Pomijanie: wył.')
     skipButton.setAttribute('aria-pressed', String(isSkipping()))
     const snapButton = host.querySelector('[data-timeline-action="snap"]')
-    snapButton.textContent = `Snap: ${snapEnabled ? 'wł.' : 'wył.'}`
+    snapButton.textContent = snapEnabled ? t('Snap: wł.') : t('Snap: wył.')
     snapButton.setAttribute('aria-pressed', String(snapEnabled))
   }
 
@@ -445,7 +446,7 @@ export function createTimelineModule() {
     const request = event.detail || {}
     const animalId = request.animalId || activeAnimalId()
     if (!animalId) {
-      announce('Wybierz aktywne zwierzę przed oznaczeniem.')
+      announce(t('Wybierz aktywne zwierzę przed oznaczeniem.'))
       return
     }
     let exactState = null
@@ -454,7 +455,7 @@ export function createTimelineModule() {
     }))
     if (exactState) onVideoState({ detail: exactState })
     if (!(duration > 0)) {
-      announce('Wczytaj film przed oznaczaniem.')
+      announce(t('Wczytaj film przed oznaczaniem.'))
       return
     }
     const current = store.getAll()
@@ -463,7 +464,7 @@ export function createTimelineModule() {
     // Related actions start or end at the same moment; everything is one change, so one undo takes it all back.
     const next = applyRelations(current, toggled, { animalId, trialId: activeTrialId(), time: currentTime, activities: request.activities })
     await store.commit(next)
-    announce(`${request.activityName || 'Czynność'} · ${formatTime(currentTime)}`)
+    announce(`${request.activityName || t('Czynność')} · ${formatTime(currentTime)}`)
   }
 
   // The playhead and the edges of the other events act as magnets; without one nearby the time falls back to the frame grid.

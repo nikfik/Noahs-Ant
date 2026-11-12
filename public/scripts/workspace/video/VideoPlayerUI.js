@@ -1,5 +1,6 @@
 import { VideoPlayerUtils } from './VideoPlayerUtils.js'
 import { icon } from './video-icons.js'
+import { t } from '../../shared/i18n.js'
 
 export class VideoPlayerUI {
   static renderVideoMarkup(videoPath) {
@@ -13,34 +14,34 @@ export class VideoPlayerUI {
               <video id="video-player" class="video-player" playsinline preload="metadata" ${src ? `src="${src}"` : ''}></video>
             </div>
             <div class="video-empty" ${videoPath ? 'hidden' : ''}>
-              <p>Ta próba nie ma jeszcze filmu</p>
-              <button id="pick-video-empty-btn" class="video-pick-cta" type="button">${icon('folder', 20)}Wybierz plik wideo</button>
+              <p>${t('Ta próba nie ma jeszcze filmu')}</p>
+              <button id="pick-video-empty-btn" class="video-pick-cta" type="button">${icon('folder', 20)}${t('Wybierz plik wideo')}</button>
             </div>
             <div class="video-busy" hidden role="status">
               <p class="video-busy-text"></p>
               <progress class="video-busy-progress" max="100" value="0"></progress>
-              <button id="video-cancel-conversion-btn" class="video-pick-cta" type="button">Anuluj</button>
-              <button id="video-close-notice-btn" class="video-pick-cta" type="button" hidden>Zamknij</button>
+              <button id="video-cancel-conversion-btn" class="video-pick-cta" type="button">${t('Anuluj')}</button>
+              <button id="video-close-notice-btn" class="video-pick-cta" type="button" hidden>${t('Zamknij')}</button>
             </div>
-            <div class="video-zoom-controls" role="group" aria-label="Powiększenie obrazu">
-              <button id="zoom-out-btn" class="vp-btn vp-btn-bare" type="button" title="Pomniejsz (kółko myszy)" aria-label="Pomniejsz">${icon('minus', 16)}</button>
-              <input id="zoom-level-input" class="video-zoom-input" value="100%" aria-label="Powiększenie w procentach" title="Powiększenie – wpisz wartość i naciśnij Enter" />
-              <button id="zoom-in-btn" class="vp-btn vp-btn-bare" type="button" title="Powiększ (kółko myszy)" aria-label="Powiększ">${icon('plus', 16)}</button>
+            <div class="video-zoom-controls" role="group" aria-label="${t('Powiększenie obrazu')}">
+              <button id="zoom-out-btn" class="vp-btn vp-btn-bare" type="button" title="${t('Pomniejsz (kółko myszy)')}" aria-label="${t('Pomniejsz')}">${icon('minus', 16)}</button>
+              <input id="zoom-level-input" class="video-zoom-input" value="100%" aria-label="${t('Powiększenie w procentach')}" title="${t('Powiększenie – wpisz wartość i naciśnij Enter')}" />
+              <button id="zoom-in-btn" class="vp-btn vp-btn-bare" type="button" title="${t('Powiększ (kółko myszy)')}" aria-label="${t('Powiększ')}">${icon('plus', 16)}</button>
               <span class="video-zoom-separator" aria-hidden="true"></span>
-              <button id="zoom-fit-btn" class="vp-btn vp-btn-bare" type="button" title="Dopasuj do okna (dwuklik na obrazie)" aria-label="Dopasuj do okna">${icon('fit', 16)}</button>
+              <button id="zoom-fit-btn" class="vp-btn vp-btn-bare" type="button" title="${t('Dopasuj do okna (dwuklik na obrazie)')}" aria-label="${t('Dopasuj do okna')}">${icon('fit', 16)}</button>
             </div>
           </div>
 
           <div class="video-controls">
-            <button id="skip-back-video-btn" class="vp-btn" type="button" title="Cofnij o 5 s" aria-label="Cofnij o 5 sekund">${icon('skipBack', 20)}</button>
-            <button id="step-back-video-btn" class="vp-btn" type="button" title="Cofnij o 1 klatkę" aria-label="Cofnij o jedną klatkę">${icon('stepBack')}</button>
-            <button id="play-pause-video-btn" class="vp-btn vp-btn-primary" type="button" title="Odtwórz" aria-label="Odtwórz">${icon('play', 20)}</button>
-            <button id="step-forward-video-btn" class="vp-btn" type="button" title="Do przodu o 1 klatkę" aria-label="Do przodu o jedną klatkę">${icon('stepForward')}</button>
-            <button id="skip-forward-video-btn" class="vp-btn" type="button" title="Do przodu o 5 s" aria-label="Do przodu o 5 sekund">${icon('skipForward', 20)}</button>
+            <button id="skip-back-video-btn" class="vp-btn" type="button" title="${t('Cofnij o 5 s')}" aria-label="${t('Cofnij o 5 sekund')}">${icon('skipBack', 20)}</button>
+            <button id="step-back-video-btn" class="vp-btn" type="button" title="${t('Cofnij o 1 klatkę')}" aria-label="${t('Cofnij o jedną klatkę')}">${icon('stepBack')}</button>
+            <button id="play-pause-video-btn" class="vp-btn vp-btn-primary" type="button" title="${t('Odtwórz')}" aria-label="${t('Odtwórz')}">${icon('play', 20)}</button>
+            <button id="step-forward-video-btn" class="vp-btn" type="button" title="${t('Do przodu o 1 klatkę')}" aria-label="${t('Do przodu o jedną klatkę')}">${icon('stepForward')}</button>
+            <button id="skip-forward-video-btn" class="vp-btn" type="button" title="${t('Do przodu o 5 s')}" aria-label="${t('Do przodu o 5 sekund')}">${icon('skipForward', 20)}</button>
 
             <span class="video-controls-separator" aria-hidden="true"></span>
 
-            <select id="video-speed" class="video-select" title="Prędkość odtwarzania" aria-label="Prędkość odtwarzania">
+            <select id="video-speed" class="video-select" title="${t('Prędkość odtwarzania')}" aria-label="${t('Prędkość odtwarzania')}">
               <option value="0.25">0.25x</option>
               <option value="0.5">0.5x</option>
               <option value="1" selected>1x</option>
@@ -48,20 +49,20 @@ export class VideoPlayerUI {
               <option value="2">2x</option>
             </select>
 
-            <button id="mute-video-btn" class="vp-btn vp-btn-bare" type="button" title="Wycisz" aria-label="Wycisz">${icon('volume')}</button>
-            <input id="video-volume" class="video-volume" type="range" min="0" max="1" step="0.05" value="1" title="Głośność" aria-label="Głośność" />
+            <button id="mute-video-btn" class="vp-btn vp-btn-bare" type="button" title="${t('Wycisz')}" aria-label="${t('Wycisz')}">${icon('volume')}</button>
+            <input id="video-volume" class="video-volume" type="range" min="0" max="1" step="0.05" value="1" title="${t('Głośność')}" aria-label="${t('Głośność')}" />
 
             <span class="video-controls-spacer"></span>
 
-            <button id="video-popout-btn" class="vp-btn" type="button" title="Oddziel film do osobnego okna (np. na drugi ekran)" aria-label="Oddziel film do osobnego okna">${icon('popout')}</button>
-            <button id="video-quality-btn" class="vp-btn vp-btn-labeled" type="button" title="Skonwertuj ponownie z oryginalnego pliku w innej jakości" ${videoPath ? '' : 'disabled'}>${icon('fit')}<span>Jakość</span></button>
-            <button id="pick-video-btn" class="vp-btn vp-btn-labeled" type="button" title="Wybierz inny plik wideo dla tej próby">${icon('folder')}<span>Zmień film</span></button>
+            <button id="video-popout-btn" class="vp-btn" type="button" title="${t('Oddziel film do osobnego okna (np. na drugi ekran)')}" aria-label="${t('Oddziel film do osobnego okna')}">${icon('popout')}</button>
+            <button id="video-quality-btn" class="vp-btn vp-btn-labeled" type="button" title="${t('Skonwertuj ponownie z oryginalnego pliku w innej jakości')}" ${videoPath ? '' : 'disabled'}>${icon('fit')}<span>${t('Jakość')}</span></button>
+            <button id="pick-video-btn" class="vp-btn vp-btn-labeled" type="button" title="${t('Wybierz inny plik wideo dla tej próby')}">${icon('folder')}<span>${t('Zmień film')}</span></button>
           </div>
         </div>
       </div>
       <div class="video-popout-notice" hidden>
-        <p>Film jest wyświetlany w osobnym oknie.</p>
-        <button id="video-restore-btn" class="video-pick-cta" type="button">${icon('dock', 20)}Przywróć film tutaj</button>
+        <p>${t('Film jest wyświetlany w osobnym oknie.')}</p>
+        <button id="video-restore-btn" class="video-pick-cta" type="button">${icon('dock', 20)}${t('Przywróć film tutaj')}</button>
       </div>
     `
   }

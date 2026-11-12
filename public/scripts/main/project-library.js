@@ -1,4 +1,5 @@
 // What the project list and the video panel need to know about projects and files on disk.
+import { t } from '../shared/i18n.js'
 import fs from 'node:fs'
 import path from 'node:path'
 import { readProjectData } from './project-bundle.js'
@@ -7,7 +8,7 @@ const MAX_PATHS = 500
 
 export function createProjectLibrary({ projectsDirectory }) {
   const folderOf = (projectId) => {
-    if (typeof projectId !== 'string' || !projectId || path.basename(projectId) !== projectId) throw new Error('Nieprawidłowy projekt.')
+    if (typeof projectId !== 'string' || !projectId || path.basename(projectId) !== projectId) throw new Error(t('Nieprawidłowy projekt.'))
     return path.join(projectsDirectory, projectId)
   }
 
@@ -25,7 +26,7 @@ export function createProjectLibrary({ projectsDirectory }) {
   }
 
   function pathsExist(paths) {
-    if (!Array.isArray(paths) || paths.length > MAX_PATHS) throw new Error('Nieprawidłowa lista plików.')
+    if (!Array.isArray(paths) || paths.length > MAX_PATHS) throw new Error(t('Nieprawidłowa lista plików.'))
     return paths.map((file) => typeof file === 'string' && file !== '' && fs.existsSync(file))
   }
 
@@ -50,7 +51,7 @@ export function createProjectLibrary({ projectsDirectory }) {
 
   // Looks for files with the given names in one folder (not in its subfolders), e.g. after a folder was moved.
   function findFilesInFolder(folder, names) {
-    if (typeof folder !== 'string' || !folder || !Array.isArray(names) || names.length > MAX_PATHS) throw new Error('Nieprawidłowe zapytanie.')
+    if (typeof folder !== 'string' || !folder || !Array.isArray(names) || names.length > MAX_PATHS) throw new Error(t('Nieprawidłowe zapytanie.'))
     let entries = []
     try {
       entries = fs.readdirSync(folder)
@@ -66,7 +67,7 @@ export function createProjectLibrary({ projectsDirectory }) {
   // The folder goes to the Recycle Bin, so deleting a project by mistake can be undone.
   async function deleteProject(projectId, trashItem) {
     const folder = folderOf(projectId)
-    if (!fs.existsSync(folder)) throw new Error('Tego projektu już nie ma.')
+    if (!fs.existsSync(folder)) throw new Error(t('Tego projektu już nie ma.'))
     await trashItem(folder)
     return true
   }

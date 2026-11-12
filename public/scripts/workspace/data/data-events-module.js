@@ -1,10 +1,11 @@
+import { t } from '../../shared/i18n.js'
 import { escapeHtml } from '../../shared/escape-html.js'
 import { applyEventEdit, buildEventRows, formatSeconds, getAnimalActivities } from './event-table-model.js'
 import { ariaSort, nextSort, sortMark, sortRows } from './sort-utils.js'
 
 const EDITABLE_FIELDS = new Set(['trialId', 'animalId', 'activityId', 'start', 'end'])
 
-const COLUMNS = [
+export const EVENT_COLUMNS = [
   { key: 'trial', label: 'Próba', tip: 'Próba (nagranie), w której zapisano zdarzenie. Można przenieść zdarzenie do innej próby.', get: (row) => row.trialName },
   { key: 'animal', label: 'Zwierzę', tip: 'Zwierzę, któremu przypisano zdarzenie.', get: (row) => row.animalName },
   { key: 'activity', label: 'Czynność', tip: 'Czynność z etogramu zwierzęcia. Można zmienić tylko na czynność tego samego typu (punktowa albo ciągła).', get: (row) => row.activityName },
@@ -13,7 +14,7 @@ const COLUMNS = [
   { key: 'end', label: 'Koniec (s)', tip: 'Koniec zdarzenia. Puste pole oznacza zdarzenie, które jeszcze trwa.', get: (row) => row.end },
   { key: 'duration', label: 'Czas (s)', tip: 'Czas trwania: koniec minus start.', get: (row) => row.duration }
 ]
-const SORT_GETTERS = Object.fromEntries(COLUMNS.map((column) => [column.key, column.get]))
+const SORT_GETTERS = Object.fromEntries(EVENT_COLUMNS.map((column) => [column.key, column.get]))
 
 export function createDataEventsModule() {
   let host = null
@@ -41,8 +42,8 @@ export function createDataEventsModule() {
   }
 
   const headerCell = ({ key, label, tip }) => `
-    <th aria-sort="${ariaSort(sort, key)}" title="${escapeHtml(tip)}">
-      <button type="button" class="data-sort" data-sort="${key}">${escapeHtml(label)} <span class="sort-mark">${sortMark(sort, key)}</span></button>
+    <th aria-sort="${ariaSort(sort, key)}" title="${escapeHtml(t(tip))}">
+      <button type="button" class="data-sort" data-sort="${key}">${escapeHtml(t(label))} <span class="sort-mark">${sortMark(sort, key)}</span></button>
     </th>`
 
   function renderRow(row) {
@@ -54,14 +55,14 @@ export function createDataEventsModule() {
 
     return `
       <tr data-observation-id="${escapeHtml(row.id)}" style="--event-color:${escapeHtml(row.activityColor)}">
-        <td><select data-field="trialId" aria-label="Próba">${options(trials(), row.trialId, (trial) => trial.name)}</select></td>
-        <td><select data-field="animalId" aria-label="Zwierzę">${options(animals(), row.animalId, (animal) => animal.name)}</select></td>
-        <td class="data-activity"><select data-field="activityId" aria-label="Czynność">${options(activityChoices, row.activityId, (activity) => activity.name)}</select></td>
-        <td class="data-kind">${isInterval ? 'ciągła' : 'punktowa'}</td>
-        <td><input data-field="start" value="${formatSeconds(row.start)}" inputmode="decimal" aria-label="Start (s)" /></td>
-        <td><input data-field="end" value="${row.end === null ? '' : formatSeconds(row.end)}" placeholder="${isInterval ? 'trwa' : '—'}" inputmode="decimal" aria-label="Koniec (s)" ${isInterval ? '' : 'disabled'} /></td>
+        <td><select data-field="trialId" aria-label="${t('Próba')}">${options(trials(), row.trialId, (trial) => trial.name)}</select></td>
+        <td><select data-field="animalId" aria-label="${t('Zwierzę')}">${options(animals(), row.animalId, (animal) => animal.name)}</select></td>
+        <td class="data-activity"><select data-field="activityId" aria-label="${t('Czynność')}">${options(activityChoices, row.activityId, (activity) => activity.name)}</select></td>
+        <td class="data-kind">${isInterval ? t('ciągła') : t('punktowa')}</td>
+        <td><input data-field="start" value="${formatSeconds(row.start)}" inputmode="decimal" aria-label="${t('Start (s)')}" /></td>
+        <td><input data-field="end" value="${row.end === null ? '' : formatSeconds(row.end)}" placeholder="${isInterval ? 'trwa' : '—'}" inputmode="decimal" aria-label="${t('Koniec (s)')}" ${isInterval ? '' : 'disabled'} /></td>
         <td class="data-duration">${row.duration === null ? '—' : formatSeconds(row.duration)}</td>
-        <td><button type="button" class="data-delete" data-action="delete-event" aria-label="Usuń zdarzenie">×</button></td>
+        <td><button type="button" class="data-delete" data-action="delete-event" aria-label="${t('Usuń zdarzenie')}">×</button></td>
       </tr>`
   }
 
@@ -77,22 +78,22 @@ export function createDataEventsModule() {
     host.innerHTML = `
       <section class="data-panel">
         <header class="data-header">
-          <div class="data-title"><h2>Zdarzenia</h2><span class="data-count">${rows.length === total ? `${total}` : `${rows.length} z ${total}`}</span></div>
+          <div class="data-title"><h2>${t('Zdarzenia')}</h2><span class="data-count">${rows.length === total ? `${total}` : `${rows.length} z ${total}`}</span></div>
           <div class="data-controls">
-            <label>Próba <select data-filter="trialId"><option value="all">Wszystkie</option>${options(trials(), filters.trialId, (trial) => trial.name)}</select></label>
-            <label>Zwierzę <select data-filter="animalId"><option value="all">Wszystkie</option>${options(animals(), filters.animalId, (animal) => animal.name)}</select></label>
-            <button type="button" data-action="undo" ${store.canUndo() ? '' : 'disabled'} title="Cofnij (Ctrl+Z)" aria-label="Cofnij">↶</button>
-            <button type="button" data-action="redo" ${store.canRedo() ? '' : 'disabled'} title="Ponów (Ctrl+Y)" aria-label="Ponów">↷</button>
+            <label>${t('Próba')} <select data-filter="trialId"><option value="all">${t('Wszystkie')}</option>${options(trials(), filters.trialId, (trial) => trial.name)}</select></label>
+            <label>${t('Zwierzę')} <select data-filter="animalId"><option value="all">${t('Wszystkie')}</option>${options(animals(), filters.animalId, (animal) => animal.name)}</select></label>
+            <button type="button" data-action="undo" ${store.canUndo() ? '' : 'disabled'} title="${t('Cofnij (Ctrl+Z)')}" aria-label="${t('Cofnij')}">↶</button>
+            <button type="button" data-action="redo" ${store.canRedo() ? '' : 'disabled'} title="${t('Ponów (Ctrl+Y)')}" aria-label="${t('Ponów')}">↷</button>
           </div>
         </header>
         <div class="data-table-wrap">
           <table class="data-table">
-            <thead><tr>${COLUMNS.map(headerCell).join('')}<th></th></tr></thead>
+            <thead><tr>${EVENT_COLUMNS.map(headerCell).join('')}<th></th></tr></thead>
             <tbody>${rows.map(renderRow).join('')}</tbody>
           </table>
-          ${rows.length ? '' : '<p class="data-empty">Brak zdarzeń do wyświetlenia. Oznacz czynności na osi czasu w widoku Wideo.</p>'}
+          ${rows.length ? '' : `<p class="data-empty">${t('Brak zdarzeń do wyświetlenia. Oznacz czynności na osi czasu w widoku Wideo.')}</p>`}
         </div>
-        <footer class="data-status"><span data-data-message role="status">${escapeHtml(message)}</span><span>Czas wpisz w sekundach (12.5) lub jako 1:02.5 · puste „Koniec” oznacza trwające zdarzenie</span></footer>
+        <footer class="data-status"><span data-data-message role="status">${escapeHtml(message)}</span><span>${t('Czas wpisz w sekundach (12.5) lub jako 1:02.5 · puste „Koniec” oznacza trwające zdarzenie')}</span></footer>
       </section>`
   }
 

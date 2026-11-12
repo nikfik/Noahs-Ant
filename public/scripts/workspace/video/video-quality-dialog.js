@@ -1,3 +1,4 @@
+import { t } from '../../shared/i18n.js'
 import {
   FRAME_RATE_CHOICES,
   QUALITY_LEVELS,
@@ -32,7 +33,7 @@ const describeSource = (info) => {
   const { video, duration } = info.probe
   return [
     video.width && video.height ? `${video.width}×${video.height}${video.interlaced ? 'i' : ''}` : null,
-    video.fps ? `${Math.round(video.fps * 100) / 100} klatek/s` : null,
+    video.fps ? t('{value} klatek/s', { value: Math.round(video.fps * 100) / 100 }) : null,
     duration ? formatDuration(duration) : null,
     formatBytes(info.size)
   ].filter(Boolean).join(' · ')
@@ -40,14 +41,17 @@ const describeSource = (info) => {
 
 function estimateText(info, settings) {
   const plan = planConversion(info.probe, info.extension || '', settings)
-  if (plan.action === 'none') return 'Bez konwersji – film zostanie użyty bez zmian.'
-  if (plan.action === 'remux') return `Szybkie przepakowanie (ok. ${formatDuration(estimateOutput(info.probe, plan, info.size).seconds)}), jakość bez zmian.`
+  if (plan.action === 'none') return t('Bez konwersji – film zostanie użyty bez zmian.')
+  if (plan.action === 'remux') return t('Szybkie przepakowanie (ok. {time}), jakość bez zmian.', { time: formatDuration(estimateOutput(info.probe, plan, info.size).seconds) })
   const { sizeBytes, seconds } = estimateOutput(info.probe, plan, info.size)
-  return `Konwersja potrwa ok. ${formatDuration(seconds)}, plik będzie miał ok. ${formatBytes(sizeBytes)}.`
+  return t('Konwersja potrwa ok. {time}, plik będzie miał ok. {size}.', { time: formatDuration(seconds), size: formatBytes(sizeBytes) })
 }
 
-const options = (choices) => choices
-  .map((choice) => `<option value="${choice.value ?? ''}">${escapeHtml(choice.label)}</option>`)
+const frameRateLabel = (choice) => (choice.value === null ? t('Oryginalna') : t('{value} klatek/s', { value: choice.value }))
+const resolutionLabel = (choice) => (choice.value === null ? t('Oryginalna') : choice.label)
+
+const options = (choices, label) => choices
+  .map((choice) => `<option value="${choice.value ?? ''}">${escapeHtml(label(choice))}</option>`)
   .join('')
 
 // Asks how the picked video should be prepared. Resolves with { settings, remember }, or null when cancelled.
@@ -58,33 +62,33 @@ export function askVideoQuality(info, initialSettings, { doc = document } = {}) 
     root.className = 'modal video-quality-modal'
     root.innerHTML = `
       <form class="modal-card video-quality-dialog" role="dialog" aria-modal="true" aria-labelledby="video-quality-title">
-        <h3 id="video-quality-title">Jakość filmu</h3>
+        <h3 id="video-quality-title">${t('Jakość filmu')}</h3>
         <p class="video-quality-source"><strong>${escapeHtml(info.fileName)}</strong><br>${escapeHtml(describeSource(info))}</p>
-        <p>Mniejsza rozdzielczość i mniej klatek na sekundę sprawiają, że film działa płynniej na słabszym komputerze.</p>
-        <div class="video-quality-presets" role="radiogroup" aria-label="Gotowe ustawienia">
+        <p>${t('Mniejsza rozdzielczość i mniej klatek na sekundę sprawiają, że film działa płynniej na słabszym komputerze.')}</p>
+        <div class="video-quality-presets" role="radiogroup" aria-label="${t('Gotowe ustawienia')}">
           ${QUALITY_PRESETS.map((preset) => `
             <label class="video-quality-preset">
               <input type="radio" name="video-quality-preset" value="${preset.id}">
               <span class="video-quality-preset-body">
-                <span class="video-quality-preset-title">${escapeHtml(preset.label)}</span>
-                <span class="video-quality-preset-text">${escapeHtml(preset.description)}</span>
+                <span class="video-quality-preset-title">${escapeHtml(t(preset.label))}</span>
+                <span class="video-quality-preset-text">${escapeHtml(t(preset.description))}</span>
                 <span class="video-quality-preset-estimate">${escapeHtml(estimateText(info, presetSettings(preset.id)))}</span>
               </span>
             </label>`).join('')}
         </div>
         <details class="video-quality-advanced">
-          <summary>Ustawienia zaawansowane</summary>
+          <summary>${t('Ustawienia zaawansowane')}</summary>
           <div class="video-quality-fields">
-            <label>Rozdzielczość (maks.)<select data-field="maxHeight">${options(RESOLUTION_CHOICES)}</select></label>
-            <label>Liczba klatek (maks.)<select data-field="maxFrameRate">${options(FRAME_RATE_CHOICES)}</select></label>
-            <label>Jakość obrazu<select data-field="quality">${QUALITY_LEVELS.map((level) => `<option value="${level.id}">${escapeHtml(level.label)}</option>`).join('')}</select></label>
+            <label>${t('Rozdzielczość (maks.)')}<select data-field="maxHeight">${options(RESOLUTION_CHOICES, resolutionLabel)}</select></label>
+            <label>${t('Liczba klatek (maks.)')}<select data-field="maxFrameRate">${options(FRAME_RATE_CHOICES, frameRateLabel)}</select></label>
+            <label>${t('Jakość obrazu')}<select data-field="quality">${QUALITY_LEVELS.map((level) => `<option value="${level.id}">${escapeHtml(t(level.label))}</option>`).join('')}</select></label>
           </div>
         </details>
         <p class="video-quality-estimate" role="status"></p>
-        <label class="video-quality-remember"><input type="checkbox" data-remember> Zapamiętaj mój wybór i nie pytaj ponownie (można to zmienić w ustawieniach)</label>
+        <label class="video-quality-remember"><input type="checkbox" data-remember> ${t('Zapamiętaj mój wybór i nie pytaj ponownie (można to zmienić w ustawieniach)')}</label>
         <div class="modal-actions">
-          <button type="button" class="module-action" data-cancel>Anuluj</button>
-          <button type="submit" class="module-action primary" data-confirm>Dalej</button>
+          <button type="button" class="module-action" data-cancel>${t('Anuluj')}</button>
+          <button type="submit" class="module-action primary" data-confirm>${t('Dalej')}</button>
         </div>
       </form>`
     doc.body.appendChild(root)

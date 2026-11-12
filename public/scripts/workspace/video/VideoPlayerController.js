@@ -10,6 +10,7 @@ import { skipAt } from '../trials/skip-model.js'
 import { icon } from './video-icons.js'
 import { createVideoPopout } from './video-popout.js'
 import { isSkipping } from '../trials/skip-playback.js'
+import { t } from '../../shared/i18n.js'
 
 const DEFAULT_SKIP_SECONDS = 5
 const EMPTY_TEXT = 'Ta próba nie ma jeszcze filmu'
@@ -19,10 +20,10 @@ const formatSkip = (seconds) => String(seconds).replace('.', ',')
 
 // Buttons whose tooltip shows the keyboard shortcut: [element property, shortcut action, tooltip without the keys].
 const SHORTCUT_BUTTONS = [
-  ['skipBackBtn', 'skip-back', (skip) => `Cofnij o ${skip} s`],
-  ['stepBackBtn', 'frame-back', () => 'Cofnij o 1 klatkę'],
-  ['stepForwardBtn', 'frame-forward', () => 'Do przodu o 1 klatkę'],
-  ['skipForwardBtn', 'skip-forward', (skip) => `Do przodu o ${skip} s`]
+  ['skipBackBtn', 'skip-back', (skip) => t('Cofnij o {seconds} s', { seconds: skip })],
+  ['stepBackBtn', 'frame-back', () => t('Cofnij o 1 klatkę')],
+  ['stepForwardBtn', 'frame-forward', () => t('Do przodu o 1 klatkę')],
+  ['skipForwardBtn', 'skip-forward', (skip) => t('Do przodu o {seconds} s', { seconds: skip })]
 ]
 
 export class VideoPlayerController {
@@ -65,7 +66,7 @@ export class VideoPlayerController {
     }
   }
 
-  setEmptyMessage(text = EMPTY_TEXT, buttonLabel = 'Wybierz plik wideo') {
+  setEmptyMessage(text = t(EMPTY_TEXT), buttonLabel = t('Wybierz plik wideo')) {
     const message = this.emptyState?.querySelector('p')
     if (message) message.textContent = text
     const label = this.emptyState?.querySelector('button')
@@ -79,7 +80,7 @@ export class VideoPlayerController {
     if (exists || this.trialId !== trial.id || this.videoPath !== trial.videoPath) return
 
     this.clearVideo()
-    this.setEmptyMessage(`Nie znaleziono pliku wideo „${fileNameOf(trial.videoPath)}”`, 'Wskaż plik wideo')
+    this.setEmptyMessage(t('Nie znaleziono pliku wideo „{name}”', { name: fileNameOf(trial.videoPath) }), t('Wskaż plik wideo'))
   }
 
   setVideoSource(videoPath) {
@@ -163,7 +164,7 @@ export class VideoPlayerController {
   syncPopoutButton(open) {
     if (!this.popoutBtn) return
     this.popoutBtn.innerHTML = icon(open ? 'dock' : 'popout')
-    const title = open ? 'Przywróć film do głównego okna' : 'Oddziel film do osobnego okna (np. na drugi ekran)'
+    const title = open ? t('Przywróć film do głównego okna') : t('Oddziel film do osobnego okna (np. na drugi ekran)')
     this.popoutBtn.title = title
     this.popoutBtn.setAttribute('aria-label', title)
   }
@@ -223,7 +224,7 @@ export class VideoPlayerController {
       await this.trialCatalog.updateTrial(trial.id, { videoPath: hit })
       relinked += 1
     }
-    if (relinked) this.showBusy(`Odnaleziono też filmy innych prób: ${relinked}.`, null, { notice: true })
+    if (relinked) this.showBusy(t('Odnaleziono też filmy innych prób: {count}.', { count: relinked }), null, { notice: true })
   }
 
   // Converts the original file of this trial's video again, e.g. in a lighter quality.
@@ -235,7 +236,7 @@ export class VideoPlayerController {
 
   async importVideo(filePath, { forceAsk = false, relinkOthers = false } = {}) {
     const trialId = this.trialId
-    this.showBusy('Sprawdzanie filmu…')
+    this.showBusy(t('Sprawdzanie filmu…'))
     try {
       const preferences = await this.readVideoPreferences()
       let quality = preferences.quality
@@ -245,12 +246,12 @@ export class VideoPlayerController {
         const answer = await askVideoQuality(info, quality)
         if (!answer) return
         quality = answer.settings
-        this.showBusy('Sprawdzanie filmu…')
+        this.showBusy(t('Sprawdzanie filmu…'))
         await this.saveVideoPreferences(preferences, quality, answer.remember)
       }
 
       const result = await VideoIOService.prepareVideo(this.projectId, filePath, quality, (percent) => {
-        this.showBusy(`Konwertowanie filmu… ${Math.round(percent)}%`, percent)
+        this.showBusy(t('Konwertowanie filmu… {percent}%', { percent: Math.round(percent) }), percent)
       })
       this.hideBusy()
       if (result.status === 'cancelled') return
@@ -280,11 +281,11 @@ export class VideoPlayerController {
     })
     if (this.skipBackBtn) {
       this.skipBackBtn.innerHTML = icon('skipBack', 20, { label: skip })
-      this.skipBackBtn.setAttribute('aria-label', `Cofnij o ${skip} s`)
+      this.skipBackBtn.setAttribute('aria-label', t('Cofnij o {seconds} s', { seconds: skip }))
     }
     if (this.skipForwardBtn) {
       this.skipForwardBtn.innerHTML = icon('skipForward', 20, { label: skip })
-      this.skipForwardBtn.setAttribute('aria-label', `Do przodu o ${skip} s`)
+      this.skipForwardBtn.setAttribute('aria-label', t('Do przodu o {seconds} s', { seconds: skip }))
     }
     this.playbackControls?.syncPlaybackButton(this.playPauseBtn)
     this.playbackControls?.syncMuteButton(this.muteBtn)
@@ -411,7 +412,7 @@ export class VideoPlayerController {
     this.qualityBtn?.addEventListener('click', () => this.changeQuality())
     this.popoutBtn?.addEventListener('click', () => {
       this.popout?.toggle().then((opened) => {
-        if (opened === false) this.showBusy('Nie udało się otworzyć osobnego okna z filmem.', null, { error: true })
+        if (opened === false) this.showBusy(t('Nie udało się otworzyć osobnego okna z filmem.'), null, { error: true })
       }).catch((error) => console.error('Could not move the video to its own window:', error))
     })
     this.busy?.cancel?.addEventListener('click', () => VideoIOService.cancelConversion())

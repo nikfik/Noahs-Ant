@@ -1,5 +1,6 @@
 import { AppState } from '../services/AppState.js'
 import { initTheme } from '../theme/theme-service.js'
+import { initLanguage, translatePage } from '../shared/i18n.js'
 import { initWorkspaceToolbar } from './workspace-toolbar.js'
 import { WorkspaceVideoModule } from './workspace-video-module.js'
 import { WorkspaceEtogramModule } from './workspace-etogram-module.js'
@@ -16,6 +17,7 @@ import { initDataTabs } from './data/data-tabs.js'
 import { initViewSwitcher } from './workspace-view-switcher.js'
 import { createShortcutManager } from './shortcuts/shortcut-manager.js'
 
+
 async function initModule(name, init) {
   try {
     return await init()
@@ -26,6 +28,8 @@ async function initModule(name, init) {
 }
 
 export const initWorkspace = async () => {
+  await initLanguage()
+  translatePage()
   initTheme()
   const appState = AppState.getInstance()
   const backBtn = document.getElementById('back-to-projects')

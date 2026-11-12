@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../shared/escape-html.js'
 import { formatSeconds, parseTimeInput } from '../data/event-table-model.js'
+import { t } from '../../shared/i18n.js'
 
 const PLACEHOLDER = 'np. 12.5 lub 1:02.5'
 
@@ -13,18 +14,18 @@ export function askEventTimes({ title = '', subtitle = '', kind = 'interval', st
     root.className = 'modal skip-modal event-modal'
     root.innerHTML = `
       <form class="modal-card trial-name-dialog skip-dialog" role="dialog" aria-modal="true" aria-labelledby="event-dialog-title" novalidate>
-        <h3 id="event-dialog-title">${escapeHtml(title || 'Edytuj zdarzenie')}</h3>
+        <h3 id="event-dialog-title">${escapeHtml(title || t('Edytuj zdarzenie'))}</h3>
         ${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ''}
         <div class="${isPoint ? '' : 'skip-dialog-times'}">
-          <label>${isPoint ? 'Moment (s)' : 'Początek (s)'}<input data-event="start" value="${formatSeconds(start)}" placeholder="${PLACEHOLDER}" inputmode="decimal" /></label>
-          ${isPoint ? '' : `<label>Koniec (s)<input data-event="end" value="${end === null ? '' : formatSeconds(end)}" placeholder="trwa – ${PLACEHOLDER}" inputmode="decimal" /></label>`}
+          <label>${isPoint ? t('Moment (s)') : t('Początek (s)')}<input data-event="start" value="${formatSeconds(start)}" placeholder="${t(PLACEHOLDER)}" inputmode="decimal" /></label>
+          ${isPoint ? '' : `<label>${t('Koniec (s)')}<input data-event="end" value="${end === null ? '' : formatSeconds(end)}" placeholder="${t('trwa')} – ${t(PLACEHOLDER)}" inputmode="decimal" /></label>`}
         </div>
         <p class="skip-dialog-error" role="alert" hidden></p>
         <div class="modal-actions skip-dialog-actions">
-          <button type="button" class="module-action danger" data-event-delete>Usuń</button>
+          <button type="button" class="module-action danger" data-event-delete>${t('Usuń')}</button>
           <span class="skip-dialog-spacer"></span>
-          <button type="button" class="module-action" data-event-cancel>Anuluj</button>
-          <button type="submit" class="module-action primary">Zapisz</button>
+          <button type="button" class="module-action" data-event-cancel>${t('Anuluj')}</button>
+          <button type="submit" class="module-action primary">${t('Zapisz')}</button>
         </div>
       </form>`
     doc.body.appendChild(root)
@@ -44,10 +45,10 @@ export function askEventTimes({ title = '', subtitle = '', kind = 'interval', st
       event.preventDefault()
       const from = parseTimeInput(field('start').value)
       const to = isPoint ? from : parseTimeInput(field('end').value)
-      if (from === null || Number.isNaN(from)) return fail('Podaj poprawny czas, np. 12.5 lub 1:02.5.')
-      if (!isPoint && Number.isNaN(to)) return fail('Podaj poprawny czas końca albo zostaw pole puste, gdy czynność trwa.')
-      if (!isPoint && to !== null && to < from) return fail('Koniec nie może być wcześniejszy niż początek.')
-      if (duration && (from > duration || (to !== null && to > duration))) return fail('Czas jest poza długością filmu.')
+      if (from === null || Number.isNaN(from)) return fail(t('Podaj poprawny czas, np. 12.5 lub 1:02.5.'))
+      if (!isPoint && Number.isNaN(to)) return fail(t('Podaj poprawny czas końca albo zostaw pole puste, gdy czynność trwa.'))
+      if (!isPoint && to !== null && to < from) return fail(t('Koniec nie może być wcześniejszy niż początek.'))
+      if (duration && (from > duration || (to !== null && to > duration))) return fail(t('Czas jest poza długością filmu.'))
       close({ type: 'save', start: from, end: isPoint ? from : to })
     })
     root.querySelector('[data-event-cancel]').addEventListener('click', () => close(null))

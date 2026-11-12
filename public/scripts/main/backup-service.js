@@ -1,5 +1,6 @@
 // Backups of a project's data (never its videos): automatic ones while a project is open, manual ones on request, and
 // "safety" ones taken right before something is overwritten. Only automatic and safety backups are removed by themselves.
+import { t } from '../shared/i18n.js'
 import fs from 'node:fs'
 import path from 'node:path'
 import { BUNDLE_EXTENSION, BundleError, hashProjectData, readManifest, readProjectData, restoreProjectData, writeBundle } from './project-bundle.js'
@@ -17,11 +18,11 @@ export function createBackupService({ projectsDirectory, getBackupSettings, now 
   let pending = Promise.resolve()
 
   const directoryOf = (projectId) => {
-    if (typeof projectId !== 'string' || !projectId || path.basename(projectId) !== projectId) throw new BundleError('Nieprawidłowy projekt.')
+    if (typeof projectId !== 'string' || !projectId || path.basename(projectId) !== projectId) throw new BundleError(t('Nieprawidłowy projekt.'))
     return path.join(projectsDirectory, projectId, 'backups')
   }
   const pathOf = (projectId, name) => {
-    if (!NAME_PATTERN.test(String(name))) throw new BundleError('Nieprawidłowa kopia zapasowa.')
+    if (!NAME_PATTERN.test(String(name))) throw new BundleError(t('Nieprawidłowa kopia zapasowa.'))
     return path.join(directoryOf(projectId), name)
   }
 
@@ -82,7 +83,7 @@ export function createBackupService({ projectsDirectory, getBackupSettings, now 
 
   async function restore(projectId, name) {
     const backupPath = pathOf(projectId, name)
-    if (!fs.existsSync(backupPath)) throw new BundleError('Tej kopii zapasowej już nie ma.')
+    if (!fs.existsSync(backupPath)) throw new BundleError(t('Tej kopii zapasowej już nie ma.'))
     await create(projectId, { kind: 'safety', label: 'Przed przywróceniem kopii' })
     await enqueue(() => restoreProjectData({ projectsDirectory, projectId, backupPath, now: now() }))
     return true

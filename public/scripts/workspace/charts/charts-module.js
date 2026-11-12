@@ -1,4 +1,5 @@
 // The charts screen: building blocks on the left (behaviors x measures, and the ways to group), a chart in the middle.
+import { t } from '../../shared/i18n.js'
 import { escapeHtml } from '../../shared/escape-html.js'
 import {
   AGGREGATES,
@@ -70,34 +71,34 @@ export function createChartsModule() {
       byBehavior.set(block.behavior, [...(byBehavior.get(block.behavior) || []), block])
     })
 
-    const groupingChips = GROUPINGS.filter((item) => matches(`${item.label} ${item.hint}`)).map((item) => `
-      <button type="button" class="chart-chip chart-chip-grouping" draggable="true" data-block-id="grouping|${item.id}" title="${escapeHtml(item.hint)}">${escapeHtml(item.label)}</button>`).join('')
+    const groupingChips = GROUPINGS.filter((item) => matches(`${t(item.label)} ${t(item.hint)}`)).map((item) => `
+      <button type="button" class="chart-chip chart-chip-grouping" draggable="true" data-block-id="grouping|${item.id}" title="${escapeHtml(t(item.hint))}">${escapeHtml(t(item.label))}</button>`).join('')
 
     const valueSections = [...byBehavior.entries()].map(([behavior, list]) => `
       <details class="chart-behavior" ${query || list.some((block) => config.valueIds.includes(block.id)) ? 'open' : ''}>
         <summary>${escapeHtml(behavior)}</summary>
         <div class="chart-chips">${list.map((block) => `
           <span class="chart-chip-row">
-            <button type="button" class="chart-chip" draggable="true" data-block-id="${escapeHtml(block.id)}" title="Przeciągnij na wykres albo kliknij, aby dodać">${escapeHtml(block.metric.label)}</button>
-            <button type="button" class="chart-peek" data-peek="${escapeHtml(block.id)}" title="Podejrzyj dane tego bloku" aria-label="Podgląd danych: ${escapeHtml(block.label)}">👁</button>
+            <button type="button" class="chart-chip" draggable="true" data-block-id="${escapeHtml(block.id)}" title="${t('Przeciągnij na wykres albo kliknij, aby dodać')}">${escapeHtml(t(block.metric.label))}</button>
+            <button type="button" class="chart-peek" data-peek="${escapeHtml(block.id)}" title="${t('Podejrzyj dane tego bloku')}" aria-label="${escapeHtml(t('Podgląd danych: {name}', { name: block.label }))}">👁</button>
           </span>`).join('')}</div>
       </details>`).join('')
 
     return `
-      ${groupingChips ? `<h4>Grupowanie</h4><div class="chart-chips">${groupingChips}</div>` : ''}
-      <h4>Wartości</h4>
-      ${valueSections || '<p class="charts-muted">Brak pasujących czynności.</p>'}`
+      ${groupingChips ? `<h4>${t('Grupowanie')}</h4><div class="chart-chips">${groupingChips}</div>` : ''}
+      <h4>${t('Wartości')}</h4>
+      ${valueSections || `<p class="charts-muted">${t('Brak pasujących czynności.')}</p>`}`
   }
 
   function zoneContent(blocks) {
     const chips = config.valueIds.map(parseValueBlock).filter(Boolean).map((block) => `
-      <span class="chart-chip placed">${escapeHtml(block.behavior)} · ${escapeHtml(block.metric.label)}<button type="button" data-remove="${escapeHtml(block.id)}" aria-label="Usuń">×</button></span>`).join('')
+      <span class="chart-chip placed">${escapeHtml(block.behavior)} · ${escapeHtml(t(block.metric.label))}<button type="button" data-remove="${escapeHtml(block.id)}" aria-label="${t('Usuń')}">×</button></span>`).join('')
     const grouping = GROUPINGS.find((item) => item.id === config.grouping)
     return {
-      values: chips || '<span class="charts-zone-empty">Przeciągnij tutaj czynność z listy po lewej</span>',
+      values: chips || `<span class="charts-zone-empty">${t('Przeciągnij tutaj czynność z listy po lewej')}</span>`,
       grouping: grouping
-        ? `<span class="chart-chip placed chart-chip-grouping">${escapeHtml(grouping.label)}<button type="button" data-remove="grouping" aria-label="Usuń">×</button></span>`
-        : '<span class="charts-zone-empty">Bez grupowania – jeden słupek (opcjonalnie)</span>'
+        ? `<span class="chart-chip placed chart-chip-grouping">${escapeHtml(t(grouping.label))}<button type="button" data-remove="grouping" aria-label="${t('Usuń')}">×</button></span>`
+        : `<span class="charts-zone-empty">${t('Bez grupowania – jeden słupek (opcjonalnie)')}</span>`
     }
   }
 
@@ -119,39 +120,39 @@ export function createChartsModule() {
       ? (() => {
         const rows = blockRows(source(), previewBlockId)
         const block = parseValueBlock(previewBlockId)
-        return `<p class="charts-muted">Dane bloku „${escapeHtml(block?.behavior || '')} · ${escapeHtml(block?.metric.label || '')}” – jeden wiersz na próbę i zwierzę (tylko zwierzęta oznaczone w danej próbie). <button type="button" data-close-peek>Wróć do liczb wykresu</button></p>
-          ${table(['Próba', 'Zwierzę', 'Wartość'], rows)}`
+        return `<p class="charts-muted">${escapeHtml(t('Dane bloku „{block}” – jeden wiersz na próbę i zwierzę (tylko zwierzęta oznaczone w danej próbie).', { block: `${block?.behavior || ''} · ${t(block?.metric.label || '')}` }))} <button type="button" data-close-peek>${t('Wróć do liczb wykresu')}</button></p>
+          ${table([t('Próba'), t('Zwierzę'), t('Wartość')], rows)}`
       })()
       : (chartData ? `${table(previewHeaders(config.kind), previewRows(chartData, config.kind))}
-        <p class="charts-muted">Jedna wartość to jedna próba. Gdy w próbie jest kilka zwierząt z tej samej kategorii, ich wartości są łączone: czas i liczba – suma, „wystąpiła” – tak, jeśli którekolwiek, latencja – najkrótsza. Liczone są tylko próby, w których zwierzę miało choć jedno oznaczone zdarzenie.</p>` : '<p class="charts-muted">Tu pojawią się liczby, z których powstał wykres.</p>')
+        <p class="charts-muted">${t('Jedna wartość to jedna próba. Gdy w próbie jest kilka zwierząt z tej samej kategorii, ich wartości są łączone: czas i liczba – suma, „wystąpiła” – tak, jeśli którekolwiek, latencja – najkrótsza. Liczone są tylko próby, w których zwierzę miało choć jedno oznaczone zdarzenie.')}</p>` : `<p class="charts-muted">${t('Tu pojawią się liczby, z których powstał wykres.')}</p>`)
 
     host.innerHTML = `
       <section class="charts-screen">
         <aside class="charts-sidebar">
-          <h3>Bloki</h3>
-          <input type="search" class="charts-search" data-search placeholder="Szukaj czynności lub miary…" value="${escapeHtml(search)}" aria-label="Szukaj bloków" />
+          <h3>${t('Bloki')}</h3>
+          <input type="search" class="charts-search" data-search placeholder="${t('Szukaj czynności lub miary…')}" value="${escapeHtml(search)}" aria-label="${t('Szukaj bloków')}" />
           <div class="charts-blocks">${renderBlocks(blocks)}</div>
         </aside>
         <div class="charts-main">
           <div class="charts-zones">
-            <div class="charts-zone" data-zone="values"><span class="charts-zone-label">Wartość</span><div class="charts-zone-body">${zones.values}</div></div>
-            <div class="charts-zone" data-zone="grouping"><span class="charts-zone-label">Grupuj według</span><div class="charts-zone-body">${zones.grouping}</div></div>
+            <div class="charts-zone" data-zone="values"><span class="charts-zone-label">${t('Wartość')}</span><div class="charts-zone-body">${zones.values}</div></div>
+            <div class="charts-zone" data-zone="grouping"><span class="charts-zone-label">${t('Grupuj według')}</span><div class="charts-zone-body">${zones.grouping}</div></div>
           </div>
           <div class="charts-options">
-            <div class="charts-kinds" role="group" aria-label="Typ wykresu">${CHART_KINDS.map((kind) => `<button type="button" class="${config.kind === kind.id ? 'active' : ''}" data-kind="${kind.id}">${kind.label}</button>`).join('')}</div>
-            <label ${config.kind === 'box' ? 'hidden' : ''}>Wynik <select data-aggregate>${AGGREGATES.map((item) => `<option value="${item.id}" ${config.aggregate === item.id ? 'selected' : ''}>${item.label}</option>`).join('')}</select></label>
-            <label>Tytuł <input data-title value="${escapeHtml(config.title)}" placeholder="${escapeHtml(chartData ? autoTitle(chartData, config.kind) : 'automatyczny')}" /></label>
-            <label title="Pozioma linia na wykresie, np. wartość odniesienia">Linia pomocnicza <input data-reference type="number" step="any" value="${config.referenceLine ?? ''}" placeholder="brak" /></label>
+            <div class="charts-kinds" role="group" aria-label="${t('Typ wykresu')}">${CHART_KINDS.map((kind) => `<button type="button" class="${config.kind === kind.id ? 'active' : ''}" data-kind="${kind.id}">${t(kind.label)}</button>`).join('')}</div>
+            <label ${config.kind === 'box' ? 'hidden' : ''}>${t('Wynik')} <select data-aggregate>${AGGREGATES.map((item) => `<option value="${item.id}" ${config.aggregate === item.id ? 'selected' : ''}>${t(item.label)}</option>`).join('')}</select></label>
+            <label>${t('Tytuł')} <input data-title value="${escapeHtml(config.title)}" placeholder="${escapeHtml(chartData ? autoTitle(chartData, config.kind) : 'automatyczny')}" /></label>
+            <label title="${t('Pozioma linia na wykresie, np. wartość odniesienia')}">${t('Linia pomocnicza')} <input data-reference type="number" step="any" value="${config.referenceLine ?? ''}" placeholder="${t('brak')}" /></label>
             <span class="charts-export">
-              <button type="button" data-export="png" ${hasData ? '' : 'disabled'}>Zapisz PNG</button>
-              <button type="button" data-export="svg" ${hasData ? '' : 'disabled'}>Zapisz SVG</button>
+              <button type="button" data-export="png" ${hasData ? '' : 'disabled'}>${t('Zapisz PNG')}</button>
+              <button type="button" data-export="svg" ${hasData ? '' : 'disabled'}>${t('Zapisz SVG')}</button>
             </span>
           </div>
           <div class="charts-canvas ${hasData ? '' : 'empty'}" data-zone="values">
-            ${hasData ? lastSvg : `<p>${chartData ? 'Brak danych dla tego wyboru. Oznacz zdarzenia w widoku Wideo.' : 'Przeciągnij czynność z listy po lewej do pola „Wartość”, aby zobaczyć wykres.'}</p>`}
+            ${hasData ? lastSvg : `<p>${chartData ? t('Brak danych dla tego wyboru. Oznacz zdarzenia w widoku Wideo.') : t('Przeciągnij czynność z listy po lewej do pola „Wartość”, aby zobaczyć wykres.')}</p>`}
           </div>
           <details class="charts-preview" open>
-            <summary>Podgląd danych</summary>
+            <summary>${t('Podgląd danych')}</summary>
             ${preview}
           </details>
         </div>
@@ -164,7 +165,7 @@ export function createChartsModule() {
   }
 
   function table(headers, rows) {
-    if (!rows.length) return '<p class="charts-muted">Brak wierszy.</p>'
+    if (!rows.length) return `<p class="charts-muted">${t('Brak wierszy.')}</p>`
     return `<div class="charts-table-wrap"><table class="data-table"><thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead>
       <tbody>${rows.map((row) => `<tr>${row.map((cell, index) => `<td class="${index > 1 || typeof cell === 'number' ? 'num' : ''}">${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
   }

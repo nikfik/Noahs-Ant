@@ -1,4 +1,5 @@
 import { createId } from '../animals/animal-model.js'
+import { t } from '../../shared/i18n.js'
 import { normalizeSkips } from './skip-model.js'
 
 export function createEmptyTrialData() {
@@ -49,8 +50,8 @@ export function getActiveTrial(data) {
 export function nextTrialName(data) {
   const names = new Set(data.trials.map((trial) => trial.name))
   let number = data.trials.length + 1
-  while (names.has(`Próba ${number}`)) number += 1
-  return `Próba ${number}`
+  while (names.has(t('Próba {number}', { number }))) number += 1
+  return t('Próba {number}', { number })
 }
 
 export function createTrial(data, name, videoPath = '') {
@@ -61,7 +62,7 @@ export function createTrial(data, name, videoPath = '') {
 
 export function ensureDefaultTrial(data, videoPath = '') {
   const normalized = normalizeTrialData(data)
-  return normalized.trials.length ? normalized : createTrial(normalized, 'Próba 1', videoPath)
+  return normalized.trials.length ? normalized : createTrial(normalized, t('Próba {number}', { number: 1 }), videoPath)
 }
 
 export function updateTrial(data, trialId, changes) {

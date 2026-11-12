@@ -1,4 +1,5 @@
 import { escapeHtml } from '../../shared/escape-html.js'
+import { t } from '../../shared/i18n.js'
 import {
   createTrial,
   getActiveTrial,
@@ -25,32 +26,32 @@ export async function init(containerId = 'trial-panel', options = {}) {
 
   host.innerHTML = `
     <section class="side-panel trial-card">
-      <header class="side-panel-header"><div><span class="side-panel-eyebrow">Nagranie</span><h3>Próba</h3></div></header>
+      <header class="side-panel-header"><div><span class="side-panel-eyebrow">${t('Nagranie')}</span><h3>${t('Próba')}</h3></div></header>
       <div class="side-panel-body trial-row">
-        <select class="trial-select" aria-label="Aktywna próba"></select>
-        <button type="button" class="trial-icon-action" data-action="add-trial" title="Dodaj próbę" aria-label="Dodaj próbę">＋</button>
-        <button type="button" class="trial-icon-action" data-action="rename-trial" title="Zmień nazwę próby" aria-label="Zmień nazwę próby">✎</button>
-        <button type="button" class="trial-icon-action danger" data-action="remove-trial" title="Usuń próbę" aria-label="Usuń próbę">×</button>
+        <select class="trial-select" aria-label="${t('Aktywna próba')}"></select>
+        <button type="button" class="trial-icon-action" data-action="add-trial" title="${t('Dodaj próbę')}" aria-label="${t('Dodaj próbę')}">＋</button>
+        <button type="button" class="trial-icon-action" data-action="rename-trial" title="${t('Zmień nazwę próby')}" aria-label="${t('Zmień nazwę próby')}">✎</button>
+        <button type="button" class="trial-icon-action danger" data-action="remove-trial" title="${t('Usuń próbę')}" aria-label="${t('Usuń próbę')}">×</button>
       </div>
     </section>
     <div class="modal hidden trial-name-modal">
       <form class="modal-card trial-name-dialog" role="dialog" aria-modal="true" aria-labelledby="trial-name-title">
-        <h3 id="trial-name-title">Dodaj próbę</h3>
-        <label for="trial-name-input">Nazwa</label>
+        <h3 id="trial-name-title">${t('Dodaj próbę')}</h3>
+        <label for="trial-name-input">${t('Nazwa')}</label>
         <input id="trial-name-input" name="name" maxlength="80" required autocomplete="off" />
         <div class="module-actions">
-          <button type="button" class="module-action" data-action="cancel-trial-name">Anuluj</button>
-          <button type="submit" class="module-action">Zapisz</button>
+          <button type="button" class="module-action" data-action="cancel-trial-name">${t('Anuluj')}</button>
+          <button type="submit" class="module-action">${t('Zapisz')}</button>
         </div>
       </form>
     </div>
     <div class="modal hidden trial-confirm-modal">
       <div class="modal-card trial-name-dialog" role="alertdialog" aria-modal="true" aria-labelledby="trial-confirm-title">
-        <h3 id="trial-confirm-title">Usuń próbę</h3>
+        <h3 id="trial-confirm-title">${t('Usuń próbę')}</h3>
         <p class="trial-confirm-text"></p>
         <div class="module-actions">
-          <button type="button" class="module-action" data-action="cancel-trial-remove">Anuluj</button>
-          <button type="button" class="module-action danger" data-action="confirm-trial-remove">Usuń</button>
+          <button type="button" class="module-action" data-action="cancel-trial-remove">${t('Anuluj')}</button>
+          <button type="button" class="module-action danger" data-action="confirm-trial-remove">${t('Usuń')}</button>
         </div>
       </div>
     </div>
@@ -92,12 +93,12 @@ export async function init(containerId = 'trial-panel', options = {}) {
   async function handleAction(action) {
     const activeTrial = getActiveTrial(data)
     if (action === 'add-trial') {
-      openNameDialog('add', 'Dodaj próbę', nextTrialName(data))
+      openNameDialog('add', t('Dodaj próbę'), nextTrialName(data))
     } else if (action === 'rename-trial' && activeTrial) {
-      openNameDialog('rename', 'Zmień nazwę próby', activeTrial.name)
+      openNameDialog('rename', t('Zmień nazwę próby'), activeTrial.name)
     } else if (action === 'remove-trial' && activeTrial && data.trials.length > 1) {
       confirmDialog.querySelector('.trial-confirm-text').textContent =
-        `Usunąć próbę „${activeTrial.name}” razem ze wszystkimi jej zdarzeniami? Tej operacji nie można cofnąć.`
+        t('Usunąć próbę „{name}” razem ze wszystkimi jej zdarzeniami? Tej operacji nie można cofnąć.', { name: activeTrial.name })
       confirmDialog.classList.remove('hidden')
     } else if (action === 'confirm-trial-remove' && activeTrial && data.trials.length > 1) {
       confirmDialog.classList.add('hidden')

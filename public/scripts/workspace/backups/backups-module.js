@@ -1,13 +1,21 @@
 // The backups dialog of the workspace: make a backup now, restore one, delete one. The automatic backups themselves are
 // made by the main process while a project is open.
+import { locale, plural, t } from '../../shared/i18n.js'
 import { escapeHtml } from '../../shared/escape-html.js'
 import { formatBytes } from '../video/video-quality-dialog.js'
 
-const KINDS = { auto: 'Automatyczna', manual: 'Ręczna', safety: 'Przed przywróceniem' }
+export const BACKUP_KINDS = { auto: 'Automatyczna', manual: 'Ręczna', safety: 'Przed przywróceniem' }
+
+const countsText = (counts = {}) => {
+  const trials = counts.trials ?? 0
+  const animals = counts.animals ?? 0
+  const events = counts.events ?? 0
+  return `${trials} ${plural(trials, ['próba', 'próby', 'prób'])}, ${animals} ${plural(animals, ['zwierzę', 'zwierzęta', 'zwierząt'])}, ${events} ${plural(events, ['zdarzenie', 'zdarzenia', 'zdarzeń'])}`
+}
 
 const formatDate = (iso) => {
   const date = new Date(iso)
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('pl-PL')
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString(locale())
 }
 
 export function createBackupsModule() {
@@ -36,7 +44,7 @@ export function createBackupsModule() {
     <tr class="backups-confirm"><td colspan="6">
       ${pendingAction.type === 'restore' ? 'Przywrócić tę kopię?' : 'Usunąć tę kopię?'}
       <button type="button" class="module-action ${pendingAction.type === 'delete' ? 'danger' : 'primary'}" data-confirm>${pendingAction.type === 'restore' ? 'Przywróć' : 'Usuń'}</button>
-      <button type="button" class="module-action" data-cancel>Anuluj</button>
+      <button type="button" class="module-action" data-cancel>${t('Anuluj')}</button>
     </td></tr>`
 
   function render() {
@@ -44,33 +52,33 @@ export function createBackupsModule() {
     root.innerHTML = `
       <section class="backups-dialog" role="dialog" aria-modal="true" aria-labelledby="backups-title">
         <header>
-          <h3 id="backups-title">Kopie zapasowe</h3>
-          <button type="button" class="modal-close" data-close aria-label="Zamknij">×</button>
+          <h3 id="backups-title">${t('Kopie zapasowe')}</h3>
+          <button type="button" class="modal-close" data-close aria-label="${t('Zamknij')}">×</button>
         </header>
-        ${settings.enabled ? '' : '<p class="backups-info">Automatyczne kopie są wyłączone.</p>'}
+        ${settings.enabled ? '' : `<p class="backups-info">${t('Automatyczne kopie są wyłączone.')}</p>`}
         <form class="backups-create">
-          <input data-label maxlength="80" placeholder="Nazwa kopii (opcjonalnie)" aria-label="Nazwa kopii" />
-          <button type="submit" class="module-action primary">Utwórz kopię teraz</button>
+          <input data-label maxlength="80" placeholder="${t('Nazwa kopii (opcjonalnie)')}" aria-label="${t('Nazwa kopii')}" />
+          <button type="submit" class="module-action primary">${t('Utwórz kopię teraz')}</button>
         </form>
         <p class="backups-message" role="status">${escapeHtml(message)}</p>
         <div class="backups-table">
           <table class="data-table">
-            <thead><tr><th>Data</th><th>Rodzaj</th><th>Nazwa</th><th>Zawartość</th><th>Rozmiar</th><th></th></tr></thead>
+            <thead><tr><th>${t('Data')}</th><th>${t('Rodzaj')}</th><th>${t('Nazwa')}</th><th>${t('Zawartość')}</th><th>${t('Rozmiar')}</th><th></th></tr></thead>
             <tbody>${backups.length ? backups.map((backup) => `
               <tr>
                 <td>${escapeHtml(formatDate(backup.createdAt))}</td>
-                <td>${escapeHtml(KINDS[backup.kind] || backup.kind)}</td>
-                <td>${escapeHtml(backup.label)}</td>
-                <td>${backup.counts?.trials ?? 0} prób, ${backup.counts?.animals ?? 0} zwierząt, ${backup.counts?.events ?? 0} zdarzeń</td>
+                <td>${escapeHtml(BACKUP_KINDS[backup.kind] ? t(BACKUP_KINDS[backup.kind]) : backup.kind)}</td>
+                <td>${escapeHtml(t(backup.label))}</td>
+                <td>${countsText(backup.counts)}</td>
                 <td class="num">${escapeHtml(formatBytes(backup.size))}</td>
                 <td class="backups-actions">
-                  <button type="button" class="module-action" data-restore="${escapeHtml(backup.name)}">Przywróć</button>
-                  <button type="button" class="module-action danger" data-delete="${escapeHtml(backup.name)}">Usuń</button>
+                  <button type="button" class="module-action" data-restore="${escapeHtml(backup.name)}">${t('Przywróć')}</button>
+                  <button type="button" class="module-action danger" data-delete="${escapeHtml(backup.name)}">${t('Usuń')}</button>
                 </td>
-              </tr>${confirmRow(backup)}`).join('') : '<tr><td colspan="6" class="backups-empty">Na razie nie ma żadnych kopii.</td></tr>'}</tbody>
+              </tr>${confirmRow(backup)}`).join('') : `<tr><td colspan="6" class="backups-empty">${t('Na razie nie ma żadnych kopii.')}</td></tr>`}</tbody>
           </table>
         </div>
-        <footer><button type="button" class="module-action" data-close>Zamknij</button></footer>
+        <footer><button type="button" class="module-action" data-close>${t('Zamknij')}</button></footer>
       </section>`
   }
 
@@ -85,14 +93,14 @@ export function createBackupsModule() {
   }
 
   async function createNow(label) {
-    message = 'Tworzenie kopii…'
+    message = t('Tworzenie kopii…')
     render()
     try {
       const result = await api.createBackup({ projectId, label })
-      message = result?.created ? 'Kopia została utworzona.' : 'Nie utworzono kopii.'
+      message = result?.created ? t('Kopia została utworzona.') : t('Nie utworzono kopii.')
     } catch (error) {
       console.error('Could not create a backup:', error)
-      message = 'Nie udało się utworzyć kopii.'
+      message = t('Nie udało się utworzyć kopii.')
     }
     await refreshList()
   }
@@ -104,17 +112,17 @@ export function createBackupsModule() {
     try {
       if (action.type === 'delete') {
         await api.deleteBackup({ projectId, name: action.name })
-        message = 'Kopia została usunięta.'
+        message = t('Kopia została usunięta.')
       } else {
         await api.restoreBackup({ projectId, name: action.name })
-        message = 'Kopia została przywrócona. Wczytywanie projektu…'
+        message = t('Kopia została przywrócona. Wczytywanie projektu…')
         render()
         reload()
         return
       }
     } catch (error) {
       console.error('Backup action failed:', error)
-      message = action.type === 'restore' ? 'Nie udało się przywrócić kopii.' : 'Nie udało się usunąć kopii.'
+      message = action.type === 'restore' ? t('Nie udało się przywrócić kopii.') : t('Nie udało się usunąć kopii.')
     }
     await refreshList()
   }

@@ -1,6 +1,7 @@
 {
   "devDependencies": {
     "electron": "^43.0.0",
+    "electron-builder": "^26.18.0",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1"
   },
@@ -10,7 +11,8 @@
   "main": "public/scripts/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "dist": "electron-builder --win portable"
   },
   "dependencies": {
     "debug": "^4.4.3",
@@ -32,11 +34,39 @@
     "url": "git+https://github.com/nikfik/Noahs-Ant.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Noah’s Ant",
   "license": "ISC",
   "type": "module",
   "bugs": {
     "url": "https://github.com/nikfik/Noahs-Ant/issues"
   },
-  "homepage": "https://github.com/nikfik/Noahs-Ant#readme"
+  "homepage": "https://github.com/nikfik/Noahs-Ant#readme",
+  "build": {
+    "appId": "pl.noahsant.app",
+    "productName": "Noah’s Ant",
+    "artifactName": "NoahsAnt-${version}-portable.exe",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "public/**/*",
+      "package.json",
+      "!public/assets/anticon.png"
+    ],
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/assets/anticon.png",
+      "signExecutable": false
+    }
+  }
 }

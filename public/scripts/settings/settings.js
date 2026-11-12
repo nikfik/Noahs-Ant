@@ -2,6 +2,7 @@ import { createDefaultAppSettings, defaultTheme, settingsCatalog } from './setti
 import { createKeybindControl } from './keybind-control.js'
 import { THEME_PRESETS, matchThemePreset } from '../shared/appearance.js'
 import { applyTheme } from '../theme/theme-service.js'
+import { initLanguage, t, translatePage } from '../shared/i18n.js'
 import { loadSettings, saveSettings } from './settings-service.js'
 
 let appSettings = createDefaultAppSettings()
@@ -11,6 +12,12 @@ let keybindControls = []
 
 function getColorValue(key) {
   return (themeState[key] || defaultTheme[key]).toUpperCase()
+}
+
+// Where an option keeps its value: the colors and the font are edited in `themeState`, the language sits at the top level.
+function stateOf(option) {
+  if (option.storage === 'theme') return themeState
+  return option.storage === 'app' ? appSettings : appSettings[option.storage || 'graphics']
 }
 
 function getProgramShortcuts() {
@@ -74,7 +81,7 @@ function renderTabs() {
       tabButton.classList.remove('active')
     }
     tabButton.dataset.tab = key
-    tabButton.textContent = config.title
+    tabButton.textContent = t(config.title)
 
     tabButton.addEventListener('click', () => {
       document.querySelectorAll('.settings-tab').forEach((button) => {
@@ -96,7 +103,7 @@ function renderOptions(tabId) {
     return
   }
 
-  sectionTitle.textContent = section.title
+  sectionTitle.textContent = t(section.title)
   container.innerHTML = ''
   keybindControls = []
 
@@ -106,7 +113,7 @@ function renderOptions(tabId) {
       currentGroup = option.group
       const heading = document.createElement('h3')
       heading.className = 'settings-group'
-      heading.textContent = option.group
+      heading.textContent = t(option.group)
       container.appendChild(heading)
     }
 
@@ -115,7 +122,7 @@ function renderOptions(tabId) {
 
     const label = document.createElement('span')
     label.className = 'option-label'
-    label.textContent = option.label
+    label.textContent = t(option.label)
 
     const controlWrap = document.createElement('div')
     controlWrap.className = 'option-control'
@@ -124,7 +131,7 @@ function renderOptions(tabId) {
       const input = document.createElement('input')
       input.type = 'color'
       input.value = themeState[option.key].toLowerCase()
-      input.setAttribute('aria-label', option.label)
+      input.setAttribute('aria-label', t(option.label))
 
       input.addEventListener('input', (event) => {
         themeState[option.key] = event.target.value
@@ -148,14 +155,14 @@ function renderOptions(tabId) {
 
     if (option.type === 'select') {
       const select = document.createElement('select')
-      const settingsState = option.storage === 'theme' ? themeState : appSettings[option.storage || 'graphics']
+      const settingsState = stateOf(option)
       const settingKey = option.key || option.id
       const selectedValue = String(settingsState[settingKey] ?? option.defaultValue)
       option.values.forEach((choice) => {
         const { value, label: text } = typeof choice === 'object' ? choice : { value: choice, label: choice }
         const optionElement = document.createElement('option')
         optionElement.value = value
-        optionElement.textContent = text
+        optionElement.textContent = t(text)
         if (String(value) === selectedValue) {
           optionElement.selected = true
         }
@@ -175,7 +182,7 @@ function renderOptions(tabId) {
         const button = document.createElement('button')
         button.type = 'button'
         button.className = `option-preset ${current === id ? 'active' : ''}`
-        button.textContent = preset.label
+        button.textContent = t(preset.label)
         button.addEventListener('click', () => {
           // A ready scheme only changes the colors in use; the user's own colors stay remembered for "Własny".
           const colors = id === 'custom' ? themeState.custom : preset
@@ -196,7 +203,7 @@ function renderOptions(tabId) {
       const toggle = document.createElement('button')
       toggle.type = 'button'
       toggle.className = `option-toggle ${isEnabled ? 'active' : ''}`
-      toggle.setAttribute('aria-label', option.label)
+      toggle.setAttribute('aria-label', t(option.label))
       toggle.addEventListener('click', () => {
         settingsState[settingKey] = !settingsState[settingKey]
         hasUnsavedChanges = true
@@ -214,7 +221,7 @@ function renderOptions(tabId) {
       input.max = String(option.max)
       input.step = String(option.step)
       input.value = String(settingsState[settingKey] ?? option.defaultValue)
-      input.setAttribute('aria-label', option.label)
+      input.setAttribute('aria-label', t(option.label))
       input.addEventListener('change', () => {
         const value = Number(input.value.replace(',', '.'))
         // Out-of-range or empty input falls back to the last valid value.
@@ -250,6 +257,8 @@ function renderOptions(tabId) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  await initLanguage()
+  translatePage()
   renderTabs()
   await loadSavedAppSettings()
   renderOptions('general')
@@ -270,24 +279,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     await persistAppSettings()
   })
 
-  document.querySelector('.window-close').addEventListener('click', async () => {
+  // The window asks before it closes (also when the system's × is used); only a confirmed close goes through.
+  window.electronAPI.onSettingsCloseRequest(async () => {
     if (!hasUnsavedChanges) {
-      window.close()
+      window.electronAPI.confirmSettingsClose()
       return
     }
 
-    const shouldSave = window.confirm('Masz niezapisane zmiany. Czy chcesz je zapisać?')
-
-    if (shouldSave) {
+    if (window.confirm(t('Masz niezapisane zmiany. Czy chcesz je zapisać?'))) {
       await persistAppSettings()
-      window.close()
+      window.electronAPI.confirmSettingsClose()
       return
     }
 
-    const shouldDiscard = window.confirm('Czy odrzucić zmiany i zamknąć okno?')
-    if (shouldDiscard) {
-      window.close()
-    }
+    if (window.confirm(t('Czy odrzucić zmiany i zamknąć okno?'))) window.electronAPI.confirmSettingsClose()
   })
 
   window.electronAPI.onThemeChange((updatedTheme) => {

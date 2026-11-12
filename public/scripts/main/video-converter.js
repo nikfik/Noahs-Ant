@@ -1,3 +1,4 @@
+import { t } from '../shared/i18n.js'
 import { spawn as nodeSpawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -90,7 +91,7 @@ export function createVideoConverter({ ffmpegPath, spawn = nodeSpawn, fileSystem
   async function probe(filePath) {
     const { stderr } = await run(spawn, requireFfmpeg(), ['-hide_banner', '-i', filePath])
     const result = parseProbeOutput(stderr)
-    if (!result) throw new Error('Nie rozpoznano wideo w tym pliku.')
+    if (!result) throw new Error(t('Nie rozpoznano wideo w tym pliku.'))
     return result
   }
 

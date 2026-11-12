@@ -1,8 +1,9 @@
+import { t } from '../../shared/i18n.js'
 import path from 'node:path'
 import { estimateExport, importProject, writeBundle, BUNDLE_EXTENSION } from '../project-bundle.js'
 
 const projectIdOf = (value) => {
-  if (typeof value !== 'string' || !value || path.basename(value) !== value) throw new Error('Nieprawidłowy projekt.')
+  if (typeof value !== 'string' || !value || path.basename(value) !== value) throw new Error(t('Nieprawidłowy projekt.'))
   return value
 }
 
@@ -24,7 +25,7 @@ export function registerTransferHandlers({ ipcMain, dialog, projectsDirectory, g
     const projectId = projectIdOf(request?.projectId)
     const result = await dialog.showSaveDialog({
       defaultPath: path.join(getDefaultDirectory(), `${projectId}${BUNDLE_EXTENSION}`),
-      filters: [{ name: 'Projekt Noah’s Ant (.nsant)', extensions: ['nsant'] }]
+      filters: [{ name: t('Projekt Noah’s Ant (.nsant)'), extensions: ['nsant'] }]
     })
     if (result.canceled || !result.filePath) return { saved: false }
 
@@ -36,7 +37,7 @@ export function registerTransferHandlers({ ipcMain, dialog, projectsDirectory, g
   ipcMain.handle('import-project', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
-      filters: [{ name: 'Projekt Noah’s Ant (.nsant)', extensions: ['nsant'] }]
+      filters: [{ name: t('Projekt Noah’s Ant (.nsant)'), extensions: ['nsant'] }]
     })
     if (result.canceled || !result.filePaths.length) return { imported: false }
     return { imported: true, project: await importProject({ projectsDirectory, filePath: result.filePaths[0] }) }

@@ -1,7 +1,9 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from 'electron'
+import { resolveDataRoot } from './main/data-root.js'
 import { createThemeState } from './main/theme-state.js'
+import { setLanguage } from './shared/i18n.js'
 import { createSettingsStore } from './main/settings-store.js'
 import { createProjectStore } from './main/project-store.js'
 import { createAnimalsStore } from './main/animals-store.js'
@@ -25,11 +27,14 @@ import { registerVideoHandlers as registerVideoHandlersModule } from './main/han
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const APP_SETTINGS_PATH = path.join(__dirname, '..', '..', 'app-settings.json')
-const PROJECTS_DIR = path.join(__dirname, '..', '..', 'Projects')
+const DATA_ROOT = resolveDataRoot({ isPackaged: app.isPackaged, devRoot: path.join(__dirname, '..', '..') })
+const APP_SETTINGS_PATH = path.join(DATA_ROOT, 'app-settings.json')
+const PROJECTS_DIR = path.join(DATA_ROOT, 'Projects')
+const ICON_PATH = path.join(__dirname, '..', 'assets', 'anticon-256.png')
 
 const settingsStore = createSettingsStore(APP_SETTINGS_PATH)
 const initialSettings = settingsStore.readAppSettings()
+setLanguage(initialSettings.language)
 const themeState = createThemeState(initialSettings.theme)
 const projectStore = createProjectStore(PROJECTS_DIR)
 const backupService = createBackupService({ projectsDirectory: PROJECTS_DIR, getBackupSettings: () => settingsStore.readAppSettings().backup })
@@ -42,7 +47,9 @@ const windowOptions = {
   BrowserWindow,
   preloadPath: path.join(__dirname, 'preload.cjs'),
   viewsDirectory: path.join(__dirname, '..', 'views'),
-  getTheme: () => themeState.get()
+  getTheme: () => themeState.get(),
+  iconPath: ICON_PATH,
+  ipcMain
 }
 const openSettingsWindow = createSettingsWindow(windowOptions)
 
@@ -62,7 +69,7 @@ function registerThemeHandlers() {
 }
 
 function registerSettingsHandlers() {
-  registerSettingsHandlersModule({ ipcMain, BrowserWindow, settingsStore, openSettingsWindow, onSaved: applyInterfaceScale })
+  registerSettingsHandlersModule({ ipcMain, BrowserWindow, settingsStore, openSettingsWindow, onSaved: (saved) => { setLanguage(saved.language); applyInterfaceScale() } })
 }
 
 function registerProjectHandlers() {
@@ -98,6 +105,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   console.log('[main] Electron ready')
+  Menu.setApplicationMenu(null)
   registerThemeHandlers()
   registerSettingsHandlers()
   registerProjectHandlers()

@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { t } from '../shared/i18n.js'
 import { applyThemeToWindow } from './theme-state.js'
 
 function webPreferences(preloadPath) {
@@ -9,10 +10,12 @@ function webPreferences(preloadPath) {
   }
 }
 
-export function createMainWindow({ BrowserWindow, preloadPath, viewsDirectory, getTheme }) {
+export function createMainWindow({ BrowserWindow, preloadPath, viewsDirectory, getTheme, iconPath }) {
   const win = new BrowserWindow({
     width: 1600,
     height: 900,
+    autoHideMenuBar: true,
+    ...(iconPath ? { icon: iconPath } : {}),
     backgroundColor: getTheme().bgColor,
     webPreferences: webPreferences(preloadPath)
   })
@@ -29,10 +32,11 @@ export function createMainWindow({ BrowserWindow, preloadPath, viewsDirectory, g
     ? {
       action: 'allow',
       overrideBrowserWindowOptions: {
-        title: 'Film – Noah\'s Ant',
+        title: t('Film – Noah\'s Ant'),
         minWidth: 420,
         minHeight: 300,
         autoHideMenuBar: true,
+        ...(iconPath ? { icon: iconPath } : {}),
         backgroundColor: getTheme().bgColor,
         webPreferences: webPreferences(preloadPath)
       }
@@ -44,7 +48,7 @@ export function createMainWindow({ BrowserWindow, preloadPath, viewsDirectory, g
   return win
 }
 
-export function createSettingsWindow({ BrowserWindow, preloadPath, viewsDirectory, getTheme }) {
+export function createSettingsWindow({ BrowserWindow, preloadPath, viewsDirectory, getTheme, iconPath, ipcMain }) {
   let settingsWindow = null
 
   return function openSettingsWindow() {
@@ -54,21 +58,39 @@ export function createSettingsWindow({ BrowserWindow, preloadPath, viewsDirector
       return
     }
 
-    settingsWindow = new BrowserWindow({
+    const win = new BrowserWindow({
       width: 1100,
       height: 760,
       minWidth: 900,
       minHeight: 620,
       resizable: true,
-      title: 'Settings',
+      autoHideMenuBar: true,
+      title: t('Ustawienia'),
+      ...(iconPath ? { icon: iconPath } : {}),
       backgroundColor: getTheme().bgColor,
       webPreferences: webPreferences(preloadPath)
     })
+    settingsWindow = win
 
-    settingsWindow.setMenuBarVisibility(false)
-    settingsWindow.loadFile(path.join(viewsDirectory, 'Settings.html'))
-    settingsWindow.webContents.once('did-finish-load', () => applyThemeToWindow(settingsWindow, getTheme()))
-    settingsWindow.on('closed', () => {
+    // Closing the window (the system's × too) first asks the page, which may have unsaved changes.
+    let closeConfirmed = false
+    const onConfirmed = (event) => {
+      if (event.sender !== win.webContents || win.isDestroyed()) return
+      closeConfirmed = true
+      win.close()
+    }
+    ipcMain?.on('settings-close-confirmed', onConfirmed)
+    win.on('close', (event) => {
+      if (closeConfirmed || !ipcMain || win.webContents.isLoading()) return
+      event.preventDefault()
+      win.webContents.send('settings-close-request')
+    })
+
+    win.setMenuBarVisibility(false)
+    win.loadFile(path.join(viewsDirectory, 'Settings.html'))
+    win.webContents.once('did-finish-load', () => applyThemeToWindow(win, getTheme()))
+    win.on('closed', () => {
+      ipcMain?.removeListener('settings-close-confirmed', onConfirmed)
       settingsWindow = null
     })
   }

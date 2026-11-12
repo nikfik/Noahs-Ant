@@ -1,3 +1,5 @@
+import { t } from './i18n.js'
+
 export const MODIFIER_KEYS = ['Shift', 'Alt', 'Control', 'Meta']
 
 const NAMED_KEYS = new Map([
@@ -27,4 +29,4 @@ export function normalizeKey(value) {
   return text.length === 1 ? text.toUpperCase() : text
 }
 
-export const keyLabel = (key) => LABELS[key] ?? key
+export const keyLabel = (key) => (key === 'Space' ? t('Spacja') : LABELS[key] ?? key)

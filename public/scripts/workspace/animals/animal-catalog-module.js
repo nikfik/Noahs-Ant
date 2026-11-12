@@ -1,9 +1,10 @@
 import { escapeHtml } from '../../shared/escape-html.js'
 import { chooseAnimalColor, createAnimal, createGroup, createId, normalizeAnimalData } from './animal-model.js'
+import { t } from '../../shared/i18n.js'
 
 function renderCatalog(data) {
   if (!data.groups.length) {
-    return '<div class="animal-catalog-empty">Dodaj grupę, aby rozpocząć katalog zwierząt.</div>'
+    return `<div class="animal-catalog-empty">${t('Dodaj grupę, aby rozpocząć katalog zwierząt.')}</div>`
   }
 
   return data.groups.map((group) => {
@@ -17,8 +18,8 @@ function renderCatalog(data) {
             <span class="animal-group-name">${escapeHtml(group.name)}</span>
             <span class="animal-group-count">${animals.length}</span>
           </button>
-          <button class="animal-icon-action" type="button" data-action="add-animal" title="Dodaj zwierzę do grupy" aria-label="Dodaj zwierzę">＋</button>
-          <button class="animal-icon-action danger" type="button" data-action="remove-group" title="Usuń grupę" aria-label="Usuń grupę">×</button>
+          <button class="animal-icon-action" type="button" data-action="add-animal" title="${t('Dodaj zwierzę do grupy')}" aria-label="${t('Dodaj zwierzę')}">＋</button>
+          <button class="animal-icon-action danger" type="button" data-action="remove-group" title="${t('Usuń grupę')}" aria-label="${t('Usuń grupę')}">×</button>
         </div>
         ${expanded ? `<div class="animal-group-children">${animals.map((animal) => `
           <div class="animal-entry ${animal.id === data.activeAnimalId ? 'active' : ''}" data-animal-id="${escapeHtml(animal.id)}">
@@ -26,10 +27,10 @@ function renderCatalog(data) {
               <span class="animal-color-dot" style="--animal-color:${escapeHtml(animal.color)}"></span>
               <span class="animal-entry-name">${escapeHtml(animal.name)}</span>
             </button>
-            <button class="animal-color-reroll" type="button" data-action="reroll-color" data-animal-id="${escapeHtml(animal.id)}" title="Losuj inny kolor" aria-label="Losuj inny kolor dla ${escapeHtml(animal.name)}">🎲</button>
-            <button class="animal-entry-remove" type="button" data-action="remove-animal" data-animal-id="${escapeHtml(animal.id)}" title="Usuń zwierzę" aria-label="Usuń zwierzę ${escapeHtml(animal.name)}">×</button>
+            <button class="animal-color-reroll" type="button" data-action="reroll-color" data-animal-id="${escapeHtml(animal.id)}" title="${t('Losuj inny kolor')}" aria-label="${escapeHtml(t('Losuj inny kolor dla {name}', { name: animal.name }))}">🎲</button>
+            <button class="animal-entry-remove" type="button" data-action="remove-animal" data-animal-id="${escapeHtml(animal.id)}" title="${t('Usuń zwierzę')}" aria-label="${escapeHtml(t('Usuń zwierzę {name}', { name: animal.name }))}">×</button>
           </div>
-        `).join('')}${animals.length ? '' : '<div class="animal-group-empty">Brak zwierząt w tej grupie.</div>'}</div>` : ''}
+        `).join('')}${animals.length ? '' : `<div class="animal-group-empty">${t('Brak zwierząt w tej grupie.')}</div>`}</div>` : ''}
       </section>
     `
   }).join('')
@@ -41,7 +42,7 @@ export async function init(containerId = 'animal-panel', options = {}) {
 
   const projectId = options.projectId || ''
   if (!projectId || !window.electronAPI?.getProjectAnimals) {
-    host.innerHTML = '<section class="side-panel"><header class="side-panel-header"><div><span class="side-panel-eyebrow">Katalog projektu</span><h3>Zwierzęta</h3></div></header><p class="animal-catalog-empty">Otwórz projekt, aby zarządzać zwierzętami.</p></section>'
+    host.innerHTML = `<section class="side-panel"><header class="side-panel-header"><div><span class="side-panel-eyebrow">${t('Katalog projektu')}</span><h3>${t('Zwierzęta')}</h3></div></header><p class="animal-catalog-empty">${t('Otwórz projekt, aby zarządzać zwierzętami.')}</p></section>`
     return null
   }
 
@@ -55,18 +56,18 @@ export async function init(containerId = 'animal-panel', options = {}) {
   host.innerHTML = `
     <section class="side-panel animal-catalog-card">
       <header class="side-panel-header">
-        <div><span class="side-panel-eyebrow">Katalog projektu</span><h3>Zwierzęta</h3></div>
-        <button class="side-panel-action" type="button" data-action="add-group" title="Dodaj grupę">＋ Grupa</button>
+        <div><span class="side-panel-eyebrow">${t('Katalog projektu')}</span><h3>${t('Zwierzęta')}</h3></div>
+        <button class="side-panel-action" type="button" data-action="add-group" title="${t('Dodaj grupę')}">${t('＋ Grupa')}</button>
       </header>
       <div class="animal-catalog-tree">${renderCatalog(data)}</div>
     </section>
     <div class="animal-name-modal hidden">
       <form class="animal-name-dialog" role="dialog" aria-modal="true" aria-labelledby="animal-name-title">
-        <h3 id="animal-name-title">Dodaj grupę</h3>
+        <h3 id="animal-name-title">${t('Dodaj grupę')}</h3>
         <p class="animal-name-hint"></p>
-        <label for="animal-name-input">Nazwa</label>
+        <label for="animal-name-input">${t('Nazwa')}</label>
         <input id="animal-name-input" name="name" maxlength="80" required autocomplete="off" />
-        <div class="animal-dialog-actions"><button type="button" data-action="cancel-name">Anuluj</button><button type="submit">Dodaj</button></div>
+        <div class="animal-dialog-actions"><button type="button" data-action="cancel-name">${t('Anuluj')}</button><button type="submit">${t('Dodaj')}</button></div>
       </form>
     </div>
   `
@@ -178,10 +179,10 @@ export async function init(containerId = 'animal-panel', options = {}) {
       await ensureAnimalPreset(animal)
       await persist()
     } else if (action === 'add-group') {
-      openNameDialog('add-group', 'Dodaj grupę', 'Grupa może reprezentować gatunek lub inny zestaw obserwacji.', 'np. Mrówki')
+      openNameDialog('add-group', t('Dodaj grupę'), t('Grupa może reprezentować gatunek lub inny zestaw obserwacji.'), t('np. Mrówki'))
     } else if (action === 'add-animal') {
       data.activeGroupId = groupId
-      openNameDialog('add-animal', 'Dodaj zwierzę', 'Nowy osobnik zostanie przypisany do wybranej grupy.', 'np. Mrówka 1')
+      openNameDialog('add-animal', t('Dodaj zwierzę'), t('Nowy osobnik zostanie przypisany do wybranej grupy.'), t('np. Mrówka 1'))
     } else if (action === 'remove-animal') {
       const animalId = target.dataset.animalId
       data.animals = data.animals.filter((animal) => animal.id !== animalId)

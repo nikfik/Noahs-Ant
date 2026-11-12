@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AntNest Workspace</title>
+    <title>Noah’s Ant</title>
     <link rel="stylesheet" href="../styles/MainColors.css">
     <link rel="stylesheet" href="../styles/Workspace.css">
     <link rel="stylesheet" href="../styles/E_SidePanels.css">
@@ -31,9 +31,9 @@
     </div>
 
     <div id="view-data" class="workspace-view" hidden>
-        <nav class="data-tabs" aria-label="Dane">
-            <button type="button" class="data-tab active" data-data-tab="events">Zdarzenia</button>
-            <button type="button" class="data-tab" data-data-tab="metrics">Metryki</button>
+        <nav class="data-tabs" aria-label="Dane" data-i18n-aria-label="Dane">
+            <button type="button" class="data-tab active" data-data-tab="events" data-i18n>Zdarzenia</button>
+            <button type="button" class="data-tab" data-data-tab="metrics" data-i18n>Metryki</button>
         </nav>
         <div id="data-module" data-data-panel="events"></div>
         <div id="data-metrics-module" data-data-panel="metrics" hidden></div>
@@ -47,36 +47,36 @@
         <div id="transitions-module"></div>
     </div>
 
-    <nav id="bottom-toolbar" class="bottom-toolbar" aria-label="Workspace toolbar">
+    <nav id="bottom-toolbar" class="bottom-toolbar" aria-label="Pasek narzędzi" data-i18n-aria-label="Pasek narzędzi">
         <button data-view="view-video" class="tb-btn active" data-icon-type="emoji" data-icon-value="">
             <span class="tb-icon" aria-hidden="true"></span>
-            <span class="tb-label">Wideo</span>
+            <span class="tb-label" data-i18n>Wideo</span>
         </button>
         <button data-view="view-data" class="tb-btn" data-icon-type="emoji" data-icon-value="">
             <span class="tb-icon" aria-hidden="true"></span>
-            <span class="tb-label">Dane</span>
+            <span class="tb-label" data-i18n>Dane</span>
         </button>
         <button data-view="view-analysis" class="tb-btn" data-icon-type="emoji" data-icon-value="">
             <span class="tb-icon" aria-hidden="true"></span>
-            <span class="tb-label">Wykresy</span>
+            <span class="tb-label" data-i18n>Wykresy</span>
         </button>
         <button data-view="view-transitions" class="tb-btn" data-icon-type="emoji" data-icon-value="">
             <span class="tb-icon" aria-hidden="true"></span>
-            <span class="tb-label">Przejścia</span>
+            <span class="tb-label" data-i18n>Przejścia</span>
         </button>
 
         <div class="toolbar-actions" aria-label="Quick actions">
             <button id="back-to-projects" class="toolbar-action" data-icon-type="emoji" data-icon-value="←">
                 <span class="tb-icon" aria-hidden="true"></span>
-                <span class="tb-label">Projekty</span>
+                <span class="tb-label" data-i18n>Projekty</span>
             </button>
-            <button id="backups-btn" class="toolbar-action" data-icon-type="emoji" data-icon-value="⟲" title="Kopie zapasowe">
+            <button id="backups-btn" class="toolbar-action" data-icon-type="emoji" data-icon-value="⟲" title="Kopie zapasowe" data-i18n-title="Kopie zapasowe">
                 <span class="tb-icon" aria-hidden="true"></span>
-                <span class="tb-label">Kopie</span>
+                <span class="tb-label" data-i18n>Kopie</span>
             </button>
             <button id="options-btn" class="toolbar-action" data-icon-type="emoji" data-icon-value="⚙">
                 <span class="tb-icon" aria-hidden="true"></span>
-                <span class="tb-label">Opcje</span>
+                <span class="tb-label" data-i18n>Opcje</span>
             </button>
         </div>
     </nav>

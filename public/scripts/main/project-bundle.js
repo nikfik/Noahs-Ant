@@ -1,5 +1,6 @@
 // The .nsant file: a zip with a project's data (and, if wanted, its videos). It is used for exporting a project to
 // share it and, without videos, for the backups. An exported file contains no paths from this computer.
+import { t } from '../shared/i18n.js'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -113,7 +114,7 @@ export async function writeBundle({ projectsDirectory, projectId, destPath, kind
 }
 
 const openZip = (filePath) => new Promise((resolve, reject) => {
-  yauzl.open(filePath, { lazyEntries: true, autoClose: true }, (error, zip) => (error ? reject(new BundleError('To nie jest poprawny plik projektu.')) : resolve(zip)))
+  yauzl.open(filePath, { lazyEntries: true, autoClose: true }, (error, zip) => (error ? reject(new BundleError(t('To nie jest poprawny plik projektu.'))) : resolve(zip)))
 })
 
 const readStream = (zip, entry) => new Promise((resolve, reject) => {
@@ -135,18 +136,18 @@ export async function readBundle(filePath, { videosDirectory = null } = {}) {
 
   await new Promise((resolve, reject) => {
     let count = 0
-    zip.on('error', () => reject(new BundleError('Plik projektu jest uszkodzony albo niebezpieczny.')))
+    zip.on('error', () => reject(new BundleError(t('Plik projektu jest uszkodzony albo niebezpieczny.'))))
     zip.on('end', resolve)
     zip.on('entry', async (entry) => {
       try {
         count += 1
         const name = entry.fileName
         if (count > MAX_ENTRIES || name.includes('..') || name.includes('\\') || name.startsWith('/') || /^[a-zA-Z]:/.test(name)) {
-          throw new BundleError('Plik projektu jest uszkodzony albo niebezpieczny.')
+          throw new BundleError(t('Plik projektu jest uszkodzony albo niebezpieczny.'))
         }
 
         if (DATA_ENTRY.test(name)) {
-          if (entry.uncompressedSize > MAX_JSON_BYTES) throw new BundleError('Plik projektu jest zbyt duży.')
+          if (entry.uncompressedSize > MAX_JSON_BYTES) throw new BundleError(t('Plik projektu jest zbyt duży.'))
           const parsed = JSON.parse(await readEntryText(zip, entry))
           if (name === 'manifest.json') result.manifest = parsed
           else result.data[name.replace(/\.json$/, '')] = parsed
@@ -165,17 +166,17 @@ export async function readBundle(filePath, { videosDirectory = null } = {}) {
         zip.readEntry()
       } catch (error) {
         zip.close()
-        reject(error instanceof SyntaxError ? new BundleError('Plik projektu jest uszkodzony.') : error)
+        reject(error instanceof SyntaxError ? new BundleError(t('Plik projektu jest uszkodzony.')) : error)
       }
     })
     zip.readEntry()
   })
 
   if (result.manifest?.app !== APP_NAME || !Number.isInteger(result.manifest.formatVersion)) {
-    throw new BundleError('To nie jest plik projektu Noah’s Ant.')
+    throw new BundleError(t('To nie jest plik projektu Noah’s Ant.'))
   }
   if (result.manifest.formatVersion > FORMAT_VERSION) {
-    throw new BundleError('Ten plik pochodzi z nowszej wersji programu. Zaktualizuj program, aby go otworzyć.')
+    throw new BundleError(t('Ten plik pochodzi z nowszej wersji programu. Zaktualizuj program, aby go otworzyć.'))
   }
   return result
 }
@@ -183,8 +184,8 @@ export async function readBundle(filePath, { videosDirectory = null } = {}) {
 export async function readManifest(filePath) {
   const zip = await openZip(filePath)
   return new Promise((resolve, reject) => {
-    zip.on('error', () => reject(new BundleError('Plik projektu jest uszkodzony.')))
-    zip.on('end', () => reject(new BundleError('Brak informacji o pliku.')))
+    zip.on('error', () => reject(new BundleError(t('Plik projektu jest uszkodzony.'))))
+    zip.on('end', () => reject(new BundleError(t('Brak informacji o pliku.'))))
     zip.on('entry', async (entry) => {
       if (entry.fileName !== 'manifest.json') {
         zip.readEntry()

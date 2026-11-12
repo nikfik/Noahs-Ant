@@ -1,5 +1,7 @@
 // Turns the project's metrics into the numbers a chart shows. One data point is one trial of one category (a group of
 // animals, one animal, ...): the values of all animals of the category in that trial are combined into one number.
+
+import { t } from '../../shared/i18n.js'
 import { buildMetricRows } from '../data/metrics-model.js'
 
 export const METRICS = [
@@ -62,7 +64,7 @@ export function buildBlocks({ observations = [], trials = [], animals = [], pres
       id: valueBlockId(behavior.name, metric.id),
       behavior: behavior.name,
       metric,
-      label: `${behavior.name} · ${metric.label}`,
+      label: `${behavior.name} · ${t(metric.label)}`,
       isCategory: behavior.category
     })))
 
@@ -70,12 +72,12 @@ export function buildBlocks({ observations = [], trials = [], animals = [], pres
 }
 
 function categoryOf(row, grouping, { animals, groups }) {
-  if (grouping === 'none') return { key: 'all', label: 'Wszystko' }
+  if (grouping === 'none') return { key: 'all', label: t('Wszystko') }
   if (grouping === 'animal') return { key: row.animalId, label: row.animalName }
   if (grouping === 'trial') return { key: row.trialId, label: row.trialName }
   const animal = animals.find((item) => item.id === row.animalId)
   const group = groups.find((item) => item.id === animal?.groupId)
-  return { key: group?.id ?? 'none', label: group?.name ?? 'Bez grupy' }
+  return { key: group?.id ?? 'none', label: group?.name ?? t('Bez grupy') }
 }
 
 function rowValue(row, metric) {
@@ -159,7 +161,7 @@ export function buildChartData(source, config) {
   const categoryList = [...categories.entries()].map(([key, label]) => ({ key, label }))
   const series = blocks.map((block) => ({
     id: block.id,
-    label: block.behavior === '' ? block.metric.label : `${block.behavior} · ${block.metric.label}`,
+    label: block.behavior === '' ? t(block.metric.label) : `${block.behavior} · ${t(block.metric.label)}`,
     behavior: block.behavior,
     metric: block.metric,
     points: categoryList.map((category) => {
@@ -194,9 +196,9 @@ export function yAxisLabel(chartData, kind) {
   const metrics = [...new Set(chartData.series.map((series) => series.metric.id))]
   const unit = [...new Set(chartData.series.map((series) => series.metric.unit))]
   const suffix = unit.length === 1 && unit[0] ? ` [${unit[0]}]` : ''
-  if (kind === 'bar' && chartData.aggregate === 'percent') return '% prób z wystąpieniem'
-  const name = metrics.length === 1 ? metricById.get(metrics[0]).label : 'wartość'
-  const prefix = kind === 'bar' && chartData.aggregate === 'mean' ? 'średni ' : kind === 'bar' && chartData.aggregate === 'median' ? 'mediana: ' : ''
+  if (kind === 'bar' && chartData.aggregate === 'percent') return t('% prób z wystąpieniem')
+  const name = metrics.length === 1 ? t(metricById.get(metrics[0]).label) : t('wartość')
+  const prefix = kind === 'bar' && chartData.aggregate === 'mean' ? t('średni') + ' ' : kind === 'bar' && chartData.aggregate === 'median' ? t('mediana') + ': ' : ''
   return `${prefix}${name}${suffix}`
 }
 
@@ -209,5 +211,5 @@ export function previewRows(chartData, kind) {
 }
 
 export const previewHeaders = (kind) => kind === 'box'
-  ? ['Wartość', 'Kategoria', 'n', 'min', 'Q1', 'mediana', 'Q3', 'max']
-  : ['Wartość', 'Kategoria', 'n', 'wynik', 'SE']
+  ? [t('Wartość'), t('Kategoria'), 'n', 'min', 'Q1', t('mediana'), 'Q3', 'max']
+  : [t('Wartość'), t('Kategoria'), 'n', t('wynik'), 'SE']

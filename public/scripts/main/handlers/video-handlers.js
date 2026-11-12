@@ -1,3 +1,4 @@
+import { t } from '../../shared/i18n.js'
 import path from 'node:path'
 
 export function registerVideoHandlers({ ipcMain, converter, projectsDirectory }) {
@@ -11,7 +12,7 @@ export function registerVideoHandlers({ ipcMain, converter, projectsDirectory })
   }
 
   const requireFilePath = (filePath) => {
-    if (typeof filePath !== 'string' || !filePath) throw new Error('Nie wybrano pliku wideo.')
+    if (typeof filePath !== 'string' || !filePath) throw new Error(t('Nie wybrano pliku wideo.'))
     return filePath
   }
 
@@ -19,7 +20,7 @@ export function registerVideoHandlers({ ipcMain, converter, projectsDirectory })
   ipcMain.handle('prepare-video', async (event, request) => {
     const inputPath = requireFilePath(request?.filePath)
     const outputDir = getVideosDirectory(request?.projectId)
-    if (activeJob) throw new Error('Trwa już konwersja innego filmu.')
+    if (activeJob) throw new Error(t('Trwa już konwersja innego filmu.'))
 
     const job = new AbortController()
     activeJob = job

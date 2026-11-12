@@ -48,6 +48,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('app-settings-changed', subscription)
     return () => ipcRenderer.removeListener('app-settings-changed', subscription)
   },
+  onSettingsCloseRequest: (callback) => {
+    const subscription = () => callback()
+    ipcRenderer.on('settings-close-request', subscription)
+    return () => ipcRenderer.removeListener('settings-close-request', subscription)
+  },
+  confirmSettingsClose: () => ipcRenderer.send('settings-close-confirmed'),
   onThemeChange: (callback) => {
     const subscription = (_event, theme) => callback(theme)
     ipcRenderer.on('theme-changed', subscription)

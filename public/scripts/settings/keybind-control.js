@@ -1,4 +1,5 @@
 import { keyLabel, normalizeKey } from '../shared/keys.js'
+import { t } from '../shared/i18n.js'
 import {
   clearShortcutKey,
   cycleOperator,
@@ -20,7 +21,7 @@ export function createKeybindControl({ entry, getEntries, onChange }) {
   element.innerHTML = `
     <div class="keybind-line">
       <button type="button" class="option-keybind" data-slot="primary"></button>
-      <button type="button" class="combo-operator" title="${OPERATOR_HINT}" aria-label="Zmień sposób łączenia klawiszy"></button>
+      <button type="button" class="combo-operator" title="${t(OPERATOR_HINT)}" aria-label="${t('Zmień sposób łączenia klawiszy')}"></button>
       <button type="button" class="option-keybind combo-slot" data-slot="secondary"></button>
     </div>
     <div class="keybind-warning" role="status" hidden></div>
@@ -33,7 +34,7 @@ export function createKeybindControl({ entry, getEntries, onChange }) {
   function render() {
     const { primary, secondary, operator } = entry.value
     primaryButton.textContent = primary ? keyLabel(primary) : '—'
-    primaryButton.title = 'Kliknij, a potem naciśnij klawisz. Backspace czyści, Esc anuluje.'
+    primaryButton.title = t('Kliknij, a potem naciśnij klawisz. Backspace czyści, Esc anuluje.')
     primaryButton.classList.remove('capturing')
 
     // Without a second key the operator and the second slot stay as empty placeholders, so the row does not jump around.
@@ -42,7 +43,7 @@ export function createKeybindControl({ entry, getEntries, onChange }) {
     operatorButton.classList.toggle('placeholder', !secondary)
 
     secondaryButton.textContent = secondary ? keyLabel(secondary) : ''
-    secondaryButton.title = secondary ? 'Kliknij, aby zmienić drugi klawisz. Backspace usuwa go.' : 'Dodaj drugi klawisz lub kombinację'
+    secondaryButton.title = secondary ? t('Kliknij, aby zmienić drugi klawisz. Backspace usuwa go.') : t('Dodaj drugi klawisz lub kombinację')
     secondaryButton.classList.toggle('active', Boolean(secondary))
     secondaryButton.classList.toggle('muted', !secondary)
     secondaryButton.classList.remove('capturing')

@@ -56,7 +56,7 @@ describe('backups dialog', () => {
     expect(modal.querySelectorAll('tbody tr')).toHaveLength(2)
     expect(modal.textContent).toContain('Przed zmianami')
     expect(modal.textContent).toContain('Ręczna')
-    expect(modal.textContent).toContain('2 prób, 3 zwierząt, 40 zdarzeń')
+    expect(modal.textContent).toContain('2 próby, 3 zwierzęta, 40 zdarzeń')
     expect(modal.querySelector('.backups-info')).toBeNull()
   })
 

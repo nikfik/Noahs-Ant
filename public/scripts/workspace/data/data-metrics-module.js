@@ -1,3 +1,4 @@
+import { t } from '../../shared/i18n.js'
 import { escapeHtml } from '../../shared/escape-html.js'
 import { formatSeconds, parseTimeInput } from './event-table-model.js'
 import { buildMetricRows, hasCategoryGroups, summarizeTrialWindow } from './metrics-model.js'
@@ -9,7 +10,7 @@ const PREFERENCES_KEY = 'noahs-ant.metrics'
 const SECONDS = (value) => value === null ? '—' : formatSeconds(value)
 const PERCENT = (value) => value === null ? '—' : value.toFixed(1)
 
-const COLUMNS = [
+export const METRIC_COLUMNS = [
   { key: 'trial', label: 'Próba', tip: 'Próba (nagranie), do której należy wiersz.', get: (row) => row.trialName },
   { key: 'animal', label: 'Zwierzę', tip: 'Zwierzę, któremu przypisano czynność.', get: (row) => row.animalName },
   { key: 'behavior', label: 'Czynność', tip: 'Czynność z etogramu. Wiersz zaczynający się od „Σ” to suma kategorii.', get: (row) => row.name },
@@ -20,9 +21,9 @@ const COLUMNS = [
   { key: 'percentOfWindow', label: '% okna', tip: 'Czas łączny podzielony przez długość okna analizy, razy 100.', get: (row) => row.continuous ? row.percentOfWindow : null },
   { key: 'percentAfterLatency', label: '% po latencji', tip: 'Czas łączny podzielony przez (długość okna − latencja), razy 100 — wzór z arkusza.', get: (row) => row.continuous ? row.percentAfterLatency : null }
 ]
-const SORT_GETTERS = Object.fromEntries(COLUMNS.map((column) => [column.key, column.get]))
+const SORT_GETTERS = Object.fromEntries(METRIC_COLUMNS.map((column) => [column.key, column.get]))
 
-const TIPS = {
+export const TIPS = {
   categories: 'Dodaje wiersze „Σ” sumujące czynności z tej samej kategorii (kategorie ustawia się w edytorze etogramu; potrzebne co najmniej dwie czynności zwierzęcia w jednej kategorii).',
   merge: 'Dotyczy wierszy „Σ”. Włączone: czynności nakładające się na siebie liczą się raz — czas to suma scalonych odcinków, a liczba to liczba oddzielnych epizodów. Wyłączone: zwykła suma wszystkich czynności, nakładający się czas liczy się podwójnie (jak w arkuszu).',
   colors: 'Koloruje komórki „tak” i „nie” w kolumnie „Wystąpiła”.',
@@ -74,8 +75,8 @@ export function createDataMetricsModule() {
   }
 
   const headerCell = ({ key, label, tip }) => `
-    <th aria-sort="${ariaSort(sort, key)}" title="${escapeHtml(tip)}">
-      <button type="button" class="data-sort" data-sort="${key}">${escapeHtml(label)} <span class="sort-mark">${sortMark(sort, key)}</span></button>
+    <th aria-sort="${ariaSort(sort, key)}" title="${escapeHtml(t(tip))}">
+      <button type="button" class="data-sort" data-sort="${key}">${escapeHtml(t(label))} <span class="sort-mark">${sortMark(sort, key)}</span></button>
     </th>`
 
   function renderMetricRow(row) {
@@ -101,12 +102,12 @@ export function createDataMetricsModule() {
       <tr data-trial-id="${escapeHtml(trial.id)}">
         <td>${escapeHtml(trial.name)}</td>
         <td class="num">${trial.duration ? formatSeconds(trial.duration) : '—'}</td>
-        <td><input data-window="windowStart" value="${trial.windowStart === null ? '' : formatSeconds(trial.windowStart)}" placeholder="0" inputmode="decimal" aria-label="Okno od (s)" title="${escapeHtml(TIPS.windowStart)}" /></td>
-        <td><input data-window="windowEnd" value="${trial.windowEnd === null ? '' : formatSeconds(trial.windowEnd)}" placeholder="${trial.duration ? formatSeconds(trial.duration) : 'koniec wideo'}" inputmode="decimal" aria-label="Okno do (s)" title="${escapeHtml(TIPS.windowEnd)}" /></td>
+        <td><input data-window="windowStart" value="${trial.windowStart === null ? '' : formatSeconds(trial.windowStart)}" placeholder="0" inputmode="decimal" aria-label="${t('Okno od (s)')}" title="${escapeHtml(t(TIPS.windowStart))}" /></td>
+        <td><input data-window="windowEnd" value="${trial.windowEnd === null ? '' : formatSeconds(trial.windowEnd)}" placeholder="${trial.duration ? formatSeconds(trial.duration) : t('koniec wideo')}" inputmode="decimal" aria-label="${t('Okno do (s)')}" title="${escapeHtml(t(TIPS.windowEnd))}" /></td>
         <td class="num">${formatSeconds(window.start)} – ${formatSeconds(window.end)}</td>
         <td class="num">${window.skipped > 0 ? `− ${formatSeconds(window.skipped)}` : '—'}</td>
         <td class="num ${inside < total ? 'data-window-trimmed' : ''}">${inside} / ${total}</td>
-        <td class="data-window-note">${fromEvents ? 'brak długości wideo — okno z ostatniego zdarzenia (otwórz film tej próby)' : ''}</td>
+        <td class="data-window-note">${fromEvents ? t('brak długości wideo — okno z ostatniego zdarzenia (otwórz film tej próby)') : ''}</td>
       </tr>`
   }
 
@@ -127,35 +128,35 @@ export function createDataMetricsModule() {
     host.innerHTML = `
       <section class="data-panel">
         <header class="data-header">
-          <div class="data-title"><h2>Metryki</h2><span class="data-count">${rows.length}</span></div>
+          <div class="data-title"><h2>${t('Metryki')}</h2><span class="data-count">${rows.length}</span></div>
           <div class="data-controls">
-            <label>Próba <select data-filter="trialId"><option value="all">Wszystkie</option>${options(trials(), filters.trialId)}</select></label>
-            <label>Zwierzę <select data-filter="animalId"><option value="all">Wszystkie</option>${options(animals(), filters.animalId)}</select></label>
-            <label title="${escapeHtml(hasCategories ? TIPS.categories : `${TIPS.categories} Teraz żadne zwierzę nie ma takich kategorii.`)}"><input type="checkbox" data-toggle="categories" ${preferences.includeCategories ? 'checked' : ''} ${hasCategories ? '' : 'disabled'} /> Sumy kategorii (Σ)</label>
-            <label title="${escapeHtml(TIPS.merge)}"><input type="checkbox" data-toggle="merge" ${preferences.mergeCategories ? 'checked' : ''} ${categoriesOn ? '' : 'disabled'} /> Czas scalony</label>
-            <label title="${escapeHtml(TIPS.colors)}"><input type="checkbox" data-toggle="colors" ${preferences.colorize ? 'checked' : ''} /> Kolory tak/nie</label>
-            <button type="button" class="data-export" data-action="export-xlsx" title="${escapeHtml(TIPS.export)}" ${window.electronAPI?.exportWorkbook ? '' : 'disabled'}>Eksportuj dane</button>
+            <label>${t('Próba')} <select data-filter="trialId"><option value="all">${t('Wszystkie')}</option>${options(trials(), filters.trialId)}</select></label>
+            <label>${t('Zwierzę')} <select data-filter="animalId"><option value="all">${t('Wszystkie')}</option>${options(animals(), filters.animalId)}</select></label>
+            <label title="${escapeHtml(hasCategories ? t(TIPS.categories) : `${t(TIPS.categories)} ${t('Teraz żadne zwierzę nie ma takich kategorii.')}`)}"><input type="checkbox" data-toggle="categories" ${preferences.includeCategories ? 'checked' : ''} ${hasCategories ? '' : 'disabled'} /> ${t('Sumy kategorii (Σ)')}</label>
+            <label title="${escapeHtml(t(TIPS.merge))}"><input type="checkbox" data-toggle="merge" ${preferences.mergeCategories ? 'checked' : ''} ${categoriesOn ? '' : 'disabled'} /> ${t('Czas scalony')}</label>
+            <label title="${escapeHtml(t(TIPS.colors))}"><input type="checkbox" data-toggle="colors" ${preferences.colorize ? 'checked' : ''} /> ${t('Kolory tak/nie')}</label>
+            <button type="button" class="data-export" data-action="export-xlsx" title="${escapeHtml(t(TIPS.export))}" ${window.electronAPI?.exportWorkbook ? '' : 'disabled'}>${t('Eksportuj dane')}</button>
           </div>
         </header>
         <div class="data-table-wrap">
           <table class="data-table metrics-table">
-            <thead><tr>${COLUMNS.map(headerCell).join('')}</tr></thead>
+            <thead><tr>${METRIC_COLUMNS.map(headerCell).join('')}</tr></thead>
             <tbody>${rows.map(renderMetricRow).join('')}</tbody>
           </table>
-          ${rows.length ? '' : '<p class="data-empty">Brak danych. Dodaj zwierzęta z etogramem oraz próby, aby zobaczyć metryki.</p>'}
+          ${rows.length ? '' : `<p class="data-empty">${t('Brak danych. Dodaj zwierzęta z etogramem oraz próby, aby zobaczyć metryki.')}</p>`}
         </div>
         <details class="data-window" open>
-          <summary title="${escapeHtml(TIPS.window)}">Okno analizy prób</summary>
+          <summary title="${escapeHtml(t(TIPS.window))}">${t('Okno analizy prób')}</summary>
           <div class="data-table-wrap">
             <table class="data-table">
               <thead><tr>
-                <th>Próba</th>
-                <th title="${escapeHtml(TIPS.duration)}">Długość wideo (s)</th>
-                <th title="${escapeHtml(TIPS.windowStart)}">Okno od (s)</th>
-                <th title="${escapeHtml(TIPS.windowEnd)}">Okno do (s)</th>
-                <th title="${escapeHtml(TIPS.used)}">Użyte okno (s)</th>
-                <th title="${escapeHtml(TIPS.skipped)}">Pominięty czas (s)</th>
-                <th title="${escapeHtml(TIPS.inside)}">Zdarzenia w oknie</th>
+                <th>${t('Próba')}</th>
+                <th title="${escapeHtml(t(TIPS.duration))}">${t('Długość wideo (s)')}</th>
+                <th title="${escapeHtml(t(TIPS.windowStart))}">${t('Okno od (s)')}</th>
+                <th title="${escapeHtml(t(TIPS.windowEnd))}">${t('Okno do (s)')}</th>
+                <th title="${escapeHtml(t(TIPS.used))}">${t('Użyte okno (s)')}</th>
+                <th title="${escapeHtml(t(TIPS.skipped))}">${t('Pominięty czas (s)')}</th>
+                <th title="${escapeHtml(t(TIPS.inside))}">${t('Zdarzenia w oknie')}</th>
                 <th></th>
               </tr></thead>
               <tbody>${trials().map(renderWindowRow).join('')}</tbody>
@@ -178,9 +179,9 @@ export function createDataMetricsModule() {
     const parsed = parseTimeInput(input.value)
     const next = { windowStart: trial.windowStart, windowEnd: trial.windowEnd, [input.dataset.window]: parsed }
     if (Number.isNaN(parsed) || (parsed !== null && parsed < 0)) {
-      message = 'Podaj poprawny czas, np. 12.5 lub 1:02.5 (puste = domyślnie).'
+      message = t('Podaj poprawny czas, np. 12.5 lub 1:02.5 (puste = domyślnie).')
     } else if (next.windowEnd !== null && next.windowEnd <= (next.windowStart ?? 0)) {
-      message = 'Koniec okna musi być późniejszy niż jego początek.'
+      message = t('Koniec okna musi być późniejszy niż jego początek.')
     } else {
       message = ''
       await trialCatalog.updateTrial(trialId, next)
@@ -223,16 +224,16 @@ export function createDataMetricsModule() {
   }
 
   async function exportWorkbook() {
-    showMessage('Eksportowanie…')
+    showMessage(t('Eksportowanie…'))
     try {
       const sheets = exportSheets()
       const result = await window.electronAPI.exportWorkbook({ suggestedName: suggestExportName(projectName), sheets })
       showMessage(result?.saved
-        ? (result.files?.length > 1 ? `Zapisano ${result.files.length} plików, pierwszy: ${result.filePath}` : `Zapisano: ${result.filePath}`)
+        ? (result.files?.length > 1 ? t('Zapisano {count} plików, pierwszy: {path}', { count: result.files.length, path: result.filePath }) : t('Zapisano: {path}', { path: result.filePath }))
         : 'Eksport anulowany.')
     } catch (error) {
       console.error('Workbook export failed:', error)
-      showMessage('Nie udało się zapisać pliku Excela.')
+      showMessage(t('Nie udało się zapisać pliku Excela.'))
     }
   }
 

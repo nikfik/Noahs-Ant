@@ -1,7 +1,8 @@
+import { locale, t } from '../../shared/i18n.js'
 import { buildEventRows } from './event-table-model.js'
 import { buildMetricRows, hasCategoryGroups, summarizeTrialWindow } from './metrics-model.js'
 
-const METRICS = [
+export const EXPORT_METRICS = [
   { label: 'wystąpiła (1/0)', format: '0', get: (row) => row.present ? 1 : 0 },
   { label: 'latencja (s)', format: '0.000', get: (row) => row.latency },
   { label: 'liczba', format: '0', get: (row) => row.count },
@@ -11,9 +12,9 @@ const METRICS = [
 ]
 
 export const ROUNDING_RULES = [
-  { id: 'round', label: 'Matematyczne (od 5 w górę)' },
-  { id: 'trunc', label: 'Obcinanie' },
-  { id: 'ceil', label: 'Zawsze w górę' }
+  { id: 'round', label: t('Matematyczne (od 5 w górę)') },
+  { id: 'trunc', label: t('Obcinanie') },
+  { id: 'ceil', label: t('Zawsze w górę') }
 ]
 
 // Rounds to `decimals` places by the chosen rule. A value that is only a floating-point hair away from a round number
@@ -73,12 +74,12 @@ function buildWideSheet(metricRows, trials) {
     byTrial.get(row.trialId).set(columnKey(row), row)
   })
 
-  const headers = ['Próba', 'Okno od (s)', 'Okno do (s)']
+  const headers = [t('Próba'), t('Okno od (s)'), t('Okno do (s)')]
   const formats = { 1: '0.000', 2: '0.000' }
   columns.forEach((column, columnIndex) => {
-    METRICS.forEach((metric, metricIndex) => {
-      const index = 3 + columnIndex * METRICS.length + metricIndex
-      headers.push(`${column.animalName} – ${column.name}: ${metric.label}`)
+    EXPORT_METRICS.forEach((metric, metricIndex) => {
+      const index = 3 + columnIndex * EXPORT_METRICS.length + metricIndex
+      headers.push(`${column.animalName} – ${column.name}: ${t(metric.label)}`)
       formats[index] = metric.format
     })
   })
@@ -92,24 +93,24 @@ function buildWideSheet(metricRows, trials) {
       window?.end ?? null,
       ...columns.flatMap((column) => {
         const row = trialRows.get(column.key)
-        return METRICS.map((metric) => row ? metric.get(row) : null)
+        return EXPORT_METRICS.map((metric) => row ? metric.get(row) : null)
       })
     ]
   })
 
-  return { name: 'Metryki', headers, rows, formats }
+  return { name: t('Metryki'), headers, rows, formats }
 }
 
 function buildLongSheet(metricRows) {
   return {
-    name: 'Metryki (długi format)',
-    headers: ['Próba', 'Zwierzę', 'Czynność', 'Poziom', ...METRICS.map((metric) => metric.label[0].toUpperCase() + metric.label.slice(1)), 'Okno od (s)', 'Okno do (s)'],
+    name: t('Metryki (długi format)'),
+    headers: [t('Próba'), t('Zwierzę'), t('Czynność'), t('Poziom'), ...EXPORT_METRICS.map((metric) => { const label = t(metric.label); return label[0].toUpperCase() + label.slice(1) }), t('Okno od (s)'), t('Okno do (s)')],
     rows: metricRows.map((row) => [
       row.trialName,
       row.animalName,
       row.name,
-      row.kind === 'category' ? 'suma kategorii' : 'czynność',
-      ...METRICS.map((metric) => metric.get(row)),
+      row.kind === 'category' ? t('suma kategorii') : t('czynność'),
+      ...EXPORT_METRICS.map((metric) => metric.get(row)),
       row.window.start,
       row.window.end
     ]),
@@ -119,13 +120,13 @@ function buildLongSheet(metricRows) {
 
 function buildEventsSheet(observations, trials, animals) {
   return {
-    name: 'Zdarzenia',
-    headers: ['Próba', 'Zwierzę', 'Czynność', 'Typ', 'Start (s)', 'Koniec (s)', 'Czas (s)'],
+    name: t('Zdarzenia'),
+    headers: [t('Próba'), t('Zwierzę'), t('Czynność'), t('Typ'), t('Start (s)'), t('Koniec (s)'), t('Czas (s)')],
     rows: buildEventRows(observations, { trials, animals }).map((row) => [
       row.trialName,
       row.animalName,
       row.activityName,
-      row.kind === 'interval' ? 'ciągła' : 'punktowa',
+      row.kind === 'interval' ? t('ciągła') : 'punktowa',
       row.start,
       row.kind === 'interval' ? row.end : null,
       row.duration
@@ -136,8 +137,8 @@ function buildEventsSheet(observations, trials, animals) {
 
 function buildWindowsSheet(observations, trials) {
   return {
-    name: 'Okna prób',
-    headers: ['Próba', 'Długość wideo (s)', 'Okno od – ustawione (s)', 'Okno do – ustawione (s)', 'Użyte okno od (s)', 'Użyte okno do (s)', 'Zdarzenia w oknie', 'Zdarzenia razem', 'Pominięty czas, niewliczony (s)', 'Długość analizy po odjęciu pominięć (s)'],
+    name: t('Okna prób'),
+    headers: [t('Próba'), t('Długość wideo (s)'), t('Okno od – ustawione (s)'), t('Okno do – ustawione (s)'), t('Użyte okno od (s)'), t('Użyte okno do (s)'), t('Zdarzenia w oknie'), t('Zdarzenia razem'), t('Pominięty czas, niewliczony (s)'), t('Długość analizy po odjęciu pominięć (s)')],
     rows: trials.map((trial) => {
       const { window, total, inside } = summarizeTrialWindow(observations, trial)
       return [trial.name, trial.duration, trial.windowStart, trial.windowEnd, window.start, window.end, inside, total, window.skipped, window.length]
@@ -148,9 +149,9 @@ function buildWindowsSheet(observations, trials) {
 
 function buildSkipsSheet(trials) {
   return {
-    name: 'Pominięcia',
-    headers: ['Próba', 'Początek (s)', 'Koniec (s)', 'Czas (s)', 'Wliczony do analizy'],
-    rows: trials.flatMap((trial) => (trial.skips || []).map((skip) => [trial.name, skip.start, skip.end, skip.end - skip.start, skip.countTime ? 'tak' : 'nie'])),
+    name: t('Pominięcia'),
+    headers: [t('Próba'), t('Początek (s)'), t('Koniec (s)'), t('Czas (s)'), t('Wliczony do analizy')],
+    rows: trials.flatMap((trial) => (trial.skips || []).map((skip) => [trial.name, skip.start, skip.end, skip.end - skip.start, skip.countTime ? t('tak') : t('nie')])),
     formats: { 1: '0.000', 2: '0.000', 3: '0.000' }
   }
 }
@@ -158,24 +159,24 @@ function buildSkipsSheet(trials) {
 function buildInfoSheet({ includeCategories, mergeCategories, hasCategories, exportedAt, rounding }) {
   const categoriesOn = includeCategories && hasCategories
   return {
-    name: 'Informacje',
-    headers: ['Parametr', 'Opis'],
+    name: t('Informacje'),
+    headers: [t('Parametr'), t('Opis')],
     rows: [
-      ['Wyeksportowano', exportedAt.toLocaleString('pl-PL')],
-      ['Sumy kategorii (Σ)', categoriesOn ? 'tak – wiersze „Σ” sumują czynności z jednej kategorii' : 'nie'],
-      ['Czas scalony', categoriesOn && mergeCategories ? 'tak – nakładające się czynności w sumie kategorii liczone raz (czas = suma scalonych odcinków, liczba = liczba epizodów)' : 'nie – zwykła suma, nakładający się czas liczony podwójnie'],
+      [t('Wyeksportowano'), exportedAt.toLocaleString(locale())],
+      [t('Sumy kategorii (Σ)'), categoriesOn ? t('tak – wiersze „Σ” sumują czynności z jednej kategorii') : t('nie')],
+      [t('Czas scalony'), categoriesOn && mergeCategories ? t('tak – nakładające się czynności w sumie kategorii liczone raz (czas = suma scalonych odcinków, liczba = liczba epizodów)') : t('nie – zwykła suma, nakładający się czas liczony podwójnie')],
       ...(rounding && Number.isInteger(rounding.decimals)
-        ? [['Zaokrąglanie', `${rounding.decimals} miejsc po przecinku, ${ROUNDING_RULES.find((rule) => rule.id === rounding.rule)?.label.toLowerCase() || 'zaokrąglanie matematyczne'}; dotyczy wartości ułamkowych (czasów, procentów, latencji)`]]
+        ? [[t('Zaokrąglanie'), t('{decimals} miejsc po przecinku, {rule}; dotyczy wartości ułamkowych (czasów, procentów, latencji)', { decimals: rounding.decimals, rule: t(ROUNDING_RULES.find((rule) => rule.id === rounding.rule)?.label || 'Matematyczne (od 5 w górę)').toLowerCase() })]]
         : []),
-      ['Pominięcia', 'Fragmenty filmu przeskakiwane przez odtwarzacz. Niewliczony czas jest odejmowany od długości okna, od czasów trwania czynności i od latencji (czynność trwająca przez pominięcie traci tylko jego część). Wliczony czas zostaje w metrykach bez zmian. Lista pominięć jest w arkuszu „Pominięcia”.'],
-      ['Okno analizy', 'Fragment nagrania, dla którego liczone są metryki (domyślnie całe wideo). Zdarzenia poza oknem są pomijane, a te na jego granicy – przycinane. Trwające zdarzenie kończy się wraz z oknem.'],
-      ['Wystąpiła (1/0)', '1, jeśli czynność wystąpiła choć raz w oknie analizy'],
-      ['Latencja (s)', 'Czas od początku okna do pierwszego wystąpienia czynności; puste, gdy czynność nie wystąpiła'],
-      ['Liczba', 'Ile razy czynność wystąpiła w oknie analizy'],
-      ['Czas łączny (s)', 'Łączny czas trwania czynności w oknie; zdarzenia punktowe nie mają czasu (puste pole)'],
-      ['% okna', 'Czas łączny / długość okna × 100'],
-      ['% po latencji', 'Czas łączny / (długość okna − latencja) × 100'],
-      ['Puste pola', 'Wartość nie istnieje (np. latencja czynności, która nie wystąpiła) albo nie dotyczy (czas zdarzenia punktowego)']
+      [t('Pominięcia'), t('Fragmenty filmu przeskakiwane przez odtwarzacz. Niewliczony czas jest odejmowany od długości okna, od czasów trwania czynności i od latencji (czynność trwająca przez pominięcie traci tylko jego część). Wliczony czas zostaje w metrykach bez zmian. Lista pominięć jest w arkuszu „Pominięcia”.')],
+      [t('Okno analizy'), t('Fragment nagrania, dla którego liczone są metryki (domyślnie całe wideo). Zdarzenia poza oknem są pomijane, a te na jego granicy – przycinane. Trwające zdarzenie kończy się wraz z oknem.')],
+      [t('Wystąpiła (1/0)'), t('1, jeśli czynność wystąpiła choć raz w oknie analizy')],
+      [t('Latencja (s)'), t('Czas od początku okna do pierwszego wystąpienia czynności; puste, gdy czynność nie wystąpiła')],
+      [t('Liczba'), t('Ile razy czynność wystąpiła w oknie analizy')],
+      [t('Czas łączny (s)'), t('Łączny czas trwania czynności w oknie; zdarzenia punktowe nie mają czasu (puste pole)')],
+      [t('% okna'), t('Czas łączny / długość okna × 100')],
+      [t('% po latencji'), t('Czas łączny / (długość okna − latencja) × 100')],
+      [t('Puste pola'), t('Wartość nie istnieje (np. latencja czynności, która nie wystąpiła) albo nie dotyczy (czas zdarzenia punktowego)')]
     ]
   }
 }
@@ -195,5 +196,5 @@ export function buildExportSheets({ observations = [], trials = [], animals = []
 
 export function suggestExportName(projectName, date = new Date()) {
   const day = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
-  return `${projectName || 'projekt'}_metryki_${day}.xlsx`
+  return `${projectName || t('projekt')}_${t('metryki')}_${day}.xlsx`
 }

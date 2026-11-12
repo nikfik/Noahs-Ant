@@ -1,3 +1,4 @@
+import { t } from '../shared/i18n.js'
 import fs from 'node:fs'
 import path from 'node:path'
 import XLSX from 'xlsx'
@@ -36,13 +37,13 @@ const toCell = (value) => {
 // The request comes from the page, so it is checked and trimmed to plain values before anything is written.
 export function normalizeSheets(sheets) {
   if (!Array.isArray(sheets) || !sheets.length || sheets.length > MAX_SHEETS) {
-    throw new Error('Nieprawidłowe dane do eksportu.')
+    throw new Error(t('Nieprawidłowe dane do eksportu.'))
   }
 
   return sheets.map((sheet) => {
     const headers = Array.isArray(sheet?.headers) ? sheet.headers.slice(0, MAX_COLUMNS).map((header) => String(header ?? '')) : []
     const rows = Array.isArray(sheet?.rows) ? sheet.rows : []
-    if (rows.length > MAX_ROWS) throw new Error('Za dużo wierszy do wyeksportowania.')
+    if (rows.length > MAX_ROWS) throw new Error(t('Za dużo wierszy do wyeksportowania.'))
 
     const formats = {}
     Object.entries(sheet?.formats && typeof sheet.formats === 'object' ? sheet.formats : {}).forEach(([column, format]) => {

@@ -13,6 +13,7 @@ import {
 import { eventKey, matchesShortcut } from './shortcuts/shortcut-matching.js'
 import { chooseAnimalColor } from './animals/animal-model.js'
 import { normalizeRelations, pruneRelations } from './observations/activity-relations.js'
+import { t } from '../shared/i18n.js'
 
 const defaultEtogramRows = []
 const OPERATOR_HINT = '„+” – oba klawisze naraz, „/” – jeden z dwóch. Kolejne kliknięcie przełącza: + → / → tylko pierwszy klawisz.'
@@ -25,10 +26,10 @@ export function findShortcutConflicts(rows, programShortcuts = []) {
   return rows.map((row, index) => {
     const messages = []
     const duplicates = rows.filter((other, otherIndex) => otherIndex !== index && shortcutsOverlap(row.shortcut, other.shortcut))
-    if (duplicates.length) messages.push(`Ten skrót ma też: ${duplicates.map((other) => other.name || 'czynność bez nazwy').join(', ')}`)
+    if (duplicates.length) messages.push(t('Ten skrót ma też: {names}', { names: duplicates.map((other) => other.name || t('czynność bez nazwy')).join(', ') }))
 
     const taken = programShortcuts.filter((entry) => shortcutsOverlap(row.shortcut, entry.value))
-    if (taken.length) messages.push(`Zajęty przez program: ${taken.map((entry) => entry.label).join(', ')}`)
+    if (taken.length) messages.push(t('Zajęty przez program: {names}', { names: taken.map((entry) => t(entry.label)).join(', ') }))
     return messages.join(' · ')
   })
 }
@@ -61,18 +62,18 @@ const RELATION_DO = { start: 'rozpocznij', end: 'zakończ' }
 function renderRelationRule(row, rule, ruleIndex, rows, index) {
   const targets = rows.filter((other) => other.continuous && other.id !== row.id)
   const whenOptions = (row.continuous ? ['start', 'end'] : ['start'])
-    .map((value) => `<option value="${value}" ${rule.when === value ? 'selected' : ''}>${row.continuous ? RELATION_WHEN[value] : 'wystąpi'}</option>`).join('')
-  const doOptions = ['start', 'end'].map((value) => `<option value="${value}" ${rule.do === value ? 'selected' : ''}>${RELATION_DO[value]}</option>`).join('')
+    .map((value) => `<option value="${value}" ${rule.when === value ? 'selected' : ''}>${row.continuous ? t(RELATION_WHEN[value]) : t('wystąpi')}</option>`).join('')
+  const doOptions = ['start', 'end'].map((value) => `<option value="${value}" ${rule.do === value ? 'selected' : ''}>${t(RELATION_DO[value])}</option>`).join('')
   const targetOptions = targets
-    .map((other) => `<option value="${escapeHtml(other.id)}" ${rule.targetId === other.id ? 'selected' : ''}>${escapeHtml(other.name || 'czynność bez nazwy')}</option>`).join('')
+    .map((other) => `<option value="${escapeHtml(other.id)}" ${rule.targetId === other.id ? 'selected' : ''}>${escapeHtml(other.name || t('czynność bez nazwy'))}</option>`).join('')
   return `
     <div class="etogram-relation" data-rule-index="${ruleIndex}">
-      <span>Gdy ta czynność</span>
-      <select data-rel="when" aria-label="Kiedy">${whenOptions}</select>
+      <span>${t('Gdy ta czynność')}</span>
+      <select data-rel="when" aria-label="${t('Kiedy')}">${whenOptions}</select>
       <span>→</span>
-      <select data-rel="do" aria-label="Co zrobić">${doOptions}</select>
-      <select data-rel="targetId" aria-label="Która czynność"><option value="">— wybierz czynność —</option>${targetOptions}</select>
-      <button class="etogram-remove-row" type="button" data-action="remove-relation" data-index="${index}" data-rule-index="${ruleIndex}" aria-label="Usuń regułę">×</button>
+      <select data-rel="do" aria-label="${t('Co zrobić')}">${doOptions}</select>
+      <select data-rel="targetId" aria-label="${t('Która czynność')}"><option value="">${t('— wybierz czynność —')}</option>${targetOptions}</select>
+      <button class="etogram-remove-row" type="button" data-action="remove-relation" data-index="${index}" data-rule-index="${ruleIndex}" aria-label="${t('Usuń regułę')}">×</button>
     </div>`
 }
 
@@ -84,11 +85,11 @@ function renderRelationsRow(row, rows, index) {
       <td></td>
       <td colspan="7">
         <div class="etogram-relations">
-          <p>Powiązane czynności: ta czynność może w tej samej chwili rozpocząć lub zakończyć inną czynność tego zwierzęcia (np. po zakończeniu „sen” rozpocznij „czuwanie”).</p>
+          <p>${t('Powiązane czynności: ta czynność może w tej samej chwili rozpocząć lub zakończyć inną czynność tego zwierzęcia (np. po zakończeniu „sen” rozpocznij „czuwanie”).')}</p>
           ${rules.map((rule, ruleIndex) => renderRelationRule(row, rule, ruleIndex, rows, index)).join('')}
           ${others.length
-    ? `<button class="etogram-add-relation" type="button" data-action="add-relation" data-index="${index}">＋ Dodaj regułę</button>`
-    : '<p class="etogram-relations-empty">Dodaj do etogramu co najmniej jedną inną czynność ciągłą, aby móc ją powiązać.</p>'}
+    ? `<button class="etogram-add-relation" type="button" data-action="add-relation" data-index="${index}">${t('＋ Dodaj regułę')}</button>`
+    : `<p class="etogram-relations-empty">${t('Dodaj do etogramu co najmniej jedną inną czynność ciągłą, aby móc ją powiązać.')}</p>`}
         </div>
       </td>
     </tr>`
@@ -100,21 +101,21 @@ export function renderEditorTable(rows, conflicts = [], expanded = new Set()) {
     const ruleCount = (row.relations || []).length
     return `
     <tr data-index="${index}">
-      <td class="etogram-remove-cell"><button class="etogram-remove-row" type="button" data-action="remove-row" data-index="${index}" aria-label="Usuń czynność ${escapeHtml(row.name || index + 1)}">×</button></td>
-      <td><input data-field="category" data-index="${index}" value="${escapeHtml(row.category)}" placeholder="Kategoria" /></td>
-      <td><input data-field="name" data-index="${index}" value="${escapeHtml(row.name)}" placeholder="Nazwa czynności" /></td>
-      <td><textarea data-field="description" data-index="${index}" rows="2" placeholder="Opis">${escapeHtml(row.description)}</textarea></td>
+      <td class="etogram-remove-cell"><button class="etogram-remove-row" type="button" data-action="remove-row" data-index="${index}" aria-label="${escapeHtml(t('Usuń czynność {name}', { name: row.name || index + 1 }))}">×</button></td>
+      <td><input data-field="category" data-index="${index}" value="${escapeHtml(row.category)}" placeholder="${t('Kategoria')}" /></td>
+      <td><input data-field="name" data-index="${index}" value="${escapeHtml(row.name)}" placeholder="${t('Nazwa czynności')}" /></td>
+      <td><textarea data-field="description" data-index="${index}" rows="2" placeholder="${t('Opis')}">${escapeHtml(row.description)}</textarea></td>
       <td>
         <div class="etogram-shortcut-editor">
-          <button class="option-keybind etogram-keybind" type="button" data-action="capture-key" data-field="primary" data-index="${index}" aria-label="Ustaw główny skrót" title="Kliknij i naciśnij klawisz. Backspace czyści, Esc anuluje.">${escapeHtml(shortcut.primary ? keyLabel(shortcut.primary) : '—')}</button>
-          <button class="combo-operator ${shortcut.secondary ? 'active' : 'placeholder'}" type="button" data-action="toggle-operator" data-index="${index}" aria-label="Zmień sposób łączenia klawiszy" title="${OPERATOR_HINT}">${shortcut.secondary ? escapeHtml(shortcut.operator) : ''}</button>
-          <button class="option-keybind combo-slot ${shortcut.secondary ? 'active' : 'muted'}" type="button" data-action="capture-key" data-field="secondary" data-index="${index}" aria-label="Ustaw dodatkowy skrót" title="${shortcut.secondary ? 'Kliknij, aby zmienić drugi klawisz. Backspace go usuwa.' : 'Dodaj drugi klawisz lub kombinację'}">${escapeHtml(shortcut.secondary ? keyLabel(shortcut.secondary) : '')}</button>
+          <button class="option-keybind etogram-keybind" type="button" data-action="capture-key" data-field="primary" data-index="${index}" aria-label="${t('Ustaw główny skrót')}" title="${t('Kliknij i naciśnij klawisz. Backspace czyści, Esc anuluje.')}">${escapeHtml(shortcut.primary ? keyLabel(shortcut.primary) : '—')}</button>
+          <button class="combo-operator ${shortcut.secondary ? 'active' : 'placeholder'}" type="button" data-action="toggle-operator" data-index="${index}" aria-label="${t('Zmień sposób łączenia klawiszy')}" title="${t(OPERATOR_HINT)}">${shortcut.secondary ? escapeHtml(shortcut.operator) : ''}</button>
+          <button class="option-keybind combo-slot ${shortcut.secondary ? 'active' : 'muted'}" type="button" data-action="capture-key" data-field="secondary" data-index="${index}" aria-label="${t('Ustaw dodatkowy skrót')}" title="${shortcut.secondary ? t('Kliknij, aby zmienić drugi klawisz. Backspace go usuwa.') : t('Dodaj drugi klawisz lub kombinację')}">${escapeHtml(shortcut.secondary ? keyLabel(shortcut.secondary) : '')}</button>
         </div>
         ${conflicts[index] ? `<div class="etogram-shortcut-warning" role="status">${escapeHtml(conflicts[index])}</div>` : ''}
       </td>
-      <td class="etogram-color-cell"><input data-field="color" data-index="${index}" type="color" value="${escapeHtml(row.color)}" aria-label="Kolor ${escapeHtml(row.name || 'czynności')}" /><button class="etogram-color-reroll" type="button" data-action="reroll-color" data-index="${index}" title="Losuj inny kolor" aria-label="Losuj inny kolor">🎲</button></td>
-      <td class="etogram-continuous-cell"><input data-field="continuous" data-index="${index}" type="checkbox" ${row.continuous ? 'checked' : ''} aria-label="Czynność ciągła" /></td>
-      <td class="etogram-more-cell"><button class="etogram-more ${expanded.has(row.id) ? 'open' : ''}" type="button" data-action="toggle-relations" data-index="${index}" aria-expanded="${expanded.has(row.id)}" title="Zaawansowane: powiązane czynności${ruleCount ? ` (reguł: ${ruleCount})` : ''}" aria-label="Zaawansowane opcje czynności">…${ruleCount ? `<span class="etogram-more-count">${ruleCount}</span>` : ''}</button></td>
+      <td class="etogram-color-cell"><input data-field="color" data-index="${index}" type="color" value="${escapeHtml(row.color)}" aria-label="${escapeHtml(t('Kolor {name}', { name: row.name || t('czynności') }))}" /><button class="etogram-color-reroll" type="button" data-action="reroll-color" data-index="${index}" title="${t('Losuj inny kolor')}" aria-label="${t('Losuj inny kolor')}">🎲</button></td>
+      <td class="etogram-continuous-cell"><input data-field="continuous" data-index="${index}" type="checkbox" ${row.continuous ? 'checked' : ''} aria-label="${t('Czynność ciągła')}" /></td>
+      <td class="etogram-more-cell"><button class="etogram-more ${expanded.has(row.id) ? 'open' : ''}" type="button" data-action="toggle-relations" data-index="${index}" aria-expanded="${expanded.has(row.id)}" title="${t('Zaawansowane: powiązane czynności')}${ruleCount ? ` (${t('reguł: {count}', { count: ruleCount })})` : ''}" aria-label="${t('Zaawansowane opcje czynności')}">…${ruleCount ? `<span class="etogram-more-count">${ruleCount}</span>` : ''}</button></td>
     </tr>
     ${expanded.has(row.id) ? renderRelationsRow(row, rows, index) : ''}
   `
@@ -194,15 +195,15 @@ async function init(containerId = 'etogram-module', options = {}) {
   host.innerHTML = `
     <section class="side-panel etogram-card">
       <header class="side-panel-header">
-        <div><span class="side-panel-eyebrow">Czynności i skróty</span><h3>Etogram</h3></div>
-        <button id="open-etogram-editor" class="side-panel-action" type="button">Edytuj</button>
+        <div><span class="side-panel-eyebrow">${t('Czynności i skróty')}</span><h3>${t('Etogram')}</h3></div>
+        <button id="open-etogram-editor" class="side-panel-action" type="button">${t('Edytuj')}</button>
       </header>
       <div class="side-panel-body table-wrap">
         <table class="shortcut-table compact-table">
           <thead>
             <tr>
-              <th>Skrót</th>
-              <th>Nazwa czynności</th>
+              <th>${t('Skrót')}</th>
+              <th>${t('Nazwa czynności')}</th>
             </tr>
           </thead>
           <tbody>
@@ -214,8 +215,8 @@ async function init(containerId = 'etogram-module', options = {}) {
     <div id="etogram-modal" class="modal hidden">
       <section class="etogram-dialog" role="dialog" aria-modal="true" aria-labelledby="etogram-title">
         <header class="etogram-dialog-header">
-          <div><span class="etogram-eyebrow">Ustawienia projektu</span><h2 id="etogram-title">Edytor etogramu</h2><p>Zarządzaj czynnościami, kolorami oraz skrótami.</p></div>
-          <button id="close-etogram-modal" class="modal-close" type="button" aria-label="Zamknij edytor">×</button>
+          <div><span class="etogram-eyebrow">${t('Ustawienia projektu')}</span><h2 id="etogram-title">${t('Edytor etogramu')}</h2><p>${t('Zarządzaj czynnościami, kolorami oraz skrótami.')}</p></div>
+          <button id="close-etogram-modal" class="modal-close" type="button" aria-label="${t('Zamknij edytor')}">×</button>
         </header>
         <div class="etogram-dialog-body">
           <div class="etogram-editor-main">
@@ -231,21 +232,21 @@ async function init(containerId = 'etogram-module', options = {}) {
                   <col class="etogram-col-continuous" />
                   <col class="etogram-col-more" />
                 </colgroup>
-                <thead><tr><th></th><th>Kategoria</th><th>Czynność</th><th>Opis</th><th>Skrót</th><th>Kolor</th><th>Ciągła</th><th title="Zaawansowane opcje czynności">Więcej</th></tr></thead>
+                <thead><tr><th></th><th>${t('Kategoria')}</th><th>${t('Czynność')}</th><th>${t('Opis')}</th><th>${t('Skrót')}</th><th>${t('Kolor')}</th><th>${t('Ciągła')}</th><th title="${t('Zaawansowane opcje czynności')}">${t('Więcej')}</th></tr></thead>
                 <tbody>${renderEditorTable(rows, findShortcutConflicts(rows, programShortcuts()))}</tbody>
               </table>
             </div>
           </div>
           <aside class="etogram-editor-sidebar">
-            <h3>Opcje</h3>
-            <p>Dodaj lub usuń czynności etogramu.</p>
-            <button id="add-etogram-row" class="etogram-add-button" type="button"><span>＋</span> Dodaj czynność</button>
-            <div class="etogram-sidebar-note"><span class="etogram-note-icon">i</span><span>Ustaw skrót główny i opcjonalny dodatkowy. Kombinacja może używać operatora „+” lub „/”.</span></div>
+            <h3>${t('Opcje')}</h3>
+            <p>${t('Dodaj lub usuń czynności etogramu.')}</p>
+            <button id="add-etogram-row" class="etogram-add-button" type="button"><span>＋</span> ${t('Dodaj czynność')}</button>
+            <div class="etogram-sidebar-note"><span class="etogram-note-icon">i</span><span>${t('Ustaw skrót główny i opcjonalny dodatkowy. Kombinacja może używać operatora „+” lub „/”.')}</span></div>
           </aside>
         </div>
         <footer class="etogram-dialog-footer">
           <span id="etogram-save-status" role="status"></span>
-          <div><button id="cancel-etogram" class="etogram-cancel-button" type="button">Anuluj</button><button id="save-etogram" class="etogram-save-button" type="button">Zapisz zmiany</button></div>
+          <div><button id="cancel-etogram" class="etogram-cancel-button" type="button">${t('Anuluj')}</button><button id="save-etogram" class="etogram-save-button" type="button">${t('Zapisz zmiany')}</button></div>
         </footer>
       </section>
     </div>

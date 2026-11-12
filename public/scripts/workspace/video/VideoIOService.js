@@ -1,3 +1,4 @@
+import { t } from '../../shared/i18n.js'
 export class VideoIOService {
   static async selectVideoFile() {
     if (!window.electronAPI?.selectVideoFile) return ''
@@ -59,7 +60,7 @@ export class VideoIOService {
   static friendlyError(error) {
     const message = String(error?.message || error).replace(/^Error invoking remote method '[^']+':\s*(Error:\s*)?/, '')
     return message.includes('ffmpeg-missing')
-      ? 'Ten format wymaga konwersji, ale nie znaleziono programu ffmpeg.'
-      : `Nie udało się przygotować filmu. ${message}`
+      ? t('Ten format wymaga konwersji, ale nie znaleziono programu ffmpeg.')
+      : `${t('Nie udało się przygotować filmu.')} ${message}`
   }
 }

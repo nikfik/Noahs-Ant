@@ -157,6 +157,20 @@ describe('project list screen', () => {
     expect(document.getElementById('project-message').textContent).toContain('przeniesiony do Kosza')
   })
 
+  test('in English the cards, the menu and the dates speak English', async () => {
+    const { setLanguage, translatePage } = await import('../public/scripts/shared/i18n.js')
+    setLanguage('en')
+    translatePage()
+    await initProjectList()
+    await flush()
+    expect(document.querySelector('.project-meta').textContent).toMatch(/^Opened: /)
+    expect(document.querySelector('h2').textContent).toBe('Projects')
+    expect(document.getElementById('new-project-btn').textContent).toBe('New project')
+    card('Zebra').querySelector('[data-menu]').click()
+    expect([...document.querySelectorAll('.card-menu button')].map((button) => button.textContent)).toEqual(['Open', 'Export…', 'Information', 'Delete…'])
+    setLanguage('pl')
+  })
+
   test('Settings opens the settings window and the menu closes with Escape', () => {
     document.getElementById('settings-btn').click()
     expect(api.openSettingsWindow).toHaveBeenCalled()
