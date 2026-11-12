@@ -6,6 +6,7 @@ import { createObservationStore } from './observations/observation-store.js'
 import { createSkip } from './trials/skip-model.js'
 import { applyRelations } from './observations/activity-relations.js'
 import { askSkip } from './trials/skip-dialog.js'
+import { askEventTimes } from './observations/event-dialog.js'
 import { isSkipping, setSkipping } from './trials/skip-playback.js'
 
 // Where time 0 starts, measured from the left edge of the timeline: the 150 px label column plus an 8 px gap (see Workspace.css).
@@ -132,6 +133,7 @@ export function createTimelineModule() {
   let selectedSkipId = null
   let skipPreview = null
   let lastSkipClick = { id: null, at: 0 }
+  let lastEventClick = { id: null, at: 0 }
   let scrubbing = false
   let host = null
   let scroller = null
@@ -185,6 +187,32 @@ export function createTimelineModule() {
     if (answer.type === 'delete') await saveSkips(skips.filter((item) => item.id !== skip.id))
     else if (skip) await saveSkips(skips.map((item) => item.id === skip.id ? { ...item, start: answer.start, end: answer.end, countTime: answer.countTime } : item))
     else await saveSkips([...skips, createSkip(answer.start, answer.end, answer.countTime)])
+  }
+
+  // The exact times of one event, typed in a small dialog (opened by pressing the event twice).
+  async function editEvent(id) {
+    const item = store.getAll().find((candidate) => candidate.id === id)
+    if (!item) return
+
+    const animal = currentAnimals().find((candidate) => candidate.id === item.animalId)
+    const answer = await askEventTimes({
+      title: item.activityName,
+      subtitle: animal?.name || '',
+      kind: item.kind,
+      start: item.start,
+      end: item.end,
+      duration: duration > 0 ? duration : null
+    })
+    if (!answer) return
+
+    if (answer.type === 'delete') {
+      if (selectedId === id) selectedId = null
+      await store.commit(store.getAll().filter((candidate) => candidate.id !== id))
+      return
+    }
+    await store.commit(store.getAll().map((candidate) => candidate.id === id
+      ? { ...candidate, start: answer.start, end: item.kind === 'point' ? answer.start : answer.end, lane: null }
+      : candidate))
   }
 
   function animalMap() {
@@ -618,6 +646,14 @@ export function createTimelineModule() {
       await store.finishPreview(completedDrag.before)
     } else {
       render()
+      // A second press on the same event without moving it opens its times (done by hand: the events are redrawn while the video plays).
+      const now = Date.now()
+      if (lastEventClick.id === completedDrag.id && now - lastEventClick.at < 450) {
+        lastEventClick = { id: null, at: 0 }
+        await editEvent(completedDrag.id)
+      } else {
+        lastEventClick = { id: completedDrag.id, at: now }
+      }
     }
   }
 
